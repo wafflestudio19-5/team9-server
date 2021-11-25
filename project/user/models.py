@@ -62,14 +62,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     phone_number = models.CharField(max_length=20, unique=True)
 
     # 가입, 로그인 시점
-    last_login = models.DateTimeField(auto_now=True, blank=True, null=True)
-    date_joined = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    last_login = models.DateTimeField(auto_now=True)
+    date_joined = models.DateTimeField(auto_now_add=True)
     
     # 프로필에서 추가, 편집할 수 있는 필드
     # 나중에 유저의 커버이미지, 프로필이미지 view함수 만들 때, images폴더 안에 있는 사진들 중
     # 가장 최신 꺼를 불러오는 방향으로 하거나, 기존에 있는 사진 삭제하고 새로운 사진을 추가하는 방식으로
     # 짜야할 것 같습니다. 
-    self_intro = models.CharField(max_length=300, null=True)
+    self_intro = models.CharField(max_length=300, blank=True)
     profile_image = models.ImageField(upload_to=f'profile/{email}/profile_images/', null=True, blank=True)
     cover_image = models.ImageField(upload_to=f'profile/{email}/cover_images/', null=True, blank=True)
     
@@ -99,21 +99,21 @@ class Company(models.Model):
 
     # join_date, leave_date 입력 양식 정해주기
     user = models.ForeignKey(User, on_delete=CASCADE)
-    name = models.CharField(max_length=30, null=True)
-    role = models.CharField(max_length=30, null=True)
-    location = models.CharField(max_length=50, null=True)
-    join_date = models.DateField(null=True)
-    leave_date = models.DateField(null=True)
+    name = models.CharField(max_length=30)
+    role = models.CharField(max_length=30, blank=True)
+    location = models.CharField(max_length=50, blank=True)
+    join_date = models.DateField()
+    leave_date = models.DateField(blank=True)
     is_active = models.BooleanField(default=False)
-    activity = models.CharField(max_length=300, null=True)
+    detail = models.CharField(max_length=300, blank=True)
 
 
 class University(models.Model):
 
     # join_date, leave_date 입력 양식 정해주기
     user = models.ForeignKey(User, on_delete=CASCADE)
-    name = models.CharField(max_length=30, null=True)
-    major = models.CharField(max_length=30, null=True)
-    join_date = models.DateField(null=True)
-    graduate_date = models.DateField(null=True)
+    name = models.CharField(max_length=30)
+    major = models.CharField(max_length=30, blank=True)
+    join_date = models.DateField()
+    graduate_date = models.DateField(blank=True)
     is_active = models.BooleanField(default=False)
