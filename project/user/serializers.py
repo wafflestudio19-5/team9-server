@@ -39,9 +39,9 @@ class UserCreateSerializer(serializers.Serializer):
     def validate(self, data):
         gender = data.get("gender")
         if not gender:
-            raise serializers.ValidationError("성이 설정되지 않았습니다.")
+            raise serializers.ValidationError("성별이 설정되지 않았습니다.")
         if gender != "Male" and gender != "Female":
-            raise serializers.ValidationError("성이 잘못되었습니다.")
+            raise serializers.ValidationError("성별이 잘못되었습니다.")
 
         return data
 
