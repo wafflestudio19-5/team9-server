@@ -26,3 +26,15 @@ class UserSignUpView(APIView):
         return Response(
             {"user": user.email, "token": jwt_token}, status=status.HTTP_201_CREATED
         )
+
+
+class UserLoginView(APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def post(self, request):
+
+        serializer = UserLoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        token = serializer.validated_data["token"]
+
+        return Response({"success": True, "token": token}, status=status.HTTP_200_OK)
