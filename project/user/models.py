@@ -59,7 +59,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     # 회원가입시 필수로 입력해야하는 필드
     id = models.AutoField(primary_key=True)
     email = models.EmailField(max_length=64, unique=True)
-    username = models.CharField(max_length=50)
     first_name = models.CharField(max_length=25)
     last_name = models.CharField(max_length=25)
     birth = models.DateField()
@@ -98,7 +97,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     # 필수로 받고 싶은 필드 값. USERNAME_FIELD 값과 패스워드는 항상 기본적으로 요구하기 때문에 따로 명시하지 않아도 된다.
     REQUIRED_FIELDS = [
-        "username",
         "first_name",
         "last_name",
         "birth",
