@@ -43,7 +43,7 @@ class SignUpUserTestCase(TestCase):
         }
 
     def test_post_user_successful(self):
-        data = self.post_data
+        data = self.post_data.copy()
         data["email"] = "waffle2@test.com"
         response = self.client.post("/api/v1/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -58,10 +58,47 @@ class SignUpUserTestCase(TestCase):
         self.assertEqual(User.objects.count(), 1)
 
     def test_post_user_bad_gender(self):
-        data = self.post_data
+        data = self.post_data.copy()
         data["email"] = "waffle2@test.com"
         data["gender"] = "WOW"
         response = self.client.post("/api/v1/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+        self.assertEqual(User.objects.count(), 1)
+
+    def test_post_user_no_argument(self):
+        data = self.post_data.copy()
+        data.pop("email")
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 1)
+
+        data["email"] = "waffle2@test.com"
+        data.pop("first_name")
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 1)
+
+        data["first_name"] = self.post_data["first_name"]
+        data.pop("last_name")
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 1)
+
+        data["last_name"] = self.post_data["last_name"]
+        data.pop("birth")
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 1)
+
+        data["birth"] = self.post_data["birth"]
+        data.pop("gender")
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 1)
+
+        data["gender"] = self.post_data["gender"]
+        data.pop("password")
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
