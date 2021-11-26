@@ -21,12 +21,16 @@ def jwt_token_of(user):
 
 class UserCreateSerializer(serializers.Serializer):
 
-    GENDER_CHOICES = (("M", "Male"), ("F", "Female"))
-
     email = serializers.EmailField(required=True)
     first_name = serializers.CharField(max_length=25, required=True)
     last_name = serializers.CharField(max_length=25, required=True)
-    birth = serializers.DateField(required=True)
+    birth = serializers.DateField(
+        format="%Y-%M-%D",
+        input_formats=[
+            "%Y-%M-%D",
+        ],
+        required=True,
+    )
     gender = serializers.CharField(
         max_length=10, source="get_gender_display", required=True
     )
