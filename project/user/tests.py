@@ -102,3 +102,29 @@ class SignUpUserTestCase(TestCase):
         response = self.client.post("/api/v1/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
+
+
+class LoginTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(
+            email="waffle@test.com",
+            first_name="민준",
+            last_name="이",
+            birth="2002-05-14",
+            gender="Male",
+            password="password",
+        )
+
+        cls.post_data = {
+            "email": "waffle@test.com",
+            "password": "password",
+        }
+
+    def test_login(self):
+        response = self.client.post(
+            "/api/v1/login/", data=self.post_data, content_type="application/json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["token"], jwt_token_of((self.participant)))
