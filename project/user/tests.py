@@ -5,4 +5,16 @@ from user.serializers import jwt_token_of
 from rest_framework import status
 import json
 
-# Create your tests here.
+
+class UserFactory(DjangoModelFactory):
+    class Meta:
+        model = User
+
+    email = "test@test.com"
+
+    @classmethod
+    def create(cls, **kwargs):
+        user = User.objects.create(**kwargs)
+        user.set_password(kwargs.get("password", ""))
+
+        return user
