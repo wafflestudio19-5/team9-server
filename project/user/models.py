@@ -26,6 +26,7 @@ class CustomUserManager(BaseUserManager):
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
+        user.clean_phone_number()
         user.save(using=self._db)
         return user
 
@@ -47,7 +48,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     birth = models.DateField()
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
     password = models.CharField(max_length=128)
-    phone_number = models.CharField(max_length=20, unique=True)
+    phone_number = models.CharField(max_length=20, unique=True, blank=True, null=True)
 
     # 가입, 로그인 시점
     last_login = models.DateTimeField(auto_now=True)
@@ -92,6 +93,10 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_short_name(self):
         return self.email
+
+    def clean_phone_number(self):
+        if self.phone_number == "":
+            self.phone_number = None
 
 
 class Company(models.Model):
