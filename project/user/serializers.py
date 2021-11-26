@@ -20,28 +20,33 @@ def jwt_token_of(user):
 
 
 class UserCreateSerializer(serializers.Serializer):
+    GENDER_CHOICES = {"Male": "M", "Female": "F"}
 
     email = serializers.EmailField(required=True)
     first_name = serializers.CharField(max_length=25, required=True)
     last_name = serializers.CharField(max_length=25, required=True)
     birth = serializers.DateField(
-        format="%Y-%M-%D",
+        format="%Y-%m-%d",
         input_formats=[
-            "%Y-%M-%D",
+            "%Y-%m-%d",
         ],
         required=True,
     )
-    gender = serializers.CharField(
-        max_length=10, source="get_gender_display", required=True
-    )
+    gender = serializers.CharField(max_length=10, required=True)
     password = serializers.CharField(max_length=128, required=True)
 
     # validate 정의
     def validate(self, data):
+        gender = data.get("gender")
+        if not gender:
+            raise serializers.ValidationError("성이 설정되지 않았습니다.")
+        if gender != "Male" or gender != "Female":
+            raise serializers.ValidationError("성이 잘못되었습니다.")
 
         return data
 
     def create(self, validated_data):
+        validated_data["gender"] = self.GENDER_CHOICES[validated_data["gender"]]
         user = User.objects.create_user(**validated_data)
         return user, jwt_token_of(user)
 
