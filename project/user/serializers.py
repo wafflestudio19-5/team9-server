@@ -20,17 +20,22 @@ def jwt_token_of(user):
 
 class UserCreateSerializer(serializers.Serializer):
 
-    # 필드 선언
-    
+    GENDER_CHOICES = (("M", "Male"), ("F", "Female"))
+
+    email = serializers.EmailField(required = True)
+    first_name = serializers.CharField(max_length=25, required = True)
+    last_name = serializers.CharField(max_length=25, required = True)
+    birth = serializers.DateField(required = True)
+    gender = serializers.CharField(max_length=10, choices=GENDER_CHOICES, required = True)
+    password = serializers.CharField(max_length=128, required = True)
+
     # validate 정의
     def validate(self, data):
         
         return data
         
     def create(self, validated_data):
-        # TODO (1. 유저 만들고 (ORM) , 2. 비밀번호 설정하기; 아래 코드를 수정해주세요.)
-        user = None
-
+        user = User.objects.create_user(**validated_data)
         return user, jwt_token_of(user)
 
 
