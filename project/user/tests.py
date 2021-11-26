@@ -17,6 +17,7 @@ class UserFactory(DjangoModelFactory):
     def create(cls, **kwargs):
         user = User.objects.create(**kwargs)
         user.set_password(kwargs.get("password", ""))
+        user.save()
 
         return user
 
@@ -125,6 +126,14 @@ class LoginTestCase(TestCase):
         response = self.client.post(
             "/api/v1/login/", data=self.post_data, content_type="application/json"
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        self.assertEqual(data["token"], jwt_token_of((self.participant)))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(data["token"], jwt_token_of((self.user)))
+
+    def test_login_fail(self):
+        response = self.client.post(
+            "/api/v1/login/",
+            data={"email": "waffle@test.com", "password": "qlalfqjsgh"},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
