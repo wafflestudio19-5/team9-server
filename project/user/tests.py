@@ -4,6 +4,7 @@ from user.models import User
 from user.serializers import jwt_token_of
 from rest_framework import status
 import json
+from django.db import transaction
 
 
 class UserFactory(DjangoModelFactory):
@@ -48,3 +49,16 @@ class SignUpUserTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         self.assertEqual(User.objects.count(), 2)
+
+    def test_post_user_confilct(self):
+        with transaction.atomic():
+            response = self.client.post("/api/v1/signup/", data=self.post_data)
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+
+        self.assertEqual(User.objects.count(), 1)
+
+    def test_post_user_bad_gender(self):
+            response = self.client.post("/api/v1/signup/", data=self.post_data)
+        self.assertEqual(response.status_code, status.HTTP
+
+        self.assertEqual(User.objects.count(), 1)
