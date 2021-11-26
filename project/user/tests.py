@@ -58,7 +58,10 @@ class SignUpUserTestCase(TestCase):
         self.assertEqual(User.objects.count(), 1)
 
     def test_post_user_bad_gender(self):
-            response = self.client.post("/api/v1/signup/", data=self.post_data)
-        self.assertEqual(response.status_code, status.HTTP
+        data = self.post_data
+        data["email"] = "waffle2@test.com"
+        data["gender"] = "WOW"
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         self.assertEqual(User.objects.count(), 1)
