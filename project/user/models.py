@@ -26,27 +26,11 @@ class CustomUserManager(BaseUserManager):
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
+        user.clean_phone_number()
         user.save(using=self._db)
         return user
 
     def create_user(self, email, password=None, **extra_fields):
-
-        # setdefault -> 딕셔너리에 key가 없을 경우 default로 값 설정
-        extra_fields.setdefault("is_staff", False)
-        extra_fields.setdefault("is_superuser", False)
-
-        return self._create_user(email, password, **extra_fields)
-
-    def create_superuser(self, email, password, **extra_fields):
-
-        extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superuser", True)
-
-        if (
-            extra_fields.get("is_staff") is not True
-            or extra_fields.get("is_superuser") is not True
-        ):
-            raise ValueError("권한 설정이 잘못되었습니다.")
 
         return self._create_user(email, password, **extra_fields)
 
@@ -59,13 +43,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     # 회원가입시 필수로 입력해야하는 필드
     id = models.AutoField(primary_key=True)
     email = models.EmailField(max_length=64, unique=True)
-    username = models.CharField(max_length=50)
     first_name = models.CharField(max_length=25)
     last_name = models.CharField(max_length=25)
     birth = models.DateField()
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
     password = models.CharField(max_length=128)
-    phone_number = models.CharField(max_length=20, unique=True)
+    phone_number = models.CharField(max_length=20, unique=True, blank=True, null=True)
 
     # 가입, 로그인 시점
     last_login = models.DateTimeField(auto_now=True)
@@ -98,7 +81,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     # 필수로 받고 싶은 필드 값. USERNAME_FIELD 값과 패스워드는 항상 기본적으로 요구하기 때문에 따로 명시하지 않아도 된다.
     REQUIRED_FIELDS = [
-        "username",
         "first_name",
         "last_name",
         "birth",
@@ -111,6 +93,10 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_short_name(self):
         return self.email
+
+    def clean_phone_number(self):
+        if self.phone_number == "":
+            self.phone_number = None
 
 
 class Company(models.Model):

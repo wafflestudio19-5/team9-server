@@ -18,19 +18,36 @@ def jwt_token_of(user):
     jwt_token = JWT_ENCODE_HANDLER(payload)
     return jwt_token
 
-class UserCreateSerializer(serializers.Serializer):
 
-    # 필드 선언
-    
+class UserCreateSerializer(serializers.Serializer):
+    GENDER_CHOICES = {"Male": "M", "Female": "F"}
+
+    email = serializers.EmailField(required=True)
+    first_name = serializers.CharField(max_length=25, required=True)
+    last_name = serializers.CharField(max_length=25, required=True)
+    birth = serializers.DateField(
+        format="%Y-%m-%d",
+        input_formats=[
+            "%Y-%m-%d",
+        ],
+        required=True,
+    )
+    gender = serializers.CharField(max_length=10, required=True)
+    password = serializers.CharField(max_length=128, required=True)
+
     # validate 정의
     def validate(self, data):
-        
-        return data
-        
-    def create(self, validated_data):
-        # TODO (1. 유저 만들고 (ORM) , 2. 비밀번호 설정하기; 아래 코드를 수정해주세요.)
-        user = None
+        gender = data.get("gender")
+        if not gender:
+            raise serializers.ValidationError("성별이 설정되지 않았습니다.")
+        if gender != "Male" and gender != "Female":
+            raise serializers.ValidationError("성별이 잘못되었습니다.")
 
+        return data
+
+    def create(self, validated_data):
+        validated_data["gender"] = self.GENDER_CHOICES[validated_data["gender"]]
+        user = User.objects.create_user(**validated_data)
         return user, jwt_token_of(user)
 
 
@@ -43,18 +60,15 @@ class UserLoginSerializer(serializers.Serializer):
     token = serializers.CharField(max_length=255, read_only=True)
 
     def validate(self, data):
-        email = data.get('email', None)
-        password = data.get('password', None)
+        email = data.get("email", None)
+        password = data.get("password", None)
         user = authenticate(email=email, password=password)
 
         if user is None:
             raise serializers.ValidationError("이메일 또는 비밀번호가 잘못되었습니다.")
 
         update_last_login(None, user)
-        return {
-            'email': user.email,
-            'token': jwt_token_of(user)
-        }
+        return {"email": user.email, "token": jwt_token_of(user)}
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -64,10 +78,8 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         # Django 기본 User 모델에 존재하는 필드 중 일부
-        fields = (
-            
-        )
-        extra_kwargs = {'password': {'write_only': True}
+        fields = ()
+        extra_kwargs = {"password": {"write_only": True}}
 
     def validate(self, data):
 

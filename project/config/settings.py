@@ -133,7 +133,7 @@ USE_L10N = True
 USE_TZ = True
 
 REST_FRAMEWORK = {
-    "EXCEPTION_HANDLER": "common.exception_handler.custom_exception_handler",
+    "EXCEPTION_HANDLER": "rest_framework.views.exception_handler",
     # 모든 API -> 기본적으로 인증이 필요하게 됨
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_RENDERER_CLASSES": (
