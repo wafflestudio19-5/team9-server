@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from user.serializers import UserSerializer, UserLoginSerializer, UserCreateSerializer
+from drf_yasg.utils import swagger_auto_schema
 
 User = get_user_model()
 
@@ -13,6 +14,7 @@ User = get_user_model()
 class UserSignUpView(APIView):
     permission_classes = (permissions.AllowAny,)
 
+    @swagger_auto_schema(request_body=UserCreateSerializer)
     def post(self, request, *args, **kwargs):
 
         serializer = UserCreateSerializer(data=request.data)
@@ -31,6 +33,7 @@ class UserSignUpView(APIView):
 class UserLoginView(APIView):
     permission_classes = (permissions.AllowAny,)
 
+    @swagger_auto_schema(request_body=UserLoginSerializer)
     def post(self, request):
 
         serializer = UserLoginSerializer(data=request.data)
