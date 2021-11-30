@@ -172,3 +172,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Custom User Model
 AUTH_USER_MODEL = "user.User"
+
+# Swagger Configurations
+SWAGGER_SETTINGS = {
+   'USE_SESSION_AUTH': False
+}
