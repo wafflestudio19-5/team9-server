@@ -1,14 +1,14 @@
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .serializers import PostListSerializer
+from .serializers import PostListSerializer, PostSerializer
 from .models import Post
 from datetime import datetime
 from django.shortcuts import get_object_or_404
 
 class PostViewSet(viewsets.GenericViewSet):
 
-    serializer_class = PostListSerializer
+    serializer_class = PostSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.AllowAny,)
 
