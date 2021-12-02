@@ -11,7 +11,7 @@ class PostViewSet(viewsets.GenericViewSet):
 
     serializer_class = PostSerializer
     queryset = Post.objects.all()
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = (permissions.IsAuthenticated,)
 
     def list(self, request):
 

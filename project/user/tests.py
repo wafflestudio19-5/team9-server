@@ -7,6 +7,7 @@ import json
 from django.db import transaction
 
 
+
 class UserFactory(DjangoModelFactory):
     class Meta:
         model = User
