@@ -175,7 +175,7 @@ class NewsFeedTestCase(TestCase):
         data = response.json()
 
         self.assertEqual(len(data), 100)
-    '''
+    
     def test_post_image(self):
 
         #https://picsum.photos/300/300 --> 랜덤으로 사진을 주는 곳
@@ -208,4 +208,4 @@ class NewsFeedTestCase(TestCase):
         
         #위에 포함해서 총 6개 이미지 있어야 함)
         self.assertEqual(len(data[0]['images']), 6)
-    '''
+    
