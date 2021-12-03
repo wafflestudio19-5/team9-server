@@ -14,7 +14,6 @@ class PostViewSet(viewsets.GenericViewSet):
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
-    @swagger_auto_schema(request_body=PostListSerializer)
     def list(self, request):
 
         #쿼리셋을 효율적으로 쓰는법 http://raccoonyy.github.io/using-django-querysets-effectively-translate/
