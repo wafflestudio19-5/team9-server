@@ -138,7 +138,7 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(len(data), 2)
 
         #피드에 친구와 내 게시물들이 존재
-        #내 게시물이 친구 게시물보다 일찎 생성되었으므로, 친구 게시물이 먼저 떠야함 (최신순)
+        #내 게시물이 친구 게시물보다 일찍 생성되었으므로, 친구 게시물이 먼저 떠야함 (최신순)
         self.assertEqual(data[1]['content'], self.test_user.posts.last().content)
         self.assertEqual(data[1]['likes'], self.test_user.posts.last().likes)
         self.assertEqual(data[0]['content'], self.test_friend.posts.last().content)
