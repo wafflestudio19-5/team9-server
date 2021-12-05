@@ -1,7 +1,7 @@
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .serializers import PostListSerializer, PostSerializer
+from .serializers import PostListSerializer, PostSerializer, PostLikeSerializer
 from .models import Post
 from user.models import User
 from datetime import datetime
@@ -57,3 +57,7 @@ class LikeViewSet(viewsets.GenericViewSet):
         post.likes = post.likes - 1
         post.save()
         return Response(self.serializer_class(post), status=status.HTTP_200_OK)
+
+    def retrieve(self, request, pk=None):
+        post = get_object_or_404(self.queryset, pk=pk)
+        return Response(PostLikeSerializer(post), status=status.HTTP_200_OK)
