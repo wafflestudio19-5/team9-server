@@ -30,3 +30,10 @@ class PostViewSet(viewsets.GenericViewSet):
 
         serializer = PostListSerializer(posts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class LikeViewSet(viewsets.GenericViewSet):
+
+    serializer_class = PostSerializer
+    queryset = Post.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
