@@ -5,6 +5,7 @@ from django.contrib.auth.models import update_last_login
 from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
 from .models import Post, PostImage
+from user.serializers import UserSerializer
 from datetime import datetime, timedelta
 from pytz import timezone
 
@@ -50,3 +51,14 @@ class PostImageSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return super().create(validated_data)
+
+
+class PostLikeSerializer(serializers.ModelSerializer):
+    likeusers = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Post
+        fields = ("likes", "likeusers")
+
+    def get_likeusers(self, post):
+        return UserSerializer(post.likeusers, many=True).data
