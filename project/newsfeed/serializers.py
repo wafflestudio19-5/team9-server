@@ -8,23 +8,20 @@ from .models import Post, PostImage
 from datetime import datetime, timedelta
 from pytz import timezone
 
+
 class PostSerializer(serializers.ModelSerializer):
-  
     class Meta:
-        
+
         model = Post
-        fields=(
-            'id', 
-            'author', 
-            'content', 
-            'likes')
-    
+        fields = ("id", "author", "content", "likes")
+
     def create(self, validated_data):
-        
+
         return None
 
     def validate(self, attrs):
         return super().validate(attrs)
+
 
 class PostListSerializer(serializers.ModelSerializer):
 
@@ -33,32 +30,23 @@ class PostListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = (
-            'author',
-            'content',
-            'images',
-            'likes',
-            'posted_at'
-        )
+        fields = ("author", "content", "images", "likes", "posted_at")
 
     def get_posted_at(self, post):
-        
+
         created_at = post.created_at
         now = datetime.now()
-        duration = str(now-created_at).split(".")[0]
+        duration = str(now - created_at).split(".")[0]
         return duration
 
     def get_images(self, post):
         return PostImageSerializer(post.images, many=True, context=self.context).data
 
-class PostImageSerializer(serializers.ModelSerializer):
 
+class PostImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = PostImage
-        fields=(
-            'image',
-            'author_email'
-        )
+        fields = ("image", "author_email")
 
     def create(self, validated_data):
         return super().create(validated_data)

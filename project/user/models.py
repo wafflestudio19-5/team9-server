@@ -69,7 +69,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     # friends 는 다대다 + 재귀적 모델, symmetrical 옵션은 대칭이라는 뜻으로
     # 인스타그램처럼 내가 팔로우 해도 상대가 팔로우 안할 수 있는 경우 symmetrical = False
     # 페이스북처럼 친구 요청을 수락하면 서로의 친구목록에 동시에 추가되는 경우 symmetrical = True (default)
-    friends = models.ManyToManyField("self", symmetrical=True, related_name="friends", blank=True)
+    friends = models.ManyToManyField(
+        "self", symmetrical=True, related_name="friends", blank=True
+    )
     # is_staff = models.BooleanField(default=False)
 
     # 거주지는 나중에 구현

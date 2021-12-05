@@ -8,6 +8,7 @@ from datetime import datetime
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 
+
 class PostViewSet(viewsets.GenericViewSet):
 
     serializer_class = PostSerializer
@@ -16,16 +17,16 @@ class PostViewSet(viewsets.GenericViewSet):
 
     def list(self, request):
 
-        #쿼리셋을 효율적으로 쓰는법 http://raccoonyy.github.io/using-django-querysets-effectively-translate/
-        
+        # 쿼리셋을 효율적으로 쓰는법 http://raccoonyy.github.io/using-django-querysets-effectively-translate/
+
         user = request.user
         friends = user.friends.all()
         posts = user.posts.all()
         if friends:
             for f in friends.iterator():
-                posts=posts.union(f.posts.all())
+                posts = posts.union(f.posts.all())
 
-        posts = posts.order_by('-created_at')
-        
+        posts = posts.order_by("-created_at")
+
         serializer = PostListSerializer(posts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
