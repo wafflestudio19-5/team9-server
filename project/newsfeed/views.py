@@ -41,8 +41,10 @@ class LikeViewSet(viewsets.GenericViewSet):
     def update(self, request, pk=None):
         user = request.user
         post = get_object_or_404(self.queryset, pk=pk)
-        if post.likeusers.filter(user=user).count() == 1:
+        if post.likeusers.filter(user=user).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST, data="이미 좋아요 한 게시글입니다.")
+        if not user.friends.filter(user=post.author).exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST, data="친구의 게시글이 아닙니다.")
         post.likeusers.add(user)
         post.likes = post.likes + 1
         post.save()
@@ -51,8 +53,10 @@ class LikeViewSet(viewsets.GenericViewSet):
     def delete(self, request, pk=None):
         user = request.user
         post = get_object_or_404(self.queryset, pk=pk)
-        if post.likeusers.filter(user=user).count() != 1:
+        if not post.likeusers.filter(user=user).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST, data="좋아요하지 않은 게시글입니다.")
+        if not user.friends.filter(user=post.author).exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST, data="친구의 게시글이 아닙니다.")
         post.likeusers.remove(user)
         post.likes = post.likes - 1
         post.save()
