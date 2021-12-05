@@ -43,8 +43,13 @@ class LikeViewSet(viewsets.GenericViewSet):
         post = get_object_or_404(self.queryset, pk=pk)
         if post.likeusers.filter(id=user.id).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST, data="이미 좋아요 한 게시글입니다.")
-        if not user.friends.filter(id=post.author.id).exists():
-            return Response(status=status.HTTP_400_BAD_REQUEST, data="친구의 게시글이 아닙니다.")
+        if (
+            not user.friends.filter(id=post.author.id).exists()
+            and post.author.id != user.id
+        ):
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="친구 혹은 자신의 게시글이 아닙니다."
+            )
         post.likeusers.add(user)
         post.likes = post.likes + 1
         post.save()
@@ -55,8 +60,13 @@ class LikeViewSet(viewsets.GenericViewSet):
         post = get_object_or_404(self.queryset, pk=pk)
         if not post.likeusers.filter(id=user.id).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST, data="좋아요하지 않은 게시글입니다.")
-        if not user.friends.filter(id=post.author.id).exists():
-            return Response(status=status.HTTP_400_BAD_REQUEST, data="친구의 게시글이 아닙니다.")
+        if (
+            not user.friends.filter(id=post.author.id).exists()
+            and post.author.id != user.id
+        ):
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="친구 혹은 자신의 게시글이 아닙니다."
+            )
         post.likeusers.remove(user)
         post.likes = post.likes - 1
         post.save()
