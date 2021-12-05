@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "drf_yasg",
     "user.apps.UserConfig",
+    "newsfeed.apps.NewsfeedConfig"
 ]
 
 MIDDLEWARE = [
@@ -125,13 +126,13 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Seoul"
 
 USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+USE_TZ = False
 
 REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "rest_framework.views.exception_handler",

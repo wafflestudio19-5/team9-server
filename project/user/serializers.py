@@ -64,7 +64,7 @@ class UserLoginSerializer(serializers.Serializer):
         password = data.get("password", None)
         user = authenticate(email=email, password=password)
 
-        if user is None:
+        if not user:
             raise serializers.ValidationError("이메일 또는 비밀번호가 잘못되었습니다.")
 
         update_last_login(None, user)
