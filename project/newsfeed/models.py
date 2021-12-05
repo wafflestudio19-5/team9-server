@@ -12,6 +12,7 @@ class Post(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     likes = models.PositiveIntegerField(default=0)
+    likeusers = models.ManyToManyField(User)
 
     def get_user_url(self):
         # 게시글에서 유저를 누르면 유저 프로필로 갈 수 있게 하기 위함
