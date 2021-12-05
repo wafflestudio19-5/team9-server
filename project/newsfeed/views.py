@@ -47,3 +47,13 @@ class LikeViewSet(viewsets.GenericViewSet):
         post.likes = post.likes + 1
         post.save()
         return Response(self.serializer_class(post), status=status.HTTP_200_OK)
+
+    def delete(self, request, pk=None):
+        user = request.user
+        post = get_object_or_404(self.queryset, pk=pk)
+        if post.likeusers.filter(user=user).count() != 1:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data="좋아요하지 않은 게시글입니다.")
+        post.likeusers.remove(user)
+        post.likes = post.likes - 1
+        post.save()
+        return Response(self.serializer_class(post), status=status.HTTP_200_OK)
