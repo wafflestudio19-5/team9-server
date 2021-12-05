@@ -37,3 +37,13 @@ class LikeViewSet(viewsets.GenericViewSet):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
+
+    def update(self, request, pk=None):
+        user = request.user
+        post = get_object_or_404(self.queryset, pk=pk)
+        if post.likeusers.filter(user=user).count() == 1:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data="이미 좋아요 한 게시글입니다.")
+        post.likeusers.add(user)
+        post.likes = post.likes + 1
+        post.save()
+        return Response(self.serializer_class(post), status=status.HTTP_200_OK)
