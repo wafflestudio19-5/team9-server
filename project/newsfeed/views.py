@@ -41,27 +41,27 @@ class LikeViewSet(viewsets.GenericViewSet):
     def update(self, request, pk=None):
         user = request.user
         post = get_object_or_404(self.queryset, pk=pk)
-        if post.likeusers.filter(user=user).exists():
+        if post.likeusers.filter(id=user.id).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST, data="이미 좋아요 한 게시글입니다.")
-        if not user.friends.filter(user=post.author).exists():
+        if not user.friends.filter(id=post.author.id).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST, data="친구의 게시글이 아닙니다.")
         post.likeusers.add(user)
         post.likes = post.likes + 1
         post.save()
-        return Response(self.serializer_class(post), status=status.HTTP_200_OK)
+        return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
 
     def delete(self, request, pk=None):
         user = request.user
         post = get_object_or_404(self.queryset, pk=pk)
-        if not post.likeusers.filter(user=user).exists():
+        if not post.likeusers.filter(id=user.id).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST, data="좋아요하지 않은 게시글입니다.")
-        if not user.friends.filter(user=post.author).exists():
+        if not user.friends.filter(id=post.author.id).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST, data="친구의 게시글이 아닙니다.")
         post.likeusers.remove(user)
         post.likes = post.likes - 1
         post.save()
-        return Response(self.serializer_class(post), status=status.HTTP_200_OK)
+        return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
 
     def retrieve(self, request, pk=None):
         post = get_object_or_404(self.queryset, pk=pk)
-        return Response(PostLikeSerializer(post), status=status.HTTP_200_OK)
+        return Response(PostLikeSerializer(post).data, status=status.HTTP_200_OK)

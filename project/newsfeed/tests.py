@@ -220,3 +220,70 @@ class NewsFeedTestCase(TestCase):
 
         # 위에 포함해서 총 6개 이미지 있어야 함)
         self.assertEqual(len(data[0]["images"]), 6)
+
+
+class LikeTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.test_user = UserFactory.create(
+            email="test0@test.com",
+            password="password",
+            first_name="test",
+            last_name="user",
+            birth="1997-02-03",
+            gender="M",
+            phone_number="01000000000",
+        )
+
+        cls.test_friend = UserFactory.create(
+            email="test1@test.com",
+            password="password",
+            first_name="test",
+            last_name="friend",
+            birth="1997-02-03",
+            gender="M",
+            phone_number="01011111111",
+        )
+
+        cls.test_user.friends.add(cls.test_friend)
+        cls.test_user.save()
+
+        cls.test_stranger = UserFactory.create(
+            email="test2@test.com",
+            password="password",
+            first_name="test",
+            last_name="stranger",
+            birth="1997-02-03",
+            gender="M",
+            phone_number="01022222222",
+        )
+
+        PostFactory.create(author=cls.test_user, content="나의 테스트 게시물입니다.", likes=0)
+
+        PostFactory.create(author=cls.test_friend, content="친구의 테스트 게시물입니다.", likes=0)
+
+        PostFactory.create(
+            author=cls.test_stranger, content="모르는 사람의 테스트 게시물입니다.", likes=0
+        )
+
+    def test_like_and_unlike(self):
+        user = self.test_user
+        post = self.test_friend.posts.last()
+        user_token = "JWT " + jwt_token_of(user)
+        response = self.client.put(
+            "/api/v1/like/" + str(post.id) + "/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["likes"], 1)
+
+        response = self.client.delete(
+            "/api/v1/like/" + str(post.id) + "/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["likes"], 0)
