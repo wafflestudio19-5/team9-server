@@ -7,22 +7,43 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('newsfeed', '0001_initial'),
+        ("newsfeed", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='post',
-            name='id',
+            model_name="post",
+            name="id",
             field=models.AutoField(primary_key=True, serialize=False),
         ),
         migrations.CreateModel(
-            name='Image',
+            name="Image",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('author_email', models.CharField(blank=True, max_length=30)),
-                ('image', models.ImageField(blank=True, upload_to='user/<django.db.models.fields.CharField>/posts/%Y/%m/%d/<django.db.models.fields.related.ForeignKey>/')),
-                ('post', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='images', to='newsfeed.post')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("author_email", models.CharField(blank=True, max_length=30)),
+                (
+                    "image",
+                    models.ImageField(
+                        blank=True,
+                        upload_to="user/<django.db.models.fields.CharField>/posts/%Y/%m/%d/<django.db.models.fields.related.ForeignKey>/",
+                    ),
+                ),
+                (
+                    "post",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="images",
+                        to="newsfeed.post",
+                    ),
+                ),
             ],
         ),
     ]

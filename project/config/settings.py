@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "drf_yasg",
     "user.apps.UserConfig",
-    "newsfeed.apps.NewsfeedConfig"
+    "newsfeed.apps.NewsfeedConfig",
 ]
 
 MIDDLEWARE = [
@@ -175,6 +175,4 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "user.User"
 
 # Swagger Configurations
-SWAGGER_SETTINGS = {
-   'USE_SESSION_AUTH': False
-}
+SWAGGER_SETTINGS = {"USE_SESSION_AUTH": False}

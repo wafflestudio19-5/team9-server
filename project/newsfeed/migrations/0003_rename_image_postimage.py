@@ -6,12 +6,12 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('newsfeed', '0002_auto_20211201_1519'),
+        ("newsfeed", "0002_auto_20211201_1519"),
     ]
 
     operations = [
         migrations.RenameModel(
-            old_name='Image',
-            new_name='PostImage',
+            old_name="Image",
+            new_name="PostImage",
         ),
     ]
