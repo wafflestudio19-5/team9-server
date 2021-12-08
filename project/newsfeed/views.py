@@ -1,12 +1,14 @@
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from typing import Type
+
 from .serializers import PostListSerializer, PostSerializer, PostLikeSerializer
 from .models import Post
 from user.models import User
 from datetime import datetime
 from django.shortcuts import get_object_or_404
-from drf_yasg.utils import swagger_auto_schema
+from drf_yasg.utils import swagger_auto_schema, no_body
 
 
 class PostViewSet(viewsets.GenericViewSet):
@@ -15,7 +17,7 @@ class PostViewSet(viewsets.GenericViewSet):
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
-    @swagger_auto_schema(operation_description="로그인된 유저의 friend들의 post를 최신순으로 가져오기")
+    @swagger_auto_schema(operation_description="로그인된 유저의 friend들의 post들을 최신순으로 가져오기")
     def list(self, request):
 
         # 쿼리셋을 효율적으로 쓰는법 http://raccoonyy.github.io/using-django-querysets-effectively-translate/
@@ -39,7 +41,7 @@ class LikeViewSet(viewsets.GenericViewSet):
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
-    @swagger_auto_schema(operation_description="좋아요하기")
+    @swagger_auto_schema(operation_description="좋아요하기", request_body=no_body)
     def update(self, request, pk=None):
         user = request.user
         post = get_object_or_404(self.queryset, pk=pk)
@@ -57,7 +59,9 @@ class LikeViewSet(viewsets.GenericViewSet):
         post.save()
         return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(operation_description="좋아요 취소하기")
+    @swagger_auto_schema(
+        operation_description="좋아요 취소하기", responses={200: PostSerializer()}
+    )
     def destroy(self, request, pk=None):
         user = request.user
         post = get_object_or_404(self.queryset, pk=pk)
@@ -75,7 +79,10 @@ class LikeViewSet(viewsets.GenericViewSet):
         post.save()
         return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(operation_description="해당 post의 좋아요 개수, 좋아요 한 유저 가져오기")
+    @swagger_auto_schema(
+        operation_description="해당 post의 좋아요 개수, 좋아요 한 유저 가져오기",
+        responses={200: PostLikeSerializer()},
+    )
     def retrieve(self, request, pk=None):
         post = get_object_or_404(self.queryset, pk=pk)
         return Response(PostLikeSerializer(post).data, status=status.HTTP_200_OK)
