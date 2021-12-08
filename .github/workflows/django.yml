@@ -38,3 +38,4 @@ jobs:
         cd project
         python manage.py makemigrations
         python manage.py test
+        yes
