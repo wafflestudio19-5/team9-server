@@ -31,8 +31,9 @@ class UserCreateSerializer(serializers.Serializer):
             "%Y-%m-%d",
         ],
         required=True,
+        help_text="Format: YYYY-MM-DD"
     )
-    gender = serializers.CharField(max_length=10, required=True)
+    gender = serializers.CharField(max_length=10, required=True, help_text="'Male' or 'Female'")
     password = serializers.CharField(max_length=128, required=True)
 
     # validate 정의
