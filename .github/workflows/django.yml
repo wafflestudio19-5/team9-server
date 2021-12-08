@@ -31,7 +31,7 @@ jobs:
       run: |
         sudo /etc/init.d/mysql start
         cd /usr/bin/
-        ./mysql -uroot -proot -e "create user 'admin'@'localhost' identified by 'waffleteam9';grant all privileges on test_toy_project.* to 'admin'@'localhost';"
+        ./mysql -uroot -proot -e "create user 'admin'@'localhost' identified by 'waffleteam9';grant all privileges on test_toy_project.* to 'admin'@'localhost';DROP DATABASE [IF EXISTS] test_toy_project;"
 
     - name: Run Tests
       run: |
