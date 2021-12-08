@@ -15,6 +15,7 @@ class PostViewSet(viewsets.GenericViewSet):
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
+    @swagger_auto_schema(operation_description="로그인된 유저의 friend들의 post를 최신순으로 가져오기")
     def list(self, request):
 
         # 쿼리셋을 효율적으로 쓰는법 http://raccoonyy.github.io/using-django-querysets-effectively-translate/
@@ -38,6 +39,7 @@ class LikeViewSet(viewsets.GenericViewSet):
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
+    @swagger_auto_schema(operation_description="좋아요하기")
     def update(self, request, pk=None):
         user = request.user
         post = get_object_or_404(self.queryset, pk=pk)
@@ -55,7 +57,8 @@ class LikeViewSet(viewsets.GenericViewSet):
         post.save()
         return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
 
-    def delete(self, request, pk=None):
+    @swagger_auto_schema(operation_description="좋아요 취소하기")
+    def destroy(self, request, pk=None):
         user = request.user
         post = get_object_or_404(self.queryset, pk=pk)
         if not post.likeusers.filter(id=user.id).exists():
@@ -72,6 +75,7 @@ class LikeViewSet(viewsets.GenericViewSet):
         post.save()
         return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
 
+    @swagger_auto_schema(operation_description="해당 post의 좋아요 개수, 좋아요 한 유저 가져오기")
     def retrieve(self, request, pk=None):
         post = get_object_or_404(self.queryset, pk=pk)
         return Response(PostLikeSerializer(post).data, status=status.HTTP_200_OK)
