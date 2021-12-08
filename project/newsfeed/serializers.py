@@ -2,6 +2,7 @@ from abc import ABC
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import update_last_login
+from drf_yasg.utils import swagger_serializer_method
 from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
 from .models import Post, PostImage
@@ -60,5 +61,6 @@ class PostLikeSerializer(serializers.ModelSerializer):
         model = Post
         fields = ("likes", "likeusers")
 
+    @swagger_serializer_method(serializer_or_field=UserSerializer)
     def get_likeusers(self, post):
         return UserSerializer(post.likeusers, many=True).data
