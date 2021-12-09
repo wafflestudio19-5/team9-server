@@ -31,8 +31,11 @@ class UserCreateSerializer(serializers.Serializer):
             "%Y-%m-%d",
         ],
         required=True,
+        help_text="Format: YYYY-MM-DD",
     )
-    gender = serializers.CharField(max_length=10, required=True)
+    gender = serializers.CharField(
+        max_length=10, required=True, help_text="'Male' or 'Female'"
+    )
     password = serializers.CharField(max_length=128, required=True)
 
     # validate 정의
@@ -78,7 +81,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         # Django 기본 User 모델에 존재하는 필드 중 일부
-        fields = ()
+        fields = ("id", "email")
         extra_kwargs = {"password": {"write_only": True}}
 
     def validate(self, data):
