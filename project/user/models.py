@@ -123,3 +123,9 @@ class University(models.Model):
     join_date = models.DateField()
     graduate_date = models.DateField(blank=True)
     is_active = models.BooleanField(default=False)
+
+
+class KakaoId(models.Model):
+
+    user = models.OneToOneField(User, on_delete=CASCADE, related_name="kakao")
+    identifier = models.IntegerField(null=True, unique=True)
