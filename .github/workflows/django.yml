@@ -26,6 +26,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r project/requirements.txt
         sudo apt-get update
+        sudo apt-get autoremove
         sudo apt-get install mysql-server
         
     - name: Setting up mysql
