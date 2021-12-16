@@ -18,7 +18,16 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
 
         model = Post
-        fields = ("id", "author", "content", "images", "created_at", "updated_at")
+        fields = (
+            "id",
+            "author",
+            "content",
+            "images",
+            "created_at",
+            "updated_at",
+            "likes",
+        )
+        extra_kwargs = {"content": {"help_text": "무슨 생각을 하고 계신가요?"}}
 
     def create(self, validated_data):
         return Post.objects.create(
@@ -47,7 +56,7 @@ class PostListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ("author", "content", "images", "likes", "posted_at")
+        fields = ("id", "author", "content", "images", "likes", "posted_at")
 
     def get_posted_at(self, post):
 
