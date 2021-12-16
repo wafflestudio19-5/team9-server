@@ -12,23 +12,38 @@ from pytz import timezone
 
 
 class PostSerializer(serializers.ModelSerializer):
+
+    images = serializers.SerializerMethodField()
+
     class Meta:
 
         model = Post
-        fields = ("id", "author", "content", "likes")
+        fields = ("id", "author", "content", "images", "created_at", "updated_at")
 
     def create(self, validated_data):
+        return Post.objects.create(
+            author=validated_data["author"], content=validated_data["content"]
+        )
 
-        return None
+    def validate(self, data):
+        content = data.get("content", None)
 
-    def validate(self, attrs):
-        return super().validate(attrs)
+        if not content:
+            raise serializers.ValidationError("내용을 입력해주세요.")
+
+        return data
+
+    def get_images(self, post):
+        return PostImageSerializer(post.images, many=True, context=self.context).data
 
 
 class PostListSerializer(serializers.ModelSerializer):
 
     posted_at = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
+
+    # 이부분 username으로 바꾸기
+    author = serializers.CharField(source="author.last_name")
 
     class Meta:
         model = Post
@@ -48,7 +63,7 @@ class PostListSerializer(serializers.ModelSerializer):
 class PostImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = PostImage
-        fields = ("image", "author_email")
+        fields = ("post", "image", "author_email")
 
     def create(self, validated_data):
         return super().create(validated_data)
