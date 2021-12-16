@@ -25,11 +25,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r project/requirements.txt
-        sudo apt-get update
-        sudo apt-get upgrade
-        sudo apt-get install mysql-common=5.8+1.0.4
-        sudo apt-get install mysql-server-8.0
-        sudo apt-get install mysql-server
+        sudo apt install mysql-server
         
     - name: Setting up mysql
       run: |
