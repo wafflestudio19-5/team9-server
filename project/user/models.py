@@ -128,4 +128,4 @@ class University(models.Model):
 class KakaoId(models.Model):
 
     user = models.OneToOneField(User, on_delete=CASCADE, related_name="kakao")
-    identifier = models.IntegerField(null=True, unique=True)
+    identifier = models.IntegerField(unique=True)
