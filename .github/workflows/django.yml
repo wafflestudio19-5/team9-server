@@ -39,6 +39,7 @@ jobs:
 
     - name: Set dummy secret
       run: |
+        cd project
         python secret_gen.py
 
     - name: Run Tests
