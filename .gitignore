@@ -132,3 +132,4 @@ dmypy.json
 .pyre/
 media/
 static/
+secrets.json
