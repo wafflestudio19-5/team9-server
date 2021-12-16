@@ -25,6 +25,7 @@ jobs:
       run: |
         sudo apt-get upgrade
         sudo apt-get update
+        sudo apt-get purge mysql-common
         sudo apt-get install mysql-common
         sudo apt-get install mysql-client-8.0
         sudo apt-get install mysql-server-8.0
