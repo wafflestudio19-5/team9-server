@@ -23,9 +23,14 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install Dependencies
       run: |
+        sudo apt-get upgrade
+        sudo apt-get update
+        sudo apt-get install mysql-common
+        sudo apt-get install mysql-client-8.0
+        sudo apt-get install mysql-server-8.0
+        sudo apt-get install mysql-server
         python -m pip install --upgrade pip
         pip install -r project/requirements.txt
-        sudo apt install mysql-server
         
     - name: Setting up mysql
       run: |
