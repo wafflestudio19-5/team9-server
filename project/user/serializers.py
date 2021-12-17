@@ -49,7 +49,9 @@ class UserCreateSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
-        validated_data["gender"] = self.GENDER_CHOICES[validated_data["gender"]]
+        validated_data["username"] = (
+            validated_data["last_name"] + validated_data["first_name"]
+        )
         user = User.objects.create_user(**validated_data)
         return user, jwt_token_of(user)
 
