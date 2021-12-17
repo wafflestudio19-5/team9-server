@@ -3,8 +3,13 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from typing import Type
 
-from .serializers import PostListSerializer, PostSerializer, PostLikeSerializer
-from .models import Post
+from .serializers import (
+    PostListSerializer,
+    PostSerializer,
+    PostLikeSerializer,
+    PostImageSerializer,
+)
+from .models import Post, PostImage
 from user.models import User
 from datetime import datetime
 from django.shortcuts import get_object_or_404
@@ -33,6 +38,31 @@ class PostViewSet(viewsets.GenericViewSet):
 
         serializer = PostListSerializer(posts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(operation_description="Post 작성하기")
+    def create(self, request):
+
+        user = request.user
+        images = request.data.get("images", None)
+
+        if images:
+            request.data.pop("images")
+
+        request.data["author"] = request.user.id
+        serializer = PostSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        post = serializer.save()
+
+        if images:
+
+            author_email = user.email
+
+            for image in images:
+                PostImage.objects.create(
+                    post=post, image=image, author_email=author_email
+                )
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class LikeViewSet(viewsets.GenericViewSet):

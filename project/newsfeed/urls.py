@@ -8,6 +8,10 @@ Router = SimpleRouter()
 Router.register("newsfeed", PostViewSet, basename="PostList")  # /api/v1/newsfeed/
 Router.register("like", LikeViewSet, basename="LikeList")  # /api/v1/like/
 
+# Router = SimpleRouter()
+# Router.register("newsfeed", PostViewSet, basename="PostList")  # /api/v1/newsfeed/
+# Router.register("like", LikeViewSet, basename="LikeList")  # /api/v1/like/
+
 urlpatterns = [
     path("", include(Router.urls), name="NewsFeedList"),
 ]
