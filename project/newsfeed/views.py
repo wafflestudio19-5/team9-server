@@ -1,3 +1,4 @@
+from drf_yasg import openapi
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -15,6 +16,13 @@ from datetime import datetime
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema, no_body
 
+jwt_header = openapi.Parameter(
+    "Authorization",
+    openapi.IN_HEADER,
+    type=openapi.TYPE_STRING,
+    default="JWT [put token here]",
+)
+
 
 class PostViewSet(viewsets.GenericViewSet):
 
@@ -22,7 +30,10 @@ class PostViewSet(viewsets.GenericViewSet):
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
-    @swagger_auto_schema(operation_description="로그인된 유저의 friend들의 post들을 최신순으로 가져오기")
+    @swagger_auto_schema(
+        operation_description="로그인된 유저의 friend들의 post들을 최신순으로 가져오기",
+        manual_parameters=[jwt_header],
+    )
     def list(self, request):
 
         # 쿼리셋을 효율적으로 쓰는법 http://raccoonyy.github.io/using-django-querysets-effectively-translate/
@@ -39,7 +50,10 @@ class PostViewSet(viewsets.GenericViewSet):
         serializer = PostListSerializer(posts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(operation_description="Post 작성하기")
+    @swagger_auto_schema(
+        operation_description="Post 작성하기",
+        manual_parameters=[jwt_header],
+    )
     def create(self, request):
 
         user = request.user
@@ -71,7 +85,11 @@ class LikeViewSet(viewsets.GenericViewSet):
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
-    @swagger_auto_schema(operation_description="좋아요하기", request_body=no_body)
+    @swagger_auto_schema(
+        operation_description="좋아요하기",
+        request_body=no_body,
+        manual_parameters=[jwt_header],
+    )
     def update(self, request, pk=None):
         user = request.user
         post = get_object_or_404(self.queryset, pk=pk)
@@ -90,7 +108,9 @@ class LikeViewSet(viewsets.GenericViewSet):
         return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
-        operation_description="좋아요 취소하기", responses={200: PostSerializer()}
+        operation_description="좋아요 취소하기",
+        responses={200: PostSerializer()},
+        manual_parameters=[jwt_header],
     )
     def destroy(self, request, pk=None):
         user = request.user
