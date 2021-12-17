@@ -9,6 +9,8 @@ from .serializers import (
     PostLikeSerializer,
     PostImageSerializer,
 )
+
+from rest_framework.pagination import CursorPagination
 from .models import Post, PostImage
 from user.models import User
 from datetime import datetime
@@ -26,7 +28,6 @@ class PostViewSet(viewsets.GenericViewSet):
     def list(self, request):
 
         # 쿼리셋을 효율적으로 쓰는법 http://raccoonyy.github.io/using-django-querysets-effectively-translate/
-
         user = request.user
         friends = user.friends.all()
         posts = user.posts.all()
