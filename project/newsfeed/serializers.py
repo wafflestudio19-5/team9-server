@@ -56,8 +56,7 @@ class PostListSerializer(serializers.ModelSerializer):
 
     author = serializers.CharField(source="author.last_name")
 
-    #author = serializers.CharField(source="author.username")
-
+    # author = serializers.CharField(source="author.username")
 
     class Meta:
         model = Post
