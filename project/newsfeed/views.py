@@ -49,7 +49,7 @@ class PostViewSet(viewsets.GenericViewSet):
             request.data.pop("images")
 
         request.data["author"] = request.user.id
-        print(request.data)
+
         serializer = PostSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         post = serializer.save()

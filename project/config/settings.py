@@ -14,6 +14,8 @@ from pathlib import Path
 import datetime
 import os, json
 
+from django.core.exceptions import ImproperlyConfigured
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -22,7 +24,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-from django.core.exceptions import ImproperlyConfigured
 
 secret_file = os.path.join(BASE_DIR, "secrets.json")  # secrets.json 파일 위치를 명시
 

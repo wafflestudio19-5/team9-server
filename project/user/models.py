@@ -41,6 +41,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     GENDER_CHOICES = (("M", "Male"), ("F", "Female"))
 
     # 회원가입시 필수로 입력해야하는 필드
+    username = models.CharField(max_length=50)
     id = models.AutoField(primary_key=True)
     email = models.EmailField(max_length=64, unique=True)
     first_name = models.CharField(max_length=25)
@@ -123,3 +124,9 @@ class University(models.Model):
     join_date = models.DateField()
     graduate_date = models.DateField(blank=True)
     is_active = models.BooleanField(default=False)
+
+
+class KakaoId(models.Model):
+
+    user = models.OneToOneField(User, on_delete=CASCADE, related_name="kakao")
+    identifier = models.IntegerField(unique=True)

@@ -221,6 +221,59 @@ class NewsFeedTestCase(TestCase):
         # 위에 포함해서 총 6개 이미지 있어야 함)
         self.assertEqual(len(data[0]["images"]), 6)
 
+    def test_post_create(self):
+
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        fake = Faker("ko_KR")
+        content = fake.text(max_nb_chars=1000)
+
+        data = {
+            "author": self.test_user.id,
+            "content": content,
+            "images": "https://picsum.photos/300/300",
+        }
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+
+        self.assertEqual(content, data["content"])
+        self.assertEqual(self.test_user.id, data["author"])
+        post_id = data["id"]
+        # self.assertEqual(
+        #    data["images"][0]["image"], "/media/https%3A/picsum.photos/300/300"
+        # )
+
+        # Content 내용이 없을 경우 오류
+        data = {
+            "author": self.test_user.id,
+            "images": "https://picsum.photos/300/300",
+        }
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.json()
+        self.assertEqual(data["non_field_errors"], ["내용을 입력해주세요."])
+
+        # 뉴스피드에 추가됐는지 여부
+        response = self.client.get(
+            "/api/v1/newsfeed/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data[0]["id"], post_id)
+
 
 class LikeTestCase(TestCase):
     @classmethod
