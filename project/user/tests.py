@@ -50,6 +50,7 @@ class SignUpUserTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         self.assertEqual(User.objects.count(), 2)
+        self.assertEqual(User.objects.last().username, "이민준")
 
     def test_post_user_confilct(self):
         with transaction.atomic():
