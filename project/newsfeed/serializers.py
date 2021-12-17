@@ -52,7 +52,7 @@ class PostListSerializer(serializers.ModelSerializer):
     images = serializers.SerializerMethodField()
 
     # 이부분 username으로 바꾸기
-    author = serializers.CharField(source="author.last_name")
+    author = serializers.CharField(source="author.username")
 
     class Meta:
         model = Post
