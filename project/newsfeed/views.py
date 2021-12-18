@@ -50,7 +50,6 @@ class PostListView(ListCreateAPIView):
             Q(author__in=user.friends.all()) | Q(author=user)
         )
         return super().list(request)
-        
 
     @swagger_auto_schema(
         operation_description="Post 작성하기",
