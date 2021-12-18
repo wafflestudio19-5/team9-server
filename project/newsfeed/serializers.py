@@ -18,13 +18,14 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
 
         model = Post
+
         fields = (
             "id",
             "author",
             "content",
             "images",
-            "created_at",
-            "updated_at",
+            "created",
+            "updated",
             "likes",
         )
         extra_kwargs = {"content": {"help_text": "무슨 생각을 하고 계신가요?"}}
@@ -54,13 +55,14 @@ class PostListSerializer(serializers.ModelSerializer):
     # 이부분 username으로 바꾸기
     author = serializers.SerializerMethodField()
 
+
     class Meta:
         model = Post
         fields = ("id", "author", "content", "images", "likes", "posted_at")
 
     def get_posted_at(self, post):
 
-        created_at = post.created_at
+        created_at = post.created
         now = datetime.now()
         duration = str(now - created_at).split(".")[0]
         return duration

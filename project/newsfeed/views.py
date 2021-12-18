@@ -1,6 +1,7 @@
 from drf_yasg import openapi
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
+from rest_framework.generics import ListCreateAPIView
 from rest_framework.response import Response
 from typing import Type
 
@@ -24,8 +25,8 @@ jwt_header = openapi.Parameter(
 )
 
 
-class PostViewSet(viewsets.GenericViewSet):
-    serializer_class = PostSerializer
+class PostListView(ListCreateAPIView):
+    serializer_class = PostListSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -34,20 +35,13 @@ class PostViewSet(viewsets.GenericViewSet):
         manual_parameters=[jwt_header],
     )
     def list(self, request):
-
-        # 쿼리셋을 효율적으로 쓰는법 http://raccoonyy.github.io/using-django-querysets-effectively-translate/
-
         user = request.user
         friends = user.friends.all()
-        posts = user.posts.all()
+        self.queryset = user.posts.all()
         if friends:
             for f in friends.iterator():
-                posts = posts.union(f.posts.all())
-
-        posts = posts.order_by("-created_at")
-
-        serializer = PostListSerializer(posts, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+                self.queryset = self.queryset.union(f.posts.all())
+        return super().list(request)
 
     @swagger_auto_schema(
         operation_description="Post 작성하기",
@@ -76,6 +70,7 @@ class PostViewSet(viewsets.GenericViewSet):
             request.data.pop("images")
 
         request.data["author"] = request.user.id
+
         serializer = PostSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         post = serializer.save()
