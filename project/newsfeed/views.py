@@ -33,6 +33,7 @@ class PostListView(ListCreateAPIView):
     @swagger_auto_schema(
         operation_description="로그인된 유저의 friend들의 post들을 최신순으로 가져오기",
         manual_parameters=[jwt_header],
+        responses={200: PostListSerializer()},
     )
     def list(self, request):
         user = request.user
@@ -60,6 +61,7 @@ class PostListView(ListCreateAPIView):
                 ),
             },
         ),
+        responses={201: PostSerializer()}
     )
     def create(self, request):
 
