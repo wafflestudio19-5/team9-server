@@ -32,6 +32,7 @@ class PostViewSet(viewsets.GenericViewSet):
     @swagger_auto_schema(
         operation_description="로그인된 유저의 friend들의 post들을 최신순으로 가져오기",
         manual_parameters=[jwt_header],
+        responses={200: PostListSerializer()},
     )
     def list(self, request):
 
@@ -66,6 +67,7 @@ class PostViewSet(viewsets.GenericViewSet):
                 ),
             },
         ),
+        responses={201: PostSerializer()}
     )
     def create(self, request):
 
