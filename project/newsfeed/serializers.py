@@ -70,6 +70,7 @@ class PostListSerializer(serializers.ModelSerializer):
     def get_images(self, post):
         return PostImageSerializer(post.images, many=True, context=self.context).data
 
+    @swagger_serializer_method(serializer_or_field=UserSerializer)
     def get_author(self, post):
         return UserSerializer(post.author).data
 
