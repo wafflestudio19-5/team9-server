@@ -35,7 +35,7 @@ class PostListView(ListCreateAPIView):
         manual_parameters=[jwt_header],
         responses={200: PostListSerializer()},
     )
-    def list(self, request):
+    def get(self, request):
         user = request.user
         friends = user.friends.all()
         self.queryset = user.posts.all()
@@ -61,9 +61,9 @@ class PostListView(ListCreateAPIView):
                 ),
             },
         ),
-        responses={201: PostSerializer()}
+        responses={201: PostSerializer()},
     )
-    def create(self, request):
+    def post(self, request):
 
         user = request.user
         images = request.data.get("images", None)
