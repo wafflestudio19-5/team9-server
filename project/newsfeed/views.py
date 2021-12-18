@@ -36,8 +36,8 @@ class PostListView(ListCreateAPIView):
         manual_parameters=[jwt_header],
         responses={200: PostListSerializer()},
     )
-
     def get(self, request):
+        """
         user = request.user
         friends = user.friends.all()
         self.queryset = user.posts.all()
@@ -50,6 +50,7 @@ class PostListView(ListCreateAPIView):
             Q(author__in=user.friends.all()) | Q(author=user)
         )
         return super().list(request)
+        
 
     @swagger_auto_schema(
         operation_description="Post 작성하기",
