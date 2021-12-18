@@ -82,9 +82,10 @@ class PostViewSet(viewsets.GenericViewSet):
             author_email = user.email
 
             for image in images:
-                PostImage.objects.create(
-                    post=post, image=image, author_email=author_email
-                )
+                if image:
+                    PostImage.objects.create(
+                        post=post, image=image, author_email=author_email
+                    )
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
