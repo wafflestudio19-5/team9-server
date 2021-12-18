@@ -61,7 +61,7 @@ class PostListView(ListCreateAPIView):
                 ),
             },
         ),
-        responses={201: PostSerializer()}
+        responses={201: PostSerializer()},
     )
     def post(self, request):
 
