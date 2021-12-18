@@ -41,4 +41,5 @@ jobs:
       run: |
         cd project
         python manage.py makemigrations
+        y
         python manage.py test --noinput
