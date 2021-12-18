@@ -51,7 +51,10 @@ class PostListSerializer(serializers.ModelSerializer):
 
     posted_at = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
-    author = serializers.CharField(source="author.username")
+
+    # 이부분 username으로 바꾸기
+    author = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Post
@@ -66,6 +69,9 @@ class PostListSerializer(serializers.ModelSerializer):
 
     def get_images(self, post):
         return PostImageSerializer(post.images, many=True, context=self.context).data
+
+    def get_author(self, post):
+        return UserSerializer(post.author).data
 
 
 class PostImageSerializer(serializers.ModelSerializer):

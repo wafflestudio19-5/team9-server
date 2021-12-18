@@ -33,6 +33,7 @@ class UserFactory(DjangoModelFactory):
             ),
             phone_number=kwargs.get("phone_number", fake.numerify(text="010########")),
         )
+        user.username = user.first_name + user.last_name
         user.set_password(kwargs.get("password", ""))
         user.save()
 
@@ -137,6 +138,7 @@ class NewsFeedTestCase(TestCase):
 
         # 피드에 친구와 내 게시물들이 존재
         # 내 게시물이 친구 게시물보다 일찍 생성되었으므로, 친구 게시물이 먼저 떠야함 (최신순)
+
         self.assertEqual(
             data["results"][1]["content"], self.test_user.posts.last().content
         )
@@ -147,6 +149,7 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(
             data["results"][0]["likes"], self.test_friend.posts.last().likes
         )
+
 
         # test_stranger의 피드
         user_token = "JWT " + jwt_token_of(self.test_stranger)
