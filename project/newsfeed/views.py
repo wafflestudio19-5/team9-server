@@ -55,13 +55,16 @@ class PostViewSet(viewsets.GenericViewSet):
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
-                'content': openapi.Schema(type=openapi.TYPE_STRING, description='Post Content'),
-                'images': openapi.Schema(type=openapi.TYPE_ARRAY,
-                                         description='Array of Image URLs',
-                                         default=[],
-                                         items=openapi.TYPE_STRING,
-                                         ),
-            }
+                "content": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="Post Content"
+                ),
+                "images": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    description="Array of Image URLs",
+                    default=[],
+                    items=openapi.TYPE_STRING,
+                ),
+            },
         ),
     )
     def create(self, request):
@@ -106,8 +109,8 @@ class LikeViewSet(viewsets.GenericViewSet):
         if post.likeusers.filter(id=user.id).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST, data="이미 좋아요 한 게시글입니다.")
         if (
-                not user.friends.filter(id=post.author.id).exists()
-                and post.author.id != user.id
+            not user.friends.filter(id=post.author.id).exists()
+            and post.author.id != user.id
         ):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST, data="친구 혹은 자신의 게시글이 아닙니다."
@@ -128,8 +131,8 @@ class LikeViewSet(viewsets.GenericViewSet):
         if not post.likeusers.filter(id=user.id).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST, data="좋아요하지 않은 게시글입니다.")
         if (
-                not user.friends.filter(id=post.author.id).exists()
-                and post.author.id != user.id
+            not user.friends.filter(id=post.author.id).exists()
+            and post.author.id != user.id
         ):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST, data="친구 혹은 자신의 게시글이 아닙니다."
