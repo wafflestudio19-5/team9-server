@@ -23,6 +23,8 @@ jwt_header = openapi.Parameter(
     type=openapi.TYPE_STRING,
     default="JWT [put token here]",
 )
+
+
 class PostListView(ListCreateAPIView):
     serializer_class = PostListSerializer
     queryset = Post.objects.all()
