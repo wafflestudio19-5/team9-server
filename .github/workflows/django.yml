@@ -40,8 +40,5 @@ jobs:
     - name: Run Tests
       run: |
         cd project
-        y
         python manage.py makemigrations
-        y
         python manage.py test --noinput
-        y
