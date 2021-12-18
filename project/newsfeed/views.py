@@ -1,5 +1,6 @@
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
+from rest_framework.generics import ListCreateAPIView
 from rest_framework.response import Response
 from typing import Type
 
@@ -9,8 +10,6 @@ from .serializers import (
     PostLikeSerializer,
     PostImageSerializer,
 )
-
-from rest_framework.pagination import CursorPagination
 from .models import Post, PostImage
 from user.models import User
 from datetime import datetime
@@ -18,27 +17,20 @@ from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema, no_body
 
 
-class PostViewSet(viewsets.GenericViewSet):
-
-    serializer_class = PostSerializer
+class PostListView(ListCreateAPIView):
+    serializer_class = PostListSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(operation_description="로그인된 유저의 friend들의 post들을 최신순으로 가져오기")
     def list(self, request):
-
-        # 쿼리셋을 효율적으로 쓰는법 http://raccoonyy.github.io/using-django-querysets-effectively-translate/
         user = request.user
         friends = user.friends.all()
-        posts = user.posts.all()
+        self.queryset = user.posts.all()
         if friends:
             for f in friends.iterator():
-                posts = posts.union(f.posts.all())
-
-        posts = posts.order_by("-created_at")
-
-        serializer = PostListSerializer(posts, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+                self.queryset = self.queryset.union(f.posts.all())
+        return super().list(request)
 
     @swagger_auto_schema(operation_description="Post 작성하기")
     def create(self, request):

@@ -133,14 +133,20 @@ class NewsFeedTestCase(TestCase):
         data = response.json()
 
         # 포스트의 개수
-        self.assertEqual(len(data), 2)
+        self.assertEqual(len(data["results"]), 2)
 
         # 피드에 친구와 내 게시물들이 존재
         # 내 게시물이 친구 게시물보다 일찍 생성되었으므로, 친구 게시물이 먼저 떠야함 (최신순)
-        self.assertEqual(data[1]["content"], self.test_user.posts.last().content)
-        self.assertEqual(data[1]["likes"], self.test_user.posts.last().likes)
-        self.assertEqual(data[0]["content"], self.test_friend.posts.last().content)
-        self.assertEqual(data[0]["likes"], self.test_friend.posts.last().likes)
+        self.assertEqual(
+            data["results"][1]["content"], self.test_user.posts.last().content
+        )
+        self.assertEqual(data["results"][1]["likes"], self.test_user.posts.last().likes)
+        self.assertEqual(
+            data["results"][0]["content"], self.test_friend.posts.last().content
+        )
+        self.assertEqual(
+            data["results"][0]["likes"], self.test_friend.posts.last().likes
+        )
 
         # test_stranger의 피드
         user_token = "JWT " + jwt_token_of(self.test_stranger)
@@ -154,11 +160,15 @@ class NewsFeedTestCase(TestCase):
         data = response.json()
 
         # 포스트의 개수
-        self.assertEqual(len(data), 1)
+        self.assertEqual(len(data["results"]), 1)
 
         # 피드에 내 게시물만 존재
-        self.assertEqual(data[0]["content"], self.test_stranger.posts.last().content)
-        self.assertEqual(data[0]["likes"], self.test_stranger.posts.last().likes)
+        self.assertEqual(
+            data["results"][0]["content"], self.test_stranger.posts.last().content
+        )
+        self.assertEqual(
+            data["results"][0]["likes"], self.test_stranger.posts.last().likes
+        )
 
         # 친구가 9명일 때 피드 게시글 개수
         user = self.users[0]
@@ -176,7 +186,8 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
 
-        self.assertEqual(len(data), 100)
+        # 페이지네이션 때문에 20개씩 총 5페이지가 있다.
+        self.assertEqual(len(data["results"]), 20)
 
     def test_post_image(self):
 
@@ -199,9 +210,9 @@ class NewsFeedTestCase(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-
-        self.assertEqual(
-            data[0]["images"][0]["image"], "/media/https%3A/picsum.photos/300/300"
+        self.assertIn(
+            "/media/https%3A/picsum.photos/300/300",
+            data["results"][0]["images"][0]["image"],
         )
 
         # 이미지 여러 장 업로드 했을 때
@@ -219,7 +230,7 @@ class NewsFeedTestCase(TestCase):
         data = response.json()
 
         # 위에 포함해서 총 6개 이미지 있어야 함)
-        self.assertEqual(len(data[0]["images"]), 6)
+        self.assertEqual(len(data["results"][0]["images"]), 6)
 
     def test_post_create(self):
 
@@ -272,7 +283,7 @@ class NewsFeedTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        self.assertEqual(data[0]["id"], post_id)
+        self.assertEqual(data["results"][0]["id"], post_id)
 
 
 class LikeTestCase(TestCase):
