@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.generics import ListCreateAPIView
 from rest_framework.response import Response
 from typing import Type
+from django.db.models import Q
 
 from .serializers import (
     PostListSerializer,
@@ -36,12 +37,18 @@ class PostListView(ListCreateAPIView):
         responses={200: PostListSerializer()},
     )
     def get(self, request):
+        """
         user = request.user
         friends = user.friends.all()
         self.queryset = user.posts.all()
         if friends:
             for f in friends.iterator():
-                self.queryset = self.queryset.union(f.posts.all())
+                self.queryset = self.queryset.union(f.posts.all(), all=True)
+        """
+        user = request.user
+        self.queryset = Post.objects.filter(
+            Q(author__in=user.friends.all()) | Q(author=user)
+        )
         return super().list(request)
 
     @swagger_auto_schema(

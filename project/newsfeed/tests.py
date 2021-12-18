@@ -150,7 +150,6 @@ class NewsFeedTestCase(TestCase):
             data["results"][0]["likes"], self.test_friend.posts.last().likes
         )
 
-
         # test_stranger의 피드
         user_token = "JWT " + jwt_token_of(self.test_stranger)
 
@@ -191,6 +190,17 @@ class NewsFeedTestCase(TestCase):
 
         # 페이지네이션 때문에 20개씩 총 5페이지가 있다.
         self.assertEqual(len(data["results"]), 20)
+
+        for i in range(4):
+            next_page = data["next"]
+            response = self.client.get(
+                next_page,
+                content_type="application/json",
+                HTTP_AUTHORIZATION=user_token,
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            data = response.json()
+            self.assertEqual(len(data["results"]), 20)
 
     def test_post_image(self):
 
