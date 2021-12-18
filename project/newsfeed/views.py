@@ -24,7 +24,6 @@ jwt_header = openapi.Parameter(
     default="JWT [put token here]",
 )
 class PostListView(ListCreateAPIView):
-    
     serializer_class = PostListSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
