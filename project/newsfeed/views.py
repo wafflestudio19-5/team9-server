@@ -25,7 +25,6 @@ jwt_header = openapi.Parameter(
 
 
 class PostViewSet(viewsets.GenericViewSet):
-
     serializer_class = PostSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
@@ -53,6 +52,20 @@ class PostViewSet(viewsets.GenericViewSet):
     @swagger_auto_schema(
         operation_description="Post 작성하기",
         manual_parameters=[jwt_header],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "content": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="Post Content"
+                ),
+                "images": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    description="Array of Image URLs",
+                    default=[],
+                    items=openapi.TYPE_STRING,
+                ),
+            },
+        ),
     )
     def create(self, request):
 
@@ -72,15 +85,15 @@ class PostViewSet(viewsets.GenericViewSet):
             author_email = user.email
 
             for image in images:
-                PostImage.objects.create(
-                    post=post, image=image, author_email=author_email
-                )
+                if image:
+                    PostImage.objects.create(
+                        post=post, image=image, author_email=author_email
+                    )
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class LikeViewSet(viewsets.GenericViewSet):
-
     serializer_class = PostSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
