@@ -1,3 +1,4 @@
+from drf_yasg import openapi
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.generics import ListCreateAPIView
@@ -16,13 +17,23 @@ from datetime import datetime
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema, no_body
 
+jwt_header = openapi.Parameter(
+    "Authorization",
+    openapi.IN_HEADER,
+    type=openapi.TYPE_STRING,
+    default="JWT [put token here]",
 
 class PostListView(ListCreateAPIView):
     serializer_class = PostListSerializer
+
+
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
-    @swagger_auto_schema(operation_description="로그인된 유저의 friend들의 post들을 최신순으로 가져오기")
+    @swagger_auto_schema(
+        operation_description="로그인된 유저의 friend들의 post들을 최신순으로 가져오기",
+        manual_parameters=[jwt_header],
+    )
     def list(self, request):
         user = request.user
         friends = user.friends.all()
@@ -32,7 +43,24 @@ class PostListView(ListCreateAPIView):
                 self.queryset = self.queryset.union(f.posts.all())
         return super().list(request)
 
-    @swagger_auto_schema(operation_description="Post 작성하기")
+    @swagger_auto_schema(
+        operation_description="Post 작성하기",
+        manual_parameters=[jwt_header],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "content": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="Post Content"
+                ),
+                "images": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    description="Array of Image URLs",
+                    default=[],
+                    items=openapi.TYPE_STRING,
+                ),
+            },
+        ),
+    )
     def create(self, request):
 
         user = request.user
@@ -52,20 +80,24 @@ class PostListView(ListCreateAPIView):
             author_email = user.email
 
             for image in images:
-                PostImage.objects.create(
-                    post=post, image=image, author_email=author_email
-                )
+                if image:
+                    PostImage.objects.create(
+                        post=post, image=image, author_email=author_email
+                    )
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class LikeViewSet(viewsets.GenericViewSet):
-
     serializer_class = PostSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
-    @swagger_auto_schema(operation_description="좋아요하기", request_body=no_body)
+    @swagger_auto_schema(
+        operation_description="좋아요하기",
+        request_body=no_body,
+        manual_parameters=[jwt_header],
+    )
     def update(self, request, pk=None):
         user = request.user
         post = get_object_or_404(self.queryset, pk=pk)
@@ -84,7 +116,9 @@ class LikeViewSet(viewsets.GenericViewSet):
         return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
-        operation_description="좋아요 취소하기", responses={200: PostSerializer()}
+        operation_description="좋아요 취소하기",
+        responses={200: PostSerializer()},
+        manual_parameters=[jwt_header],
     )
     def destroy(self, request, pk=None):
         user = request.user
