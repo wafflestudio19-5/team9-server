@@ -32,7 +32,6 @@ DEBUG_TOOLBAR = os.getenv("DEBUG_TOOLBAR") in ("true", "True")
 
 ALLOWED_HOSTS = ["*"]
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -191,13 +190,21 @@ AWS_S3_CUSTOM_DOMAIN = "%s.s3.%s.amazonaws.com" % (AWS_STORAGE_BUCKET_NAME, AWS_
 AWS_S3_OBJECT_PARAMETERS = {
     "CacheControl": "max-age=86400",
 }
-AWS_DEFAULT_ACL = "public-read"
-AWS_LOCATION = "static"
+AWS_S3_HOST = "s3.ap-northeast-2.amazonaws.com"
+AWS_QUERYSTRING_AUTH = False
 
-STATIC_URL = "https://%s/%s/" % (AWS_S3_CUSTOM_DOMAIN, AWS_LOCATION)
-STATICFILES_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
+STATIC_URL = "/static/"
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),
+]
 
-STATIC_URL = "https://%s/%s/" % (AWS_S3_CUSTOM_DOMAIN, "media")
-STATICFILES_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "media")]
+# media file (as a upload file)
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+# AWS S3
+DATA_UPLOAD_MAX_MEMORY_SIZE = 1024000000  # value in bytes 1GB here
+FILE_UPLOAD_MAX_MEMORY_SIZE = 1024000000
+
+DEFAULT_FILE_STORAGE = "config.storage.S3DefaultStorage"
+STATICFILES_STORAGE = "config.storage.S3StaticStorage"

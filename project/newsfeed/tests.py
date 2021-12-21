@@ -254,7 +254,7 @@ class NewsFeedTestCase(TestCase):
         data = {
             "author": self.test_user.id,
             "content": content,
-            "images": "https://picsum.photos/300/300",
+            "images": ["https://picsum.photos/300/300"],
         }
 
         response = self.client.post(
@@ -276,7 +276,7 @@ class NewsFeedTestCase(TestCase):
         # Content 내용이 없을 경우 오류
         data = {
             "author": self.test_user.id,
-            "images": "https://picsum.photos/300/300",
+            "images": ["https://picsum.photos/300/300"],
         }
         response = self.client.post(
             "/api/v1/newsfeed/",
