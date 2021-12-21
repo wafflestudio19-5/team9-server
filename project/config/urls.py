@@ -50,4 +50,4 @@ urlpatterns = [
 
 
 # 미디어 파일을 위한 URL 지정
-#urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
