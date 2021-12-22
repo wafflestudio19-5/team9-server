@@ -6,18 +6,18 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('newsfeed', '0005_post_likeusers'),
+        ("newsfeed", "0005_post_likeusers"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='post',
-            old_name='created_at',
-            new_name='created',
+            model_name="post",
+            old_name="created_at",
+            new_name="created",
         ),
         migrations.RenameField(
-            model_name='post',
-            old_name='updated_at',
-            new_name='updated',
+            model_name="post",
+            old_name="updated_at",
+            new_name="updated",
         ),
     ]
