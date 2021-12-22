@@ -31,7 +31,7 @@ class SignUpUserTestCase(TestCase):
             last_name="이",
             birth="2002-05-14",
             gender="Male",
-            password="yiminjune",
+            password="yiminj",
         )
 
         cls.post_data = {
@@ -40,7 +40,7 @@ class SignUpUserTestCase(TestCase):
             "last_name": "이",
             "birth": "2002-05-14",
             "gender": "Male",
-            "password": "yiminjune",
+            "password": "yiminj",
         }
 
     def test_post_user_successful(self):
