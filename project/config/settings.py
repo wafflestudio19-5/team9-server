@@ -181,8 +181,8 @@ SWAGGER_SETTINGS = {"USE_SESSION_AUTH": False}
 # AWS_xxx 의 변수들은 aws-S3, boto3 모듈을 위한 변수들이다.
 
 # 엑세스 키와 시크릿 키는 다른 파일로 작성, 임포트하여 사용
-AWS_ACCESS_KEY_ID = "AKIAYNIYTU7NVL4V32U4"
-AWS_SECRET_ACCESS_KEY = "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"
+AWS_ACCESS_KEY_ID = get_secret("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = get_secret("AWS_SECRET_ACCESS_KEY")
 
 AWS_REGION = "ap-northeast-2"
 AWS_STORAGE_BUCKET_NAME = "toyproject-team9"
