@@ -55,7 +55,6 @@ class PostListSerializer(serializers.ModelSerializer):
     # 이부분 username으로 바꾸기
     author = serializers.SerializerMethodField()
 
-
     class Meta:
         model = Post
         fields = ("id", "author", "content", "images", "likes", "posted_at")
