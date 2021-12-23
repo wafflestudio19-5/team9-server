@@ -224,7 +224,7 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertIn(
-            "/media/https%3A/picsum.photos/300/300",
+            "https%3A/picsum.photos/300/300",
             data["results"][0]["images"][0]["image"],
         )
 
@@ -254,7 +254,7 @@ class NewsFeedTestCase(TestCase):
         data = {
             "author": self.test_user.id,
             "content": content,
-            "images": "https://picsum.photos/300/300",
+            "images": ["https://picsum.photos/300/300"],
         }
 
         response = self.client.post(
@@ -269,14 +269,14 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(content, data["content"])
         self.assertEqual(self.test_user.id, data["author"])
         post_id = data["id"]
-        # self.assertEqual(
-        #    data["images"][0]["image"], "/media/https%3A/picsum.photos/300/300"
+        # self.assertIn(
+        #    "https%3A/picsum.photos/300/300", data["results"]["images"][0]["image"]
         # )
 
         # Content 내용이 없을 경우 오류
         data = {
             "author": self.test_user.id,
-            "images": "https://picsum.photos/300/300",
+            "images": ["https://picsum.photos/300/300"],
         }
         response = self.client.post(
             "/api/v1/newsfeed/",
