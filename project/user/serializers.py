@@ -5,6 +5,8 @@ from django.contrib.auth.models import update_last_login
 from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
 from .models import User, Company, University
+from datetime import datetime
+from django.contrib.auth.password_validation import validate_password
 
 
 # 토큰 사용을 위한 기본 세팅
@@ -45,7 +47,15 @@ class UserCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError("성별이 설정되지 않았습니다.")
         if gender != "Male" and gender != "Female":
             raise serializers.ValidationError("성별이 잘못되었습니다.")
-
+        first_name = data.get("first_name")
+        last_name = data.get("last_name")
+        if not first_name or not last_name:
+            raise serializers.ValidationError("성이나 이름은 빈칸일 수 없습니다.")
+        birth = data.get("birth")
+        if birth > datetime.now().date():
+            raise serializers.ValidationError("생일이 현재 시간보다 나중일 수는 없습니다.")
+        password = data.get("password")
+        validate_password(password)
         return data
 
     def create(self, validated_data):

@@ -31,7 +31,7 @@ class SignUpUserTestCase(TestCase):
             last_name="이",
             birth="2002-05-14",
             gender="Male",
-            password="password",
+            password="yiminj",
         )
 
         cls.post_data = {
@@ -40,7 +40,7 @@ class SignUpUserTestCase(TestCase):
             "last_name": "이",
             "birth": "2002-05-14",
             "gender": "Male",
-            "password": "password",
+            "password": "yiminj",
         }
 
     def test_post_user_successful(self):
@@ -104,6 +104,76 @@ class SignUpUserTestCase(TestCase):
         response = self.client.post("/api/v1/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
+
+    def test_post_user_validation_fail(self):
+        # first_name empty
+        data = self.post_data.copy()
+        data["first_name"] = ""
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 1)
+
+        # last_name empty
+        data = self.post_data.copy()
+        data["last_name"] = ""
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 1)
+
+        # common password
+        data = self.post_data.copy()
+        data["password"] = "12345678"
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 1)
+
+        # short password
+        data = self.post_data.copy()
+        data["password"] = "!nn?"
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 1)
+
+        # invalid birth
+        data = self.post_data.copy()
+        data["birth"] = "2100-12-23"
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 1)
+
+
+class LoginTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(
+            email="waffle@test.com",
+            first_name="민준",
+            last_name="이",
+            birth="2002-05-14",
+            gender="Male",
+            password="password",
+        )
+
+        cls.post_data = {
+            "email": "waffle@test.com",
+            "password": "password",
+        }
+
+    def test_login(self):
+        response = self.client.post(
+            "/api/v1/login/", data=self.post_data, content_type="application/json"
+        )
+        data = response.json()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(data["token"], jwt_token_of((self.user)))
+
+    def test_login_fail(self):
+        response = self.client.post(
+            "/api/v1/login/",
+            data={"email": "waffle@test.com", "password": "qlalfqjsgh"},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class LoginTestCase(TestCase):
