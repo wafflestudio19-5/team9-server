@@ -6,13 +6,8 @@ from rest_framework.response import Response
 from typing import Type
 from django.db.models import Q
 
-from .serializers import (
-    PostListSerializer,
-    PostSerializer,
-    PostLikeSerializer,
-    PostImageSerializer,
-)
-from .models import Post, PostImage
+from .serializers import PostListSerializer, PostSerializer, PostLikeSerializer
+from .models import Post
 from user.models import User
 from datetime import datetime
 from django.shortcuts import get_object_or_404
@@ -27,6 +22,7 @@ jwt_header = openapi.Parameter(
 
 
 class PostListView(ListCreateAPIView):
+
     serializer_class = PostListSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
@@ -37,17 +33,10 @@ class PostListView(ListCreateAPIView):
         responses={200: PostListSerializer()},
     )
     def get(self, request):
-        """
-        user = request.user
-        friends = user.friends.all()
-        self.queryset = user.posts.all()
-        if friends:
-            for f in friends.iterator():
-                self.queryset = self.queryset.union(f.posts.all(), all=True)
-        """
+
         user = request.user
         self.queryset = Post.objects.filter(
-            Q(author__in=user.friends.all()) | Q(author=user)
+            (Q(author__in=user.friends.all()) | Q(author=user)), mainpost=None
         )
         return super().list(request)
 
@@ -73,26 +62,12 @@ class PostListView(ListCreateAPIView):
     def post(self, request):
 
         user = request.user
-        images = request.data.get("images", None)
-
-        if images:
-            request.data.pop("images")
-
         request.data["author"] = request.user.id
-
-        serializer = PostSerializer(data=request.data)
+        serializer = PostSerializer(
+            data=request.data, context={"files": request.data["files"]}
+        )
         serializer.is_valid(raise_exception=True)
         post = serializer.save()
-
-        if images:
-
-            author_email = user.email
-
-            for image in images:
-                if image:
-                    PostImage.objects.create(
-                        post=post, image=image, author_email=author_email
-                    )
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
