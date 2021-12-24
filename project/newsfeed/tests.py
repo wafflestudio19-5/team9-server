@@ -2,7 +2,7 @@ from django.test import TestCase
 from factory.django import DjangoModelFactory
 from faker import Faker
 from user.models import User
-from newsfeed.models import Post, PostImage
+from newsfeed.models import Post
 from django.test import TestCase
 from rest_framework import status
 import json
@@ -48,28 +48,15 @@ class PostFactory(DjangoModelFactory):
     def create(cls, **kwargs):
 
         fake = Faker("ko_KR")
-        author = kwargs.pop("author")
         post = Post.objects.create(
-            author=author,
+            author=kwargs.get("author"),
             content=kwargs.get("content", fake.text(max_nb_chars=1000)),
+            file=kwargs.get("file", None),
             likes=kwargs.get("likes", fake.random_int(min=0, max=1000)),
         )
         post.save()
 
         return post
-
-
-class PostImageFactory(DjangoModelFactory):
-    class Meta:
-        model = PostImage
-
-    @classmethod
-    def create(cls, **kwargs):
-
-        postImage = PostImage.objects.create(post=kwargs["post"], image=kwargs["image"])
-        postImage.save()
-
-        return postImage
 
 
 class NewsFeedTestCase(TestCase):
@@ -202,59 +189,18 @@ class NewsFeedTestCase(TestCase):
             data = response.json()
             self.assertEqual(len(data["results"]), 20)
 
-    def test_post_image(self):
-
-        # https://picsum.photos/300/300 --> 랜덤으로 사진을 주는 곳
-        # 이미지 하나만 업로드 했을 때
-
-        user = self.test_stranger
-        post = self.test_stranger.posts.last()
-        postImage = PostImageFactory.create(
-            post=post, image="https://picsum.photos/300/300"
-        )
-
-        user_token = "JWT " + jwt_token_of(user)
-
-        response = self.client.get(
-            "/api/v1/newsfeed/",
-            content_type="application/json",
-            HTTP_AUTHORIZATION=user_token,
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.json()
-        self.assertIn(
-            "https%3A/picsum.photos/300/300",
-            data["results"][0]["images"][0]["image"],
-        )
-
-        # 이미지 여러 장 업로드 했을 때
-        postImages = PostImageFactory.create_batch(
-            5, post=post, image="https://picsum.photos/300/300"
-        )
-
-        response = self.client.get(
-            "/api/v1/newsfeed/",
-            content_type="application/json",
-            HTTP_AUTHORIZATION=user_token,
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.json()
-
-        # 위에 포함해서 총 6개 이미지 있어야 함)
-        self.assertEqual(len(data["results"][0]["images"]), 6)
-
     def test_post_create(self):
 
         user_token = "JWT " + jwt_token_of(self.test_user)
         fake = Faker("ko_KR")
-        content = fake.text(max_nb_chars=1000)
+        content = fake.text(max_nb_chars=100)
 
         data = {
             "author": self.test_user.id,
             "content": content,
-            "images": ["https://picsum.photos/300/300"],
+            "files": [
+                {"content": "첫번째 사진입니다.", "file": "https://picsum.photos/300/300"}
+            ],
         }
 
         response = self.client.post(
@@ -268,15 +214,17 @@ class NewsFeedTestCase(TestCase):
 
         self.assertEqual(content, data["content"])
         self.assertEqual(self.test_user.id, data["author"])
+        self.assertEqual(1, len(data["subposts"]))
         post_id = data["id"]
-        # self.assertIn(
-        #    "https%3A/picsum.photos/300/300", data["results"]["images"][0]["image"]
-        # )
+        self.assertEqual(post_id, data["subposts"][0]["mainpost"])
+        self.assertIn("picsum.photos/300/300", data["subposts"][0]["file"])
 
         # Content 내용이 없을 경우 오류
         data = {
             "author": self.test_user.id,
-            "images": ["https://picsum.photos/300/300"],
+            "files": [
+                {"content": "첫번째 사진입니다.", "file": "https://picsum.photos/300/300"}
+            ],
         }
         response = self.client.post(
             "/api/v1/newsfeed/",
@@ -288,6 +236,22 @@ class NewsFeedTestCase(TestCase):
         data = response.json()
         self.assertEqual(data["non_field_errors"], ["내용을 입력해주세요."])
 
+        # files의 요소들에 file이 없을 경우 오류
+        data = {
+            "author": self.test_user.id,
+            "content": "테스트 중입니다.",
+            "files": [{"content": "첫번째 사진입니다."}],
+        }
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.json()
+        self.assertEqual(data["non_field_errors"], ["'file'이 비었습니다."])
+
         # 뉴스피드에 추가됐는지 여부
         response = self.client.get(
             "/api/v1/newsfeed/",
@@ -297,6 +261,9 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["results"][0]["id"], post_id)
+        self.assertIn(
+            "picsum.photos/300/300", data["results"][0]["subposts"][0]["file"]
+        )
 
 
 class LikeTestCase(TestCase):
