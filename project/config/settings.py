@@ -30,6 +30,7 @@ SECRET_KEY = get_secret("SECRET_KEY")
 DEBUG = True
 DEBUG_TOOLBAR = os.getenv("DEBUG_TOOLBAR") in ("true", "True")
 
+SITE_ID = 1
 ALLOWED_HOSTS = ["*"]
 
 # Application definition
