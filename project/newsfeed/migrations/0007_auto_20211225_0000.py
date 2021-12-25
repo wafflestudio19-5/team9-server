@@ -6,16 +6,19 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('newsfeed', '0006_auto_20211218_0252'),
+        ("newsfeed", "0006_auto_20211218_0252"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='post',
-            name='file',
-            field=models.FileField(blank=True, upload_to='user/<django.db.models.fields.related.ForeignKey>/mainpost/%Y/%m/%d/<django.db.models.fields.AutoField>/'),
+            model_name="post",
+            name="file",
+            field=models.FileField(
+                blank=True,
+                upload_to="user/<django.db.models.fields.related.ForeignKey>/mainpost/%Y/%m/%d/<django.db.models.fields.AutoField>/",
+            ),
         ),
         migrations.DeleteModel(
-            name='PostImage',
+            name="PostImage",
         ),
     ]
