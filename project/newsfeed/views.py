@@ -49,11 +49,11 @@ class PostListView(ListCreateAPIView):
                 "content": openapi.Schema(
                     type=openapi.TYPE_STRING, description="Post Content"
                 ),
-                "images": openapi.Schema(
+                "files": openapi.Schema(
                     type=openapi.TYPE_ARRAY,
-                    description="Array of Image URLs",
+                    description="\"content\", \"file\"을 key로 가지는 Dictionary들의 Array",
                     default=[],
-                    items=openapi.TYPE_STRING,
+                    items=openapi.TYPE_OBJECT,
                 ),
             },
         ),
@@ -124,6 +124,7 @@ class LikeViewSet(viewsets.GenericViewSet):
     @swagger_auto_schema(
         operation_description="해당 post의 좋아요 개수, 좋아요 한 유저 가져오기",
         responses={200: PostLikeSerializer()},
+        manual_parameters=[jwt_header],
     )
     def retrieve(self, request, pk=None):
         post = get_object_or_404(self.queryset, pk=pk)
