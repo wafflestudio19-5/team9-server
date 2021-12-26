@@ -64,7 +64,7 @@ class PostListView(ListCreateAPIView):
         user = request.user
         request.data["author"] = request.user.id
         serializer = PostSerializer(
-            data=request.data, context={"files": request.data["files"]}
+            data=request.data, context={"files": request.data.get("files")}
         )
         serializer.is_valid(raise_exception=True)
         post = serializer.save()
