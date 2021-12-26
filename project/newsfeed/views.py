@@ -6,8 +6,9 @@ from rest_framework.response import Response
 from typing import Type
 from django.db.models import Q
 
-from .serializers import PostListSerializer, PostSerializer, PostLikeSerializer
-from .models import Post
+from .serializers import PostListSerializer, PostSerializer, PostLikeSerializer, CommentListSerializer, \
+    CommentSerializer
+from .models import Post, Comment
 from user.models import User
 from datetime import datetime
 from django.shortcuts import get_object_or_404
@@ -124,7 +125,31 @@ class LikeViewSet(viewsets.GenericViewSet):
     @swagger_auto_schema(
         operation_description="해당 post의 좋아요 개수, 좋아요 한 유저 가져오기",
         responses={200: PostLikeSerializer()},
+        manual_parameters=[jwt_header],
     )
     def retrieve(self, request, pk=None):
         post = get_object_or_404(self.queryset, pk=pk)
         return Response(PostLikeSerializer(post).data, status=status.HTTP_200_OK)
+
+
+class CommentListView(ListCreateAPIView):
+
+    serializer_class = CommentListSerializer
+    queryset = Comment.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        post = request.data["post"]
+        self.queryset = Comment.objects.filter(post=post)
+        return super().list(request)
+
+    def post(self, request):
+
+        request.data["author"] = request.user.id
+        serializer = CommentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+
