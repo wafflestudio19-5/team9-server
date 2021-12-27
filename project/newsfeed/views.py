@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from typing import Type
 from django.db.models import Q
 
+from .pagination import CommentPagination
 from .serializers import PostListSerializer, PostSerializer, PostLikeSerializer, CommentListSerializer, \
     CommentSerializer
 from .models import Post, Comment
@@ -133,19 +134,39 @@ class LikeViewSet(viewsets.GenericViewSet):
 
 
 class CommentListView(ListCreateAPIView):
-
+    # TODO 친구 게시물만 댓글 달 수 있게 구현하기
     serializer_class = CommentListSerializer
-    queryset = Comment.objects.all()
+    queryset = Post.objects.all()
+    pagination_class = CommentPagination
     permission_classes = (permissions.IsAuthenticated,)
 
-    def get(self, request):
-        post = request.data["post"]
-        self.queryset = Comment.objects.filter(post=post)
+    @swagger_auto_schema(
+        operation_description="해당 post의 comment들 가져오기",
+        responses={200: CommentListSerializer()},
+        manual_parameters=[jwt_header],
+    )
+    def get(self, request, pk=None):
+        self.queryset = Comment.objects.filter(post=pk, depth=0).order_by("-id")
         return super().list(request)
 
-    def post(self, request):
+    @swagger_auto_schema(
+        operation_description="comment 생성하기",
+        responses={201: CommentSerializer()},
+        manual_parameters=[jwt_header],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "content": openapi.Schema(type=openapi.TYPE_STRING),
+                "file": openapi.Schema(type=openapi.TYPE_STRING),
+                "parent": openapi.Schema(type=openapi.TYPE_NUMBER, description="parent comment ID", default=None),
+            },
+        ),
+    )
+    def post(self, request, pk=None):
 
         request.data["author"] = request.user.id
+        post = get_object_or_404(self.queryset, pk=pk)
+        request.data["post"] = post.id
         serializer = CommentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()

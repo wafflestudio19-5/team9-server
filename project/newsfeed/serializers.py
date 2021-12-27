@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_serializer_method
 from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
-from .models import Post, Comment
+from .models import Post, Comment, NewsfeedObject
 from user.serializers import UserSerializer
 from datetime import datetime, timedelta
 from pytz import timezone
@@ -88,6 +88,7 @@ class PostListSerializer(serializers.ModelSerializer):
         duration = str(now - created_at).split(".")[0]
         return duration
 
+    @swagger_serializer_method(serializer_or_field=PostSerializer)
     def get_subposts(self, post):
         return PostSerializer(post.subposts, many=True).data
 
@@ -119,38 +120,44 @@ class CommentSerializer(serializers.ModelSerializer):
             "post",
             "author",
             "content",
-            "image",
+            "file",
             "parent",
+            "depth",
+            "created",
         )
-        extra_kwargs = {"content": {"help_text": "무슨 생각을 하고 계신가요?"}}
 
     def create(self, validated_data):
         return Comment.objects.create(
             post=validated_data["post"],
             author=validated_data["author"],
             content=validated_data["content"],
-            image=validated_data["image"],
-            parent=validated_data["parent"],
-            depth=validated_data["depth"],
+            file=validated_data.get("file"),
+            parent=validated_data.get("parent"),
+            depth=validated_data.get("depth"),
         )
 
     def validate(self, data):
-        parent_id = data.get("parent", None)
-        parent = get_object_or_404(Comment, pk=parent_id)
+        post = data.get("post", None)
+        parent = data.get("parent", None)
+        if parent:
+            if parent.depth > 1:
+                raise serializers.ValidationError("depth 2까지만 가능합니다.")
 
-        post_id = data.get("post", None)
-        if not Post.objects.filter(pk=post_id).exists():
-            raise serializers.ValidationError("게시물이 존재하지 않습니다.")
+            if not parent.post == post:
+                raise serializers.ValidationError("'parent'가 해당 'Post'의 'comment'가 아닙니다.")
 
-        if parent.depth > 1:
-            raise serializers.ValidationError("depth 2까지만 가능합니다.")
-        depth = parent.depth + 1
-        data.push({"depth": depth})
+            depth = parent.depth + 1
+            data["depth"] = depth
+        else:
+            data["depth"] = 0
 
         return data
 
 
 class CommentListSerializer(serializers.ModelSerializer):
+    author = serializers.SerializerMethodField()
+    posted_at = serializers.SerializerMethodField()
+    children_count = serializers.SerializerMethodField()
     children = serializers.SerializerMethodField()
 
     class Meta:
@@ -159,13 +166,30 @@ class CommentListSerializer(serializers.ModelSerializer):
             "id",
             "author",
             "content",
-            "image",
-            "created",
-            "updated",
-            "likes",
+            "file",
             "depth",
+            "likes",
+            "posted_at",
+            "children_count",
             "children",
         )
 
+    @swagger_serializer_method(serializer_or_field=UserSerializer)
+    def get_author(self, comment):
+        return UserSerializer(comment.author).data
+
+    def get_posted_at(self, comment):
+        created_at = comment.created
+        now = datetime.now()
+        duration = str(now - created_at).split(".")[0]
+        return duration
+
+    def get_children_count(self, comment):
+        return comment.children.count()
+
     def get_children(self, comment):
-        return CommentListSerializer(comment.children, many=True, context=self.context).data
+        children = comment.children.order_by("created")
+        # if children.count() > 2:
+        #     children = children[children.count()-4:]
+        return CommentListSerializer(children, many=True, context=self.context).data
+
