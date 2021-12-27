@@ -609,3 +609,46 @@ class CommentTestCase(TestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_comment_like(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.my_post.id}/{self.depth_zero.id}/like/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        # PUT, 좋아요 반영됐는지 확인
+        self.assertEqual(data["likes"], 1)
+
+        response = self.client.get(
+            f"/api/v1/newsfeed/{self.my_post.id}/{self.depth_zero.id}/like/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        # GET, likeusers 확인
+        self.assertEqual(data["likes"], 1)
+        self.assertEqual(data["likeusers"][0]["id"], self.test_user.id)
+
+        response = self.client.delete(
+            f"/api/v1/newsfeed/{self.my_post.id}/{self.depth_zero.id}/like/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        # DELETE, 좋아요 취소 반영됐는지 확인
+        self.assertEqual(data["likes"], 0)
+        self.assertEqual(self.depth_zero.likes, 0)
+
+
