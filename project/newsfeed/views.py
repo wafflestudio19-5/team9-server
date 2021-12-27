@@ -80,7 +80,7 @@ class PostLikeView(GenericAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
-        operation_description="좋아요하기",
+        operation_description="게시물 좋아요하기",
         request_body=no_body,
         manual_parameters=[jwt_header],
     )
@@ -102,7 +102,7 @@ class PostLikeView(GenericAPIView):
         return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
-        operation_description="좋아요 취소하기",
+        operation_description="게시물 좋아요 취소하기",
         responses={200: PostSerializer()},
         manual_parameters=[jwt_header],
     )
@@ -188,7 +188,7 @@ class CommentLikeView(GenericAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
-        operation_description="좋아요하기",
+        operation_description="comment 좋아요하기",
         request_body=no_body,
         manual_parameters=[jwt_header],
     )
@@ -203,8 +203,8 @@ class CommentLikeView(GenericAPIView):
         return Response(self.serializer_class(comment).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
-        operation_description="좋아요 취소하기",
-        responses={200: PostSerializer()},
+        operation_description="comment 좋아요 취소하기",
+        responses={200: CommentSerializer()},
         manual_parameters=[jwt_header],
     )
     def delete(self, request, post_id=None, comment_id=None):
@@ -219,7 +219,7 @@ class CommentLikeView(GenericAPIView):
 
     @swagger_auto_schema(
         operation_description="해당 comment의 좋아요 개수, 좋아요 한 유저 가져오기",
-        responses={200: PostLikeSerializer()},
+        responses={200: CommentLikeSerializer()},
         manual_parameters=[jwt_header],
     )
     def get(self, request, post_id=None, comment_id=None):
