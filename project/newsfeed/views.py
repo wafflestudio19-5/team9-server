@@ -134,7 +134,6 @@ class LikeViewSet(viewsets.GenericViewSet):
 
 
 class CommentListView(ListCreateAPIView):
-    # TODO 친구 게시물만 댓글 달 수 있게 구현하기
     serializer_class = CommentListSerializer
     queryset = Post.objects.all()
     pagination_class = CommentPagination
@@ -163,10 +162,20 @@ class CommentListView(ListCreateAPIView):
         ),
     )
     def post(self, request, pk=None):
+        user = request.user
 
-        request.data["author"] = request.user.id
+        request.data["author"] = user.id
         post = get_object_or_404(self.queryset, pk=pk)
         request.data["post"] = post.id
+
+        if (
+            not user.friends.filter(id=post.author.id).exists()
+            and post.author.id != user.id
+        ):
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="친구 혹은 자신의 게시글이 아닙니다."
+            )
+
         serializer = CommentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
