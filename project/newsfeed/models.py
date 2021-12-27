@@ -6,7 +6,6 @@ from user.models import User
 
 class NewsfeedObject(models.Model):
 
-    id = models.AutoField(primary_key=True)
     content = models.CharField(max_length=1000, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
@@ -18,7 +17,7 @@ class NewsfeedObject(models.Model):
 
 
 class Post(NewsfeedObject):
-
+    id = models.AutoField(primary_key=True)
     author = models.ForeignKey(User, on_delete=CASCADE, related_name="posts")
 
     mainpost = models.ForeignKey(
@@ -40,6 +39,7 @@ class Post(NewsfeedObject):
 
 class Comment(NewsfeedObject):
 
+    id = models.AutoField(primary_key=True)
     author = models.ForeignKey(User, on_delete=CASCADE, related_name="comments")
     post = models.ForeignKey(Post, on_delete=CASCADE, related_name="comments")
     parent = models.ForeignKey('self', on_delete=CASCADE, blank=True, null=True, related_name="children")
