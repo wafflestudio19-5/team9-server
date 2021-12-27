@@ -7,6 +7,7 @@ from user.serializers import UserSerializer
 from datetime import datetime, timedelta
 from pytz import timezone
 
+
 class PostSerializer(serializers.ModelSerializer):
 
     subposts = serializers.SerializerMethodField()
@@ -26,7 +27,7 @@ class PostSerializer(serializers.ModelSerializer):
             "created",
             "updated",
             "likes",
-            "comment_count"
+            "comment_count",
         )
         extra_kwargs = {"content": {"help_text": "무슨 생각을 하고 계신가요?"}}
 
@@ -84,7 +85,16 @@ class PostListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ("id", "author", "content", "subposts", "file", "likes", "posted_at", "comment_count")
+        fields = (
+            "id",
+            "author",
+            "content",
+            "subposts",
+            "file",
+            "likes",
+            "posted_at",
+            "comment_count",
+        )
 
     def get_posted_at(self, post):
 
@@ -130,7 +140,6 @@ class CommentLikeSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
-
     class Meta:
 
         model = Comment
@@ -170,7 +179,9 @@ class CommentSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("depth 2까지만 가능합니다.")
 
             if not parent.post == post:
-                raise serializers.ValidationError("'parent'가 해당 'Post'의 'comment'가 아닙니다.")
+                raise serializers.ValidationError(
+                    "'parent'가 해당 'Post'의 'comment'가 아닙니다."
+                )
 
             depth = parent.depth + 1
             data["depth"] = depth
@@ -220,4 +231,3 @@ class CommentListSerializer(serializers.ModelSerializer):
         # if children.count() > 2:
         #     children = children[children.count()-4:]
         return CommentListSerializer(children, many=True, context=self.context).data
-

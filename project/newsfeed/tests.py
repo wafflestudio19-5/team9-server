@@ -486,20 +486,44 @@ class CommentTestCase(TestCase):
             phone_number="01022222222",
         )
 
-        cls.my_post = PostFactory.create(author=cls.test_user, content="나의 테스트 게시물입니다.", likes=10)
+        cls.my_post = PostFactory.create(
+            author=cls.test_user, content="나의 테스트 게시물입니다.", likes=10
+        )
 
-        cls.friend_post = PostFactory.create(author=cls.test_friend, content="친구의 테스트 게시물입니다.", likes=20)
+        cls.friend_post = PostFactory.create(
+            author=cls.test_friend, content="친구의 테스트 게시물입니다.", likes=20
+        )
 
         cls.stranger_post = PostFactory.create(
             author=cls.test_stranger, content="모르는 사람의 테스트 게시물입니다.", likes=30
         )
 
-        cls.depth_zero = CommentFactory.create(author=cls.test_friend, post=cls.my_post, depth=0, content="depth 0")
-        CommentFactory.create_batch(35, author=cls.test_friend, post=cls.my_post, depth=0)
-        cls.depth_one = CommentFactory.create(author=cls.test_friend, post=cls.my_post, depth=1, content="depth 1", parent = cls.depth_zero)
-        CommentFactory.create_batch(5, author=cls.test_friend, post=cls.my_post, depth=1, parent=cls.depth_zero)
-        cls.depth_two = CommentFactory.create(author=cls.test_friend, post=cls.my_post, depth=2, content="depth 2", parent = cls.depth_one)
-        CommentFactory.create_batch(5, author=cls.test_friend, post=cls.my_post, depth=2, parent=cls.depth_one)
+        cls.depth_zero = CommentFactory.create(
+            author=cls.test_friend, post=cls.my_post, depth=0, content="depth 0"
+        )
+        CommentFactory.create_batch(
+            35, author=cls.test_friend, post=cls.my_post, depth=0
+        )
+        cls.depth_one = CommentFactory.create(
+            author=cls.test_friend,
+            post=cls.my_post,
+            depth=1,
+            content="depth 1",
+            parent=cls.depth_zero,
+        )
+        CommentFactory.create_batch(
+            5, author=cls.test_friend, post=cls.my_post, depth=1, parent=cls.depth_zero
+        )
+        cls.depth_two = CommentFactory.create(
+            author=cls.test_friend,
+            post=cls.my_post,
+            depth=2,
+            content="depth 2",
+            parent=cls.depth_one,
+        )
+        CommentFactory.create_batch(
+            5, author=cls.test_friend, post=cls.my_post, depth=2, parent=cls.depth_one
+        )
 
     def test_comment_list(self):
 
@@ -517,10 +541,14 @@ class CommentTestCase(TestCase):
         # 모든 계층에서 시간 오름차순으로 배열 (먼저 생성된 게 앞에)
         self.assertEqual(data["results"][0]["content"], "depth 0")
         self.assertEqual(data["results"][0]["children"][0]["content"], "depth 1")
-        self.assertEqual(data["results"][0]["children"][0]["children"][0]["content"], "depth 2")
+        self.assertEqual(
+            data["results"][0]["children"][0]["children"][0]["content"], "depth 2"
+        )
 
         # 부모자식 관계 확인
-        self.assertEqual(data["results"][0]["children"][0]["parent"], data["results"][0]["id"])
+        self.assertEqual(
+            data["results"][0]["children"][0]["parent"], data["results"][0]["id"]
+        )
 
         # child comment 개수 확인
         self.assertEqual(data["results"][0]["children_count"], 6)
@@ -598,10 +626,7 @@ class CommentTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         # depth가 2인 댓글 (대대댓글)을 parent으로 두려는 경우 오류
-        data = {
-            "content": content,
-            "parent": self.depth_two.id
-        }
+        data = {"content": content, "parent": self.depth_two.id}
         response = self.client.post(
             f"/api/v1/newsfeed/{self.my_post.id}/comment/",
             data=data,
@@ -650,5 +675,3 @@ class CommentTestCase(TestCase):
         # DELETE, 좋아요 취소 반영됐는지 확인
         self.assertEqual(data["likes"], 0)
         self.assertEqual(self.depth_zero.likes, 0)
-
-

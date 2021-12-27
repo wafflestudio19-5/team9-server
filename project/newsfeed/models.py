@@ -42,7 +42,9 @@ class Comment(NewsfeedObject):
     id = models.AutoField(primary_key=True)
     author = models.ForeignKey(User, on_delete=CASCADE, related_name="comments")
     post = models.ForeignKey(Post, on_delete=CASCADE, related_name="comments")
-    parent = models.ForeignKey('self', on_delete=CASCADE, blank=True, null=True, related_name="children")
+    parent = models.ForeignKey(
+        "self", on_delete=CASCADE, blank=True, null=True, related_name="children"
+    )
     depth = models.PositiveIntegerField(default=0)
 
     file = models.FileField(
@@ -51,4 +53,3 @@ class Comment(NewsfeedObject):
 
     def get_user_url(self):
         return f"/api/v1/user/{self.author}/"
-

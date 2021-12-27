@@ -7,8 +7,14 @@ from typing import Type
 from django.db.models import Q
 
 from .pagination import CommentPagination
-from .serializers import PostListSerializer, PostSerializer, PostLikeSerializer, CommentListSerializer, \
-    CommentSerializer, CommentLikeSerializer
+from .serializers import (
+    PostListSerializer,
+    PostSerializer,
+    PostLikeSerializer,
+    CommentListSerializer,
+    CommentSerializer,
+    CommentLikeSerializer,
+)
 from .models import Post, Comment
 from user.models import User
 from datetime import datetime
@@ -157,7 +163,11 @@ class CommentListView(ListCreateAPIView):
             properties={
                 "content": openapi.Schema(type=openapi.TYPE_STRING),
                 "file": openapi.Schema(type=openapi.TYPE_STRING),
-                "parent": openapi.Schema(type=openapi.TYPE_NUMBER, description="parent comment ID", default=None),
+                "parent": openapi.Schema(
+                    type=openapi.TYPE_NUMBER,
+                    description="parent comment ID",
+                    default=None,
+                ),
             },
         ),
     )
@@ -225,4 +235,3 @@ class CommentLikeView(GenericAPIView):
     def get(self, request, post_id=None, comment_id=None):
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
         return Response(CommentLikeSerializer(comment).data, status=status.HTTP_200_OK)
-
