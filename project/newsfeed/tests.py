@@ -2,7 +2,7 @@ from django.test import TestCase
 from factory.django import DjangoModelFactory
 from faker import Faker
 from user.models import User
-from newsfeed.models import Post
+from newsfeed.models import Post, Comment
 from django.test import TestCase
 from rest_framework import status
 import json
@@ -442,3 +442,170 @@ class LikeTestCase(TestCase):
         data = response.json()
         self.assertEqual(data["likes"], 10)
         self.assertEqual(len(data["likeusers"]), 10)
+
+
+class CommentFactory(DjangoModelFactory):
+    class Meta:
+        model = Comment
+
+
+class CommentTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+
+        cls.test_user = UserFactory.create(
+            email="test0@test.com",
+            password="password",
+            first_name="test",
+            last_name="user",
+            birth="1997-02-03",
+            gender="M",
+            phone_number="01000000000",
+        )
+
+        cls.test_friend = UserFactory.create(
+            email="test1@test.com",
+            password="password",
+            first_name="test",
+            last_name="friend",
+            birth="1997-02-03",
+            gender="M",
+            phone_number="01011111111",
+        )
+
+        cls.test_user.friends.add(cls.test_friend)
+        cls.test_user.save()
+
+        cls.test_stranger = UserFactory.create(
+            email="test2@test.com",
+            password="password",
+            first_name="test",
+            last_name="stranger",
+            birth="1997-02-03",
+            gender="M",
+            phone_number="01022222222",
+        )
+
+        cls.my_post = PostFactory.create(author=cls.test_user, content="나의 테스트 게시물입니다.", likes=10)
+
+        cls.friend_post = PostFactory.create(author=cls.test_friend, content="친구의 테스트 게시물입니다.", likes=20)
+
+        cls.stranger_post = PostFactory.create(
+            author=cls.test_stranger, content="모르는 사람의 테스트 게시물입니다.", likes=30
+        )
+
+        cls.depth_zero = CommentFactory.create(author=cls.test_friend, post=cls.my_post, depth=0, content="depth 0")
+        CommentFactory.create_batch(35, author=cls.test_friend, post=cls.my_post, depth=0)
+        cls.depth_one = CommentFactory.create(author=cls.test_friend, post=cls.my_post, depth=1, content="depth 1", parent = cls.depth_zero)
+        CommentFactory.create_batch(5, author=cls.test_friend, post=cls.my_post, depth=1, parent=cls.depth_zero)
+        cls.depth_two = CommentFactory.create(author=cls.test_friend, post=cls.my_post, depth=2, content="depth 2", parent = cls.depth_one)
+        CommentFactory.create_batch(5, author=cls.test_friend, post=cls.my_post, depth=2, parent=cls.depth_one)
+
+    def test_comment_list(self):
+
+        # test_user의 피드
+        user_token = "JWT " + jwt_token_of(self.test_user)
+
+        response = self.client.get(
+            f"/api/v1/newsfeed/{self.my_post.id}/comment",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        # 모든 계층에서 시간 오름차순으로 배열 (먼저 생성된 게 앞에)
+        self.assertEqual(data["results"][0]["content"], "depth 0")
+        self.assertEqual(data["results"][0]["children"][0]["content"], "depth 1")
+        self.assertEqual(data["results"][0]["children"][0]["children"][0]["content"], "depth 2")
+
+        # 부모자식 관계 확인
+        self.assertEqual(data["results"][0]["children"][0]["parent"], data["results"][0]["id"])
+
+        # child comment 개수 확인
+        self.assertEqual(data["results"][0]["children_count"], 6)
+        self.assertEqual(len(data["results"][0]["children"]), 6)
+
+        # 페이지네이션 확인
+        self.assertEqual(len(data["results"]), 20)
+        next_page = data["next"]
+        response = self.client.get(
+            next_page,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 16)
+
+    def test_comment_create(self):
+
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        fake = Faker("ko_KR")
+        content = fake.text(max_nb_chars=100)
+
+        data = {
+            "content": content,
+        }
+
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.friend_post.id}/comment",
+            data=data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+
+        self.assertEqual(content, data["content"])
+        self.assertEqual(self.test_user.id, data["author"])
+
+        # Content 내용이 없을 경우 오류
+        data = {}
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.my_post.id}/comment",
+            data=data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.json()
+        self.assertEqual(data["non_field_errors"], ["내용을 입력해주세요."])
+
+        # Parent가 존재하지 않을 경우 오류
+        data = {
+            "content": content,
+            "parent": -1,
+        }
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.my_post.id}/comment",
+            data=data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 친구가 아닌 사람의 게시물인 경우 오류
+        data = {
+            "content": content,
+        }
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.stranger_post.id}/comment",
+            data=data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # depth가 2인 댓글 (대대댓글)을 parent으로 두려는 경우 오류
+        data = {
+            "content": content,
+            "parent": self.depth_two.id
+        }
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.my_post.id}/comment",
+            data=data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
