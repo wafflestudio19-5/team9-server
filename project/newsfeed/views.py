@@ -22,7 +22,7 @@ jwt_header = openapi.Parameter(
     default="JWT [put token here]",
 )
 
-# TODO GET /newsfeed/{id}/ ==> PostSerializer으로 하고 comment는 따로 API로 받아와도 충분함.
+
 class PostListView(ListCreateAPIView):
 
     serializer_class = PostListSerializer
@@ -196,14 +196,7 @@ class CommentLikeView(GenericAPIView):
         user = request.user
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
         if comment.likeusers.filter(id=user.id).exists():
-            return Response(status=status.HTTP_400_BAD_REQUEST, data="이미 좋아요 한 게시글입니다.")
-        if (
-                not user.friends.filter(id=comment.author.id).exists()
-                and comment.author.id != user.id
-        ):
-            return Response(
-                status=status.HTTP_400_BAD_REQUEST, data="친구 혹은 자신의 게시글이 아닙니다."
-            )
+            return Response(status=status.HTTP_400_BAD_REQUEST, data="이미 좋아요 한 댓글입니다.")
         comment.likeusers.add(user)
         comment.likes = comment.likes + 1
         comment.save()
@@ -218,21 +211,14 @@ class CommentLikeView(GenericAPIView):
         user = request.user
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
         if not comment.likeusers.filter(id=user.id).exists():
-            return Response(status=status.HTTP_400_BAD_REQUEST, data="좋아요하지 않은 게시글입니다.")
-        if (
-                not user.friends.filter(id=comment.author.id).exists()
-                and comment.author.id != user.id
-        ):
-            return Response(
-                status=status.HTTP_400_BAD_REQUEST, data="친구 혹은 자신의 게시글이 아닙니다."
-            )
+            return Response(status=status.HTTP_400_BAD_REQUEST, data="좋아요하지 않은 댓글입니다.")
         comment.likeusers.remove(user)
         comment.likes = comment.likes - 1
         comment.save()
         return Response(self.serializer_class(comment).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
-        operation_description="해당 post의 좋아요 개수, 좋아요 한 유저 가져오기",
+        operation_description="해당 comment의 좋아요 개수, 좋아요 한 유저 가져오기",
         responses={200: PostLikeSerializer()},
         manual_parameters=[jwt_header],
     )
