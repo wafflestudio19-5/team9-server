@@ -4,7 +4,7 @@ from django.db.models.fields.related import ForeignKey
 from user.models import User
 
 
-class NewsfeedCommon(models.Model):
+class NewsfeedObject(models.Model):
 
     id = models.AutoField(primary_key=True)
     content = models.CharField(max_length=1000, blank=True)
@@ -17,7 +17,7 @@ class NewsfeedCommon(models.Model):
         abstract = True
 
 
-class Post(NewsfeedCommon):
+class Post(NewsfeedObject):
 
     author = models.ForeignKey(User, on_delete=CASCADE, related_name="posts")
 
@@ -38,7 +38,7 @@ class Post(NewsfeedCommon):
         return f"/api/v1/user/{self.author}/"
 
 
-class Comment(NewsfeedCommon):
+class Comment(NewsfeedObject):
 
     author = models.ForeignKey(User, on_delete=CASCADE, related_name="comments")
     post = models.ForeignKey(Post, on_delete=CASCADE, related_name="comments")
