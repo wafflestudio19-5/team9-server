@@ -1,4 +1,5 @@
 from django.db import models
+import uuid
 
 # Create your models here.
 from django.contrib.auth.models import (
@@ -93,6 +94,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     # is_staff = models.BooleanField(default=False)
 
+    jwt_secret = models.UUIDField(default=uuid.uuid4)
     # 거주지는 나중에 구현
 
     EMAIL_FIELD = "email"
