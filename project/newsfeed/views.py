@@ -51,7 +51,7 @@ class PostListView(ListCreateAPIView):
                 ),
                 "files": openapi.Schema(
                     type=openapi.TYPE_ARRAY,
-                    description="\"content\", \"file\"을 key로 가지는 Dictionary들의 Array",
+                    description='"content", "file"을 key로 가지는 Dictionary들의 Array',
                     default=[],
                     items=openapi.TYPE_OBJECT,
                 ),
