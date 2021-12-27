@@ -7,7 +7,7 @@ from typing import Type
 from django.db.models import Q
 
 from .pagination import CommentPagination
-from .serializers import PostListSerializer, PostSerializer, PostLikeSerializer, CommentListSerializer, \
+from .serializers import PostListSerializer, PostSerializer, NewsfeedObjectLikeSerializer, CommentListSerializer, \
     CommentSerializer
 from .models import Post, Comment
 from user.models import User
@@ -22,7 +22,7 @@ jwt_header = openapi.Parameter(
     default="JWT [put token here]",
 )
 
-
+# TODO GET /newsfeed/{id}/ ==> PostSerializer으로 하고 comment는 따로 API로 받아와도 충분함.
 class PostListView(ListCreateAPIView):
 
     serializer_class = PostListSerializer
@@ -125,12 +125,12 @@ class LikeViewSet(viewsets.GenericViewSet):
 
     @swagger_auto_schema(
         operation_description="해당 post의 좋아요 개수, 좋아요 한 유저 가져오기",
-        responses={200: PostLikeSerializer()},
+        responses={200: NewsfeedObjectLikeSerializer()},
         manual_parameters=[jwt_header],
     )
     def retrieve(self, request, pk=None):
         post = get_object_or_404(self.queryset, pk=pk)
-        return Response(PostLikeSerializer(post).data, status=status.HTTP_200_OK)
+        return Response(NewsfeedObjectLikeSerializer(post).data, status=status.HTTP_200_OK)
 
 
 class CommentListView(ListCreateAPIView):
