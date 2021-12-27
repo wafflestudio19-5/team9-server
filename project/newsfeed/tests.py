@@ -321,7 +321,7 @@ class LikeTestCase(TestCase):
         post = self.test_friend.posts.last()
         user_token = "JWT " + jwt_token_of(user)
         response = self.client.put(
-            "/api/v1/like/" + str(post.id) + "/",
+            "/api/v1/newsfeed/" + str(post.id) + "/like/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -330,7 +330,7 @@ class LikeTestCase(TestCase):
         self.assertEqual(data["likes"], 1)
 
         response = self.client.delete(
-            "/api/v1/like/" + str(post.id) + "/",
+            "/api/v1/newsfeed/" + str(post.id) + "/like/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -341,7 +341,7 @@ class LikeTestCase(TestCase):
     def test_unauthorized(self):
         post = self.test_friend.posts.last()
         response = self.client.put(
-            "/api/v1/like/" + str(post.id) + "/",
+            "/api/v1/newsfeed/" + str(post.id) + "/like/",
             content_type="application/json",
         )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
@@ -351,7 +351,7 @@ class LikeTestCase(TestCase):
         post = self.test_friend.posts.last()
         user_token = "JWT " + jwt_token_of(user)
         response = self.client.put(
-            "/api/v1/like/" + str(post.id) + "/",
+            "/api/v1/newsfeed/" + str(post.id) + "/like/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -359,7 +359,7 @@ class LikeTestCase(TestCase):
         data = response.json()
         self.assertEqual(data["likes"], 1)
         response = self.client.put(
-            "/api/v1/like/" + str(post.id) + "/",
+            "/api/v1/newsfeed/" + str(post.id) + "/like/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -368,7 +368,7 @@ class LikeTestCase(TestCase):
         self.assertEqual(post.likes, 1)
 
         response = self.client.delete(
-            "/api/v1/like/" + str(post.id) + "/",
+            "/api/v1/newsfeed/" + str(post.id) + "/like/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -377,7 +377,7 @@ class LikeTestCase(TestCase):
         self.assertEqual(data["likes"], 0)
 
         response = self.client.delete(
-            "/api/v1/like/" + str(post.id) + "/",
+            "/api/v1/newsfeed/" + str(post.id) + "/like/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -390,7 +390,7 @@ class LikeTestCase(TestCase):
         post = self.test_stranger.posts.last()
         user_token = "JWT " + jwt_token_of(user)
         response = self.client.put(
-            "/api/v1/like/" + str(post.id) + "/",
+            "/api/v1/newsfeed/" + str(post.id) + "/like/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -402,7 +402,7 @@ class LikeTestCase(TestCase):
         post = self.test_friend.posts.last()
         user_token = "JWT " + jwt_token_of(user)
         response = self.client.put(
-            "/api/v1/like/" + str(post.id) + "/",
+            "/api/v1/newsfeed/" + str(post.id) + "/like/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -411,7 +411,7 @@ class LikeTestCase(TestCase):
         self.assertEqual(data["likes"], 1)
 
         response = self.client.delete(
-            "/api/v1/like/" + str(post.id) + "/",
+            "/api/v1/newsfeed/" + str(post.id) + "/like/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -424,7 +424,7 @@ class LikeTestCase(TestCase):
         for user in self.users:
             user_token = "JWT " + jwt_token_of(user)
             response = self.client.put(
-                "/api/v1/like/" + str(post.id) + "/",
+                "/api/v1/newsfeed/" + str(post.id) + "/like/",
                 content_type="application/json",
                 HTTP_AUTHORIZATION=user_token,
             )
@@ -434,7 +434,7 @@ class LikeTestCase(TestCase):
         user = self.test_user
         user_token = "JWT " + jwt_token_of(user)
         response = self.client.get(
-            "/api/v1/like/" + str(post.id) + "/",
+            "/api/v1/newsfeed/" + str(post.id) + "/like/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -507,7 +507,7 @@ class CommentTestCase(TestCase):
         user_token = "JWT " + jwt_token_of(self.test_user)
 
         response = self.client.get(
-            f"/api/v1/newsfeed/{self.my_post.id}/comment",
+            f"/api/v1/newsfeed/{self.my_post.id}/comment/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -549,7 +549,7 @@ class CommentTestCase(TestCase):
         }
 
         response = self.client.post(
-            f"/api/v1/newsfeed/{self.friend_post.id}/comment",
+            f"/api/v1/newsfeed/{self.friend_post.id}/comment/",
             data=data,
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
@@ -563,7 +563,7 @@ class CommentTestCase(TestCase):
         # Content 내용이 없을 경우 오류
         data = {}
         response = self.client.post(
-            f"/api/v1/newsfeed/{self.my_post.id}/comment",
+            f"/api/v1/newsfeed/{self.my_post.id}/comment/",
             data=data,
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
@@ -578,7 +578,7 @@ class CommentTestCase(TestCase):
             "parent": -1,
         }
         response = self.client.post(
-            f"/api/v1/newsfeed/{self.my_post.id}/comment",
+            f"/api/v1/newsfeed/{self.my_post.id}/comment/",
             data=data,
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
@@ -590,7 +590,7 @@ class CommentTestCase(TestCase):
             "content": content,
         }
         response = self.client.post(
-            f"/api/v1/newsfeed/{self.stranger_post.id}/comment",
+            f"/api/v1/newsfeed/{self.stranger_post.id}/comment/",
             data=data,
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
@@ -603,7 +603,7 @@ class CommentTestCase(TestCase):
             "parent": self.depth_two.id
         }
         response = self.client.post(
-            f"/api/v1/newsfeed/{self.my_post.id}/comment",
+            f"/api/v1/newsfeed/{self.my_post.id}/comment/",
             data=data,
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,

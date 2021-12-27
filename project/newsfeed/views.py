@@ -1,7 +1,7 @@
 from drf_yasg import openapi
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
-from rest_framework.generics import ListCreateAPIView
+from rest_framework.generics import ListCreateAPIView, GenericAPIView
 from rest_framework.response import Response
 from typing import Type
 from django.db.models import Q
@@ -74,7 +74,7 @@ class PostListView(ListCreateAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class LikeViewSet(viewsets.GenericViewSet):
+class PostLikeViewSet(GenericAPIView):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
@@ -84,9 +84,9 @@ class LikeViewSet(viewsets.GenericViewSet):
         request_body=no_body,
         manual_parameters=[jwt_header],
     )
-    def update(self, request, pk=None):
+    def put(self, request, post_id=None):
         user = request.user
-        post = get_object_or_404(self.queryset, pk=pk)
+        post = get_object_or_404(self.queryset, pk=post_id)
         if post.likeusers.filter(id=user.id).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST, data="이미 좋아요 한 게시글입니다.")
         if (
@@ -106,9 +106,9 @@ class LikeViewSet(viewsets.GenericViewSet):
         responses={200: PostSerializer()},
         manual_parameters=[jwt_header],
     )
-    def destroy(self, request, pk=None):
+    def delete(self, request, post_id=None):
         user = request.user
-        post = get_object_or_404(self.queryset, pk=pk)
+        post = get_object_or_404(self.queryset, pk=post_id)
         if not post.likeusers.filter(id=user.id).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST, data="좋아요하지 않은 게시글입니다.")
         if (
@@ -128,8 +128,8 @@ class LikeViewSet(viewsets.GenericViewSet):
         responses={200: PostLikeSerializer()},
         manual_parameters=[jwt_header],
     )
-    def retrieve(self, request, pk=None):
-        post = get_object_or_404(self.queryset, pk=pk)
+    def get(self, request, post_id=None):
+        post = get_object_or_404(self.queryset, pk=post_id)
         return Response(PostLikeSerializer(post).data, status=status.HTTP_200_OK)
 
 
@@ -144,8 +144,8 @@ class CommentListView(ListCreateAPIView):
         responses={200: CommentListSerializer()},
         manual_parameters=[jwt_header],
     )
-    def get(self, request, pk=None):
-        self.queryset = Comment.objects.filter(post=pk, depth=0).order_by("-id")
+    def get(self, request, post_id=None):
+        self.queryset = Comment.objects.filter(post=post_id, depth=0).order_by("-id")
         return super().list(request)
 
     @swagger_auto_schema(
@@ -161,11 +161,11 @@ class CommentListView(ListCreateAPIView):
             },
         ),
     )
-    def post(self, request, pk=None):
+    def post(self, request, post_id=None):
         user = request.user
 
         request.data["author"] = user.id
-        post = get_object_or_404(self.queryset, pk=pk)
+        post = get_object_or_404(self.queryset, pk=post_id)
         request.data["post"] = post.id
 
         if (
