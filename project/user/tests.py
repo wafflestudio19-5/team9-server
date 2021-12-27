@@ -208,3 +208,26 @@ class LoginTestCase(TestCase):
             content_type="application/json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class LogoutTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(
+            email="waffle@test.com",
+            first_name="민준",
+            last_name="이",
+            birth="2002-05-14",
+            gender="Male",
+            password="password",
+        )
+
+    def test_logout(self):
+        user_token = "JWT " + jwt_token_of(self.user)
+        response = self.client.get(
+            "/api/v1/logout/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotEqual(user_token, "JWT " + jwt_token_of(self.user))
