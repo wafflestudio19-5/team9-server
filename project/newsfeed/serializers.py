@@ -97,16 +97,16 @@ class PostListSerializer(serializers.ModelSerializer):
         return UserSerializer(post.author).data
 
 
-class NewsfeedObjectLikeSerializer(serializers.ModelSerializer):
+class PostLikeSerializer(serializers.ModelSerializer):
     likeusers = serializers.SerializerMethodField()
 
     class Meta:
-        model = NewsfeedObject
+        model = Post
         fields = ("likes", "likeusers")
 
     @swagger_serializer_method(serializer_or_field=UserSerializer)
-    def get_likeusers(self, newsfeed_object):
-        return UserSerializer(newsfeed_object.likeusers, many=True).data
+    def get_likeusers(self, post):
+        return UserSerializer(post.likeusers, many=True).data
 
 
 class CommentSerializer(serializers.ModelSerializer):
