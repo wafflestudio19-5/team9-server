@@ -62,6 +62,7 @@ class UserLogoutView(APIView):
     def get(self, request):
 
         request.user.jwt_secret = uuid.uuid4()
+        request.user.save()
 
         return Response("로그아웃 되었습니다.", status=status.HTTP_200_OK)
 
