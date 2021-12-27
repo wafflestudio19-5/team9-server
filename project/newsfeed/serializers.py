@@ -7,7 +7,7 @@ from user.serializers import UserSerializer
 from datetime import datetime, timedelta
 from pytz import timezone
 
-
+# TODO comment_count 추가하기
 class PostSerializer(serializers.ModelSerializer):
 
     subposts = serializers.SerializerMethodField()
@@ -97,16 +97,16 @@ class PostListSerializer(serializers.ModelSerializer):
         return UserSerializer(post.author).data
 
 
-class PostLikeSerializer(serializers.ModelSerializer):
+class NewsfeedObjectLikeSerializer(serializers.ModelSerializer):
     likeusers = serializers.SerializerMethodField()
 
     class Meta:
-        model = Post
+        model = NewsfeedObject
         fields = ("likes", "likeusers")
 
     @swagger_serializer_method(serializer_or_field=UserSerializer)
-    def get_likeusers(self, post):
-        return UserSerializer(post.likeusers, many=True).data
+    def get_likeusers(self, newsfeed_object):
+        return UserSerializer(newsfeed_object.likeusers, many=True).data
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -139,6 +139,11 @@ class CommentSerializer(serializers.ModelSerializer):
     def validate(self, data):
         post = data.get("post", None)
         parent = data.get("parent", None)
+        content = data.get("content", None)
+
+        if not content:
+            raise serializers.ValidationError("내용을 입력해주세요.")
+
         if parent:
             if parent.depth > 1:
                 raise serializers.ValidationError("depth 2까지만 가능합니다.")
@@ -170,6 +175,7 @@ class CommentListSerializer(serializers.ModelSerializer):
             "depth",
             "likes",
             "posted_at",
+            "parent",
             "children_count",
             "children",
         )
