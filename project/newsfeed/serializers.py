@@ -144,6 +144,7 @@ class CommentSerializer(serializers.ModelSerializer):
             "parent",
             "depth",
             "created",
+            "likes",
         )
 
     def create(self, validated_data):
