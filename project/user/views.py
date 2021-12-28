@@ -19,6 +19,7 @@ from user.serializers import (
     jwt_token_of,
 )
 from drf_yasg.utils import swagger_auto_schema
+import uuid
 
 User = get_user_model()
 
@@ -53,6 +54,17 @@ class UserLoginView(APIView):
         token = serializer.validated_data["token"]
 
         return Response({"success": True, "token": token}, status=status.HTTP_200_OK)
+
+
+class UserLogoutView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+
+        request.user.jwt_secret = uuid.uuid4()
+        request.user.save()
+
+        return Response("로그아웃 되었습니다.", status=status.HTTP_200_OK)
 
 
 KAKAO_APP_KEY = get_secret("KAKAO_APP_KEY")

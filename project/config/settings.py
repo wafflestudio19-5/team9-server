@@ -155,7 +155,8 @@ REST_FRAMEWORK = {
 
 
 JWT_AUTH = {
-    "JWT_SECRET_KEY": SECRET_KEY,
+    #    "JWT_SECRET_KEY": SECRET_KEY,
+    "JWT_GET_USER_SECRET_KEY": "user.utils.jwt_get_secret_key",
     "JWT_ALGORITHM": "HS256",  # 암호화 알고리즘
     "JWT_ALLOW_REFRESH": True,
     "JWT_EXPIRATION_DELTA": datetime.timedelta(days=1),  # 유효기간 설정

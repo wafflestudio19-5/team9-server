@@ -58,11 +58,11 @@ class PostListView(ListCreateAPIView):
                 "content": openapi.Schema(
                     type=openapi.TYPE_STRING, description="Post Content"
                 ),
-                "images": openapi.Schema(
+                "files": openapi.Schema(
                     type=openapi.TYPE_ARRAY,
-                    description="Array of Image URLs",
+                    description='"content", "file"을 key로 가지는 Dictionary들의 Array',
                     default=[],
-                    items=openapi.TYPE_STRING,
+                    items=openapi.TYPE_OBJECT,
                 ),
             },
         ),
@@ -72,11 +72,13 @@ class PostListView(ListCreateAPIView):
     def post(self, request):
 
         user = request.user
+
         request.data["author"] = user.id
 
         files = request.FILES.getlist("file")
 
         serializer = PostSerializer(data=request.data)
+
         serializer.is_valid(raise_exception=True)
         mainpost = serializer.save()
         if files:
