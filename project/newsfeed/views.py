@@ -5,6 +5,7 @@ from rest_framework.generics import ListCreateAPIView, GenericAPIView
 from rest_framework.response import Response
 from typing import Type
 from django.db.models import Q
+from django.db import transaction
 
 from .pagination import CommentPagination
 from .serializers import (
@@ -67,6 +68,7 @@ class PostListView(ListCreateAPIView):
         ),
         responses={201: PostSerializer()},
     )
+    @transaction.atomic
     def post(self, request):
 
         user = request.user
@@ -185,6 +187,7 @@ class CommentListView(ListCreateAPIView):
             },
         ),
     )
+    @transaction.atomic
     def post(self, request, post_id=None):
         user = request.user
 
