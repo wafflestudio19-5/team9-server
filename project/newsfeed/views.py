@@ -70,14 +70,28 @@ class PostListView(ListCreateAPIView):
     def post(self, request):
 
         user = request.user
-        request.data["author"] = request.user.id
-        serializer = PostSerializer(
-            data=request.data, context={"files": request.data["files"]}
-        )
-        serializer.is_valid(raise_exception=True)
-        post = serializer.save()
+        request.data["author"] = user.id
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        files = request.FILES.getlist("file")
+
+        serializer = PostSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        mainpost = serializer.save()
+        if files:
+            for i in range(len(files)):
+
+                serializer = PostSerializer(
+                    data={
+                        "author": user.id,
+                        "content": request.data.getlist("subposts", [""])[i],
+                        "mainpost": mainpost.id,
+                    }
+                )
+                serializer.is_valid(raise_exception=True)
+                subpost = serializer.save()
+                subpost.file.save(files[i].name, files[i], save=True)
+
+        return Response(PostSerializer(mainpost).data, status=status.HTTP_201_CREATED)
 
 
 class PostLikeView(GenericAPIView):

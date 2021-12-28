@@ -33,39 +33,25 @@ class PostSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
 
+        mainpost = validated_data.get("mainpost", None)
         author = validated_data["author"]
-        mainpost = Post.objects.create(
-            author=validated_data["author"], content=validated_data["content"]
-        )
-        files = validated_data.get("files", None)
-        if files:
-            for file_content in files:
-                if file_content:
-                    content = file_content.get("content", "")
-                    file = file_content.get("file", None)
-                    subpost = Post.objects.create(
-                        author=author, content=content, mainpost=mainpost, file=file
-                    )
+        content = validated_data["content"]
 
-        return mainpost
+        if mainpost:
+            post = Post.objects.create(
+                author=author, content=content, mainpost=mainpost
+            )
+        else:
+            post = Post.objects.create(author=author, content=content)
+
+        return post
 
     def validate(self, data):
 
         content = data.get("content", None)
-        files = self.context.get("files", None)
 
         if not content:
             raise serializers.ValidationError("내용을 입력해주세요.")
-
-        if files:
-            if len(files) == 0:
-                pass
-            else:
-                for f in files:
-                    file = f.get("file", None)
-                    if not file:
-                        raise serializers.ValidationError("'file'이 비었습니다.")
-                data["files"] = files
 
         return data
 

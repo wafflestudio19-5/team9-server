@@ -16,6 +16,10 @@ class NewsfeedObject(models.Model):
         abstract = True
 
 
+def get_directory_path(instance, filename):
+    return f"user/{instance.author}/{instance.mainpost.id}/{instance.id}/{filename}"
+
+
 class Post(NewsfeedObject):
     id = models.AutoField(primary_key=True)
     author = models.ForeignKey(User, on_delete=CASCADE, related_name="posts")
@@ -29,7 +33,8 @@ class Post(NewsfeedObject):
     )
 
     file = models.FileField(
-        upload_to=f"user/{author}/{mainpost}/%Y/%m/%d/{id}/", blank=True
+        upload_to=get_directory_path,
+        blank=True,
     )
 
     def get_user_url(self):
