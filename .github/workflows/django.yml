@@ -14,14 +14,6 @@ jobs:
       max-parallel: 4
       matrix:
         python-version: [ 3.8 ]
-
-    with:
-      files: 'secrets.json'
-    env:
-      SECRET_KEY: ${{ secrets.SECRET_KEY }}
-      KAKAO_APP_KEY : ${{ secrets.KAKAO_APP_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       
     steps:
     - uses: actions/checkout@v2
@@ -39,7 +31,7 @@ jobs:
         sudo /etc/init.d/mysql start
         cd /usr/bin/
         ./mysql -uroot -proot -e "create user 'admin'@'localhost' identified by 'waffleteam9';grant all privileges on test_toy_project.* to 'admin'@'localhost';"
-        
+
     - name: Run Tests
       run: |
         cd project
