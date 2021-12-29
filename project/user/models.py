@@ -92,6 +92,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     friends = models.ManyToManyField(
         "self", symmetrical=True, related_name="friends", blank=True
     )
+    friend_requests_to = models.ManyToManyField(
+        "self", symmetrical=False, related_name="friend_requests_from", blank=True
+    )
     # is_staff = models.BooleanField(default=False)
 
     jwt_secret = models.UUIDField(default=uuid.uuid4)
