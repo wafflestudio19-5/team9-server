@@ -22,7 +22,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - uses: microsoft/variable-substitution@v1 
+    - name: Set secret
+      uses: microsoft/variable-substitution@v1 
       with:
         files: './project/secrets.json'
       env:
@@ -42,17 +43,9 @@ jobs:
         sudo /etc/init.d/mysql start
         cd /usr/bin/
         ./mysql -uroot -proot -e "create user 'admin'@'localhost' identified by 'waffleteam9';grant all privileges on test_toy_project.* to 'admin'@'localhost';"
-
-    - name: Set dummy secret
-      run: |
-        cd project
     
     - name: Run Tests
       run: |
         cd project
-        echo "###########################"
-        echo ${{ secrets.AWS_ACCESS_KEY_ID }}
-        cat secrets.json
-        
         python manage.py makemigrations
         python manage.py test --noinput
