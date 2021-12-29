@@ -14,13 +14,23 @@ jobs:
       max-parallel: 4
       matrix:
         python-version: [ 3.8 ]
-      
+
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+
+    - uses: microsoft/variable-substitution@v1 
+      with:
+        files: 'secrets.json'
+      env:
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        KAKAO_APP_KEY : ${{ secrets.KAKAO_APP_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
@@ -32,6 +42,10 @@ jobs:
         cd /usr/bin/
         ./mysql -uroot -proot -e "create user 'admin'@'localhost' identified by 'waffleteam9';grant all privileges on test_toy_project.* to 'admin'@'localhost';"
 
+    - name: Set dummy secret
+      run: |
+        cd project
+    
     - name: Run Tests
       run: |
         cd project
