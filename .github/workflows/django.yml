@@ -41,8 +41,4 @@ jobs:
       run: |
         cd project
         python manage.py makemigrations
-        echo "#####################################################"
-        cat secrets.json
-        aws configure list
-        echo "#####################################################"
         python manage.py test --noinput
