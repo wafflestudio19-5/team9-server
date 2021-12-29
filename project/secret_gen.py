@@ -4,9 +4,9 @@ import os
 from django.core.management.utils import get_random_secret_key
 
 print("###########################")
-print(os.environ.get("AWS_SECRET_ACCESS_KEY"))
+print(os.environ.get("S3_SECRET_KEY"))
 print("###########################")
-
+# S3_SECRET_KEY
 f = open("secrets.json", "w")
 data = {
     "SECRET_KEY": get_random_secret_key(),
