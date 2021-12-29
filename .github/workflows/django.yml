@@ -36,6 +36,8 @@ jobs:
       run: |
         cd project
         python secret_gen.py
+    
+    - name: Set AWS secret
       with:
         files: 'secrets.json'
       env:
