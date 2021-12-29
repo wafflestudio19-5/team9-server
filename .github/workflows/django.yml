@@ -26,10 +26,10 @@ jobs:
       with:
         files: './project/secrets.json'
       env:
-        SECRET_KEY: django-insecure-s02t!m&zc#*5*px(9eof=cu60#yo67c3q4^8-y02k*ts5d6ayg
-        KAKAO_APP_KEY: 46791c7707983d68b0d7b8e2c032fb29
-        AWS_SECRET_ACCESS_KEY: sHME4mLIoMoL7COpJ+svn05dFpHfdxn2Q7UV0t/y
-        AWS_ACCESS_KEY_ID: AKIAYNIYTU7NVL4V32U4
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        KAKAO_APP_KEY: ${{ secrets.KAKAO_APP_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       
 
     - name: Install Dependencies
@@ -51,7 +51,8 @@ jobs:
       run: |
         cd project
         echo "###########################"
-        echo $SECRET_KEY
+        echo ${{ secrets.AWS_ACCESS_KEY_ID }}
         cat secrets.json
+        
         python manage.py makemigrations
         python manage.py test --noinput
