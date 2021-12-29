@@ -51,7 +51,7 @@ jobs:
       run: |
         cd project
         echo "###########################"
-        echo ${{ S3_SECRET_KEY.AWS_ACCESS_KEY_ID }}
+        echo ${{ secrets.AWS_ACCESS_KEY_ID }}
         cat secrets.json
         python manage.py makemigrations
         python manage.py test --noinput
