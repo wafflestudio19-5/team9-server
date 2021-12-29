@@ -5,6 +5,7 @@ from rest_framework.generics import ListCreateAPIView, GenericAPIView
 from rest_framework.response import Response
 from typing import Type
 from django.db.models import Q
+from django.db import transaction
 
 from .pagination import CommentPagination
 from .serializers import (
@@ -67,17 +68,34 @@ class PostListView(ListCreateAPIView):
         ),
         responses={201: PostSerializer()},
     )
+    @transaction.atomic
     def post(self, request):
 
         user = request.user
-        request.data["author"] = request.user.id
-        serializer = PostSerializer(
-            data=request.data, context={"files": request.data.get("files")}
-        )
-        serializer.is_valid(raise_exception=True)
-        post = serializer.save()
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        request.data["author"] = user.id
+
+        files = request.FILES.getlist("file")
+
+        serializer = PostSerializer(data=request.data)
+
+        serializer.is_valid(raise_exception=True)
+        mainpost = serializer.save()
+        if files:
+            for i in range(len(files)):
+
+                serializer = PostSerializer(
+                    data={
+                        "author": user.id,
+                        "content": request.data.getlist("subposts", [""])[i],
+                        "mainpost": mainpost.id,
+                    }
+                )
+                serializer.is_valid(raise_exception=True)
+                subpost = serializer.save()
+                subpost.file.save(files[i].name, files[i], save=True)
+
+        return Response(PostSerializer(mainpost).data, status=status.HTTP_201_CREATED)
 
 
 class PostLikeView(GenericAPIView):
@@ -171,6 +189,7 @@ class CommentListView(ListCreateAPIView):
             },
         ),
     )
+    @transaction.atomic
     def post(self, request, post_id=None):
         user = request.user
 
