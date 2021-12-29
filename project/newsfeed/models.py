@@ -16,7 +16,7 @@ class NewsfeedObject(models.Model):
         abstract = True
 
 
-def post_directory_path(instance, filename):
+def get_directory_path(instance, filename):
     return (
         f"user/{instance.author}/posts/{instance.mainpost.id}/{instance.id}/{filename}"
     )
@@ -39,7 +39,7 @@ class Post(NewsfeedObject):
     )
 
     file = models.FileField(
-        upload_to=post_directory_path,
+        upload_to=get_directory_path,
         blank=True,
     )
 

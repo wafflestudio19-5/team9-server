@@ -572,7 +572,29 @@ class CommentTestCase(TestCase):
         data = response.json()
 
         self.assertEqual(content, data["content"])
-        self.assertEqual(self.test_user.id, data["author"])
+        self.assertEqual(self.test_user.id, data["author"]["id"])
+
+        # 댓글에 파일이 첨부된 경우
+        test_image = SimpleUploadedFile(
+            name="testimage.jpg",
+            content=open(os.path.join(BASE_DIR, "testimage.jpg"), "rb").read(),
+            content_type="image/jpeg",
+        )
+
+        data = {"content": content, "file": test_image}
+
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.friend_post.id}/comment/",
+            data=data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+
+        self.assertEqual(content, data["content"])
+        self.assertEqual(self.test_user.id, data["author"]["id"])
+        self.assertIn("testimage.jpg", data["file"])
 
         # Content 내용이 없을 경우 오류
         data = {}
