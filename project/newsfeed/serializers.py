@@ -249,19 +249,19 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
 
-        subject = self.context["request"].user.username
-        object = self.context["object"]
-        url = self.context["url"]
-        post = self.context.get("post")
-        comment = self.context.get("comment")
+        subject = validated_data['subject']
+        object = validated_data["object"]
+        url = validated_data["url"]
+        post = validated_data.get("post")
+        comment = validated_data.get("comment")
 
-        if self.context.get("isPostLike"):
+        if validated_data.get("isPostLike"):
             content = f"{subject}님이 내 게시물에 좋아요를 눌렀습니다."
-        elif self.context.get("isCommentLike"):
+        elif validated_data.get("isCommentLike"):
             content = f"{subject}님이 내 댓글에 좋아요를 눌렀습니다."
-        elif self.context.get("isComment"):
+        elif validated_data.get("isComment"):
             content = f"{subject}님이 내 게시물에 댓글을 달았습니다."
-        elif self.context.get("isFriend"):
+        elif validated_data.get("isFriend"):
             content = f"{subject}님이 친구요청을 보냈습니다."
         
         return Notification.objects.create(

@@ -125,6 +125,18 @@ class PostLikeView(GenericAPIView):
         post.likes = post.likes + 1
         post.save()
 
+        serializer = NotificationSerializer(
+            data={
+                "subject": user.username,
+                "object": post.author.id,
+                "post": post.id,
+                "url": f"newsfeed/{post.id}/",
+                "isPostLike": True,
+            }
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
         return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
@@ -209,9 +221,24 @@ class CommentListView(ListCreateAPIView):
         serializer = CommentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         comment = serializer.save()
+
         file = request.FILES.get("file")
         if file:
             comment.file.save(file.name, file, save=True)
+
+        serializer = NotificationSerializer(
+            data={
+                "subject": user.username,
+                "object": post.author.id,
+                "post": post.id,
+                "comment": comment.id,
+                "url": f"newsfeed/{post.id}/",
+                "isComment": True,
+            }
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
         return Response(
             CommentListSerializer(comment).data, status=status.HTTP_201_CREATED
         )
@@ -235,6 +262,21 @@ class CommentLikeView(GenericAPIView):
         comment.likeusers.add(user)
         comment.likes = comment.likes + 1
         comment.save()
+
+        post = comment.post
+
+        serializer = NotificationSerializer(
+            data={
+                "subject": user.username,
+                "object": comment.author.id,
+                "post": post.id,
+                "comment": comment.id,
+                "url": f"newsfeed/{post.id}/",
+                "isCommentLike": True,
+            }
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
         return Response(self.serializer_class(comment).data, status=status.HTTP_200_OK)
 
