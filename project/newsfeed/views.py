@@ -9,6 +9,7 @@ from django.db import transaction
 
 from .pagination import CommentPagination
 from .serializers import (
+    NotificationSerializer,
     PostListSerializer,
     PostSerializer,
     PostLikeSerializer,
@@ -16,7 +17,7 @@ from .serializers import (
     CommentSerializer,
     CommentLikeSerializer,
 )
-from .models import Post, Comment
+from .models import Notification, Post, Comment
 from user.models import User
 from datetime import datetime
 from django.shortcuts import get_object_or_404
@@ -123,6 +124,7 @@ class PostLikeView(GenericAPIView):
         post.likeusers.add(user)
         post.likes = post.likes + 1
         post.save()
+
         return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
@@ -207,10 +209,12 @@ class CommentListView(ListCreateAPIView):
         serializer = CommentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         comment = serializer.save()
-        file = request.FILES.get('file')
+        file = request.FILES.get("file")
         if file:
             comment.file.save(file.name, file, save=True)
-        return Response(CommentListSerializer(comment).data, status=status.HTTP_201_CREATED)
+        return Response(
+            CommentListSerializer(comment).data, status=status.HTTP_201_CREATED
+        )
 
 
 class CommentLikeView(GenericAPIView):
@@ -231,6 +235,7 @@ class CommentLikeView(GenericAPIView):
         comment.likeusers.add(user)
         comment.likes = comment.likes + 1
         comment.save()
+
         return Response(self.serializer_class(comment).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
@@ -256,3 +261,9 @@ class CommentLikeView(GenericAPIView):
     def get(self, request, post_id=None, comment_id=None):
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
         return Response(CommentLikeSerializer(comment).data, status=status.HTTP_200_OK)
+
+
+class NotificationView(GenericAPIView):
+    serializer_class = NotificationSerializer
+    queryset = Notification.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)

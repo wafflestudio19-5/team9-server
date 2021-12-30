@@ -4,6 +4,7 @@ from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
 from .models import Notification, Post, Comment, NewsfeedObject
 from user.serializers import UserSerializer
+from user.models import User
 from datetime import datetime, timedelta
 from pytz import timezone
 
@@ -231,10 +232,52 @@ class CommentListSerializer(serializers.ModelSerializer):
 class NotificationSerializer(serializers.ModelSerializer):
 
     posted_at = serializers.SerializerMethodField()
+    post = serializers.SerializerMethodField()
 
     class Meta:
         model = Notification
-        fields = ("id", "user", "content", "posted_at", "isChecked", "url")
+        fields = (
+            "id",
+            "user",
+            "post",
+            "comment",
+            "content",
+            "posted_at",
+            "isChecked",
+            "url",
+        )
 
-    def get_posted_at(self, comment):
-        return format_time(comment.created)
+    def create(self, validated_data):
+
+        subject = self.context["request"].user.username
+        object = self.context["object"]
+        url = self.context["url"]
+        post = self.context.get("post")
+        comment = self.context.get("comment")
+
+        if self.context.get("isPostLike"):
+            content = f"{subject}님이 내 게시물에 좋아요를 눌렀습니다."
+        elif self.context.get("isCommentLike"):
+            content = f"{subject}님이 내 댓글에 좋아요를 눌렀습니다."
+        elif self.context.get("isComment"):
+            content = f"{subject}님이 내 게시물에 댓글을 달았습니다."
+        elif self.context.get("isFriend"):
+            content = f"{subject}님이 친구요청을 보냈습니다."
+        
+        return Notification.objects.create(
+            user=object,
+            content=content,
+            post = post,
+            comment = comment,
+            url=url,
+            post=validated_data.get("post"),
+        )
+
+    def get_posted_at(self, notification):
+        return format_time(notification.created)
+
+    def get_post(self, notification):
+        return PostSerializer(notification.post).data
+
+    def get_comment(self, notification):
+        return CommentSerializer(notification.post).data

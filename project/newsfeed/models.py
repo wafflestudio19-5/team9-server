@@ -68,6 +68,12 @@ class Notification(models.Model):
 
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=CASCADE, related_name="notifications")
+    post = models.ForeignKey(
+        Post, on_delete=CASCADE, null=True, related_name="notifications"
+    )
+    comment = models.ForeignKey(
+        Comment, on_delete=CASCADE, null=True, related_name="notifications"
+    )
     content = models.CharField(max_length=100)
     created = models.DateTimeField(auto_now_add=True)
     isChecked = models.BooleanField(default=False)
