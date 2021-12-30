@@ -62,3 +62,13 @@ class Comment(NewsfeedObject):
 
     def get_user_url(self):
         return f"/api/v1/user/{self.author}/"
+
+
+class Notification(models.Model):
+
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(User, on_delete=CASCADE, related_name="notifications")
+    content = models.CharField(max_length=100)
+    created = models.DateTimeField(auto_now_add=True)
+    isChecked = models.BooleanField(default=False)
+    url = models.CharField(max_length=1000)

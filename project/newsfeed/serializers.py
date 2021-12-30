@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_serializer_method
 from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
-from .models import Post, Comment, NewsfeedObject
+from .models import Notification, Post, Comment, NewsfeedObject
 from user.serializers import UserSerializer
 from datetime import datetime, timedelta
 from pytz import timezone
@@ -226,3 +226,15 @@ class CommentListSerializer(serializers.ModelSerializer):
         # if children.count() > 2:
         #     children = children[children.count()-4:]
         return CommentListSerializer(children, many=True, context=self.context).data
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+
+    posted_at = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Notification
+        fields = ("id", "user", "content", "posted_at", "isChecked", "url")
+
+    def get_posted_at(self, comment):
+        return format_time(comment.created)
