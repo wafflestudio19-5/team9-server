@@ -9,6 +9,7 @@ from rest_framework import status, viewsets, permissions
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from rest_framework.decorators import action, api_view
+from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from drf_yasg import openapi
 from config.settings import get_secret
@@ -162,4 +163,21 @@ class UserNewsfeedView(ListAPIView):
     def get(self, request, user_id=None):
         user = get_object_or_404(User, pk=user_id)
         self.queryset = Post.objects.filter(author=user, mainpost=None)
+        return super().list(request)
+
+
+class UserFriendView(ListAPIView):
+    serializer_class = UserSerializer
+    queryset = User.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+    pagination_class = LimitOffsetPagination
+
+    @swagger_auto_schema(
+        operation_description="선택된 유저의 친구들을 가져오기",
+        manual_parameters=[jwt_header],
+        responses={200: UserSerializer(), 404: "유저를 찾을 수 없습니다."},
+    )
+    def get(self, request, user_id=None):
+        user = get_object_or_404(User, pk=user_id)
+        self.queryset = User.objects.filter(friends=user)
         return super().list(request)
