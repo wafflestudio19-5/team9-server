@@ -207,10 +207,12 @@ class CommentListView(ListCreateAPIView):
         serializer = CommentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         comment = serializer.save()
-        file = request.FILES.get('file')
+        file = request.FILES.get("file")
         if file:
             comment.file.save(file.name, file, save=True)
-        return Response(CommentListSerializer(comment).data, status=status.HTTP_201_CREATED)
+        return Response(
+            CommentListSerializer(comment).data, status=status.HTTP_201_CREATED
+        )
 
 
 class CommentLikeView(GenericAPIView):
