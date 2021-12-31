@@ -1,6 +1,8 @@
 from django.test import TestCase
 from factory.django import DjangoModelFactory
 from user.models import User
+from faker import Faker
+from newsfeed.models import Post
 from user.serializers import jwt_token_of
 from rest_framework import status
 import json
@@ -20,6 +22,53 @@ class UserFactory(DjangoModelFactory):
         user.save()
 
         return user
+
+
+class NewUserFactory(DjangoModelFactory):
+    class Meta:
+        model = User
+
+    email = "test@test.com"
+
+    @classmethod
+    def create(cls, **kwargs):
+
+        fake = Faker("ko_KR")
+        user = User.objects.create(
+            email=kwargs.get("email", fake.email()),
+            password=kwargs.get("password", fake.password()),
+            first_name=kwargs.get("first_name", fake.first_name()),
+            last_name=kwargs.get("last_name", fake.last_name()),
+            birth=kwargs.get("birth", fake.date()),
+            gender=kwargs.get(
+                "gender", fake.random_choices(elements=("M", "F"), length=1)[0]
+            ),
+            phone_number=kwargs.get("phone_number", fake.numerify(text="010########")),
+        )
+        user.username = user.first_name + user.last_name
+        user.set_password(kwargs.get("password", ""))
+        user.save()
+
+        return user
+
+
+class PostFactory(DjangoModelFactory):
+    class Meta:
+        model = Post
+
+    @classmethod
+    def create(cls, **kwargs):
+
+        fake = Faker("ko_KR")
+        post = Post.objects.create(
+            author=kwargs.get("author"),
+            content=kwargs.get("content", fake.text(max_nb_chars=1000)),
+            file=kwargs.get("file", None),
+            likes=kwargs.get("likes", fake.random_int(min=0, max=1000)),
+        )
+        post.save()
+
+        return post
 
 
 class SignUpUserTestCase(TestCase):
@@ -231,3 +280,75 @@ class LogoutTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertNotEqual(user_token, "JWT " + jwt_token_of(self.user))
+
+
+class UserNewsFeedTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+
+        cls.test_user = NewUserFactory.create(
+            email="test0@test.com",
+            password="password",
+            first_name="test",
+            last_name="user",
+            birth="1997-02-03",
+            gender="M",
+            phone_number="01000000000",
+        )
+
+        cls.test_friend = NewUserFactory.create(
+            email="test1@test.com",
+            password="password",
+            first_name="test",
+            last_name="friend",
+            birth="1997-02-03",
+            gender="M",
+            phone_number="01011111111",
+        )
+
+        PostFactory.create_batch(40, author=cls.test_friend)
+        PostFactory.create(author=cls.test_user, content="나의 첫번째 테스트 게시물입니다.", likes=10)
+        PostFactory.create(author=cls.test_user, content="나의 두번째 테스트 게시물입니다.", likes=20)
+
+    def test_post_user_list(self):
+
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        # 나중 게시글이 먼저 떠야함, 유저의 게시글은 2개여야 함
+        self.assertEqual(len(data["results"]), 2)
+        self.assertEqual(data["results"][0]["likes"], 20)
+        self.assertEqual(data["results"][1]["likes"], 10)
+
+        response = self.client.get(
+            f"/api/v1/user/{self.test_friend.id}/newsfeed/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        # 20개 단위로 페이지네이션 되므로 20개가 떠야함
+        self.assertEqual(len(data["results"]), 20)
+
+    def test_post_user_notfound(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.get(
+            "/api/v1/user/100/newsfeed/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_post_user_unauthorized(self):
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
