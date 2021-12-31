@@ -7,13 +7,15 @@ import newsfeed.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('newsfeed', '0010_auto_20211227_1845'),
+        ("newsfeed", "0010_auto_20211227_1845"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='post',
-            name='file',
-            field=models.FileField(blank=True, upload_to=newsfeed.models.get_directory_path),
+            model_name="post",
+            name="file",
+            field=models.FileField(
+                blank=True, upload_to=newsfeed.models.get_directory_path
+            ),
         ),
     ]
