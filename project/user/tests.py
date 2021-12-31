@@ -310,7 +310,7 @@ class UserNewsFeedTestCase(TestCase):
         PostFactory.create(author=cls.test_user, content="나의 첫번째 테스트 게시물입니다.", likes=10)
         PostFactory.create(author=cls.test_user, content="나의 두번째 테스트 게시물입니다.", likes=20)
 
-    def test_post_user_list(self):
+    def test_user_post_list(self):
 
         user_token = "JWT " + jwt_token_of(self.test_user)
         response = self.client.get(
@@ -337,7 +337,7 @@ class UserNewsFeedTestCase(TestCase):
         # 20개 단위로 페이지네이션 되므로 20개가 떠야함
         self.assertEqual(len(data["results"]), 20)
 
-    def test_post_user_notfound(self):
+    def test_user_post_notfound(self):
         user_token = "JWT " + jwt_token_of(self.test_user)
         response = self.client.get(
             "/api/v1/user/100/newsfeed/",
@@ -346,9 +346,90 @@ class UserNewsFeedTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_post_user_unauthorized(self):
+    def test_user_post_unauthorized(self):
         response = self.client.get(
             f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class UserFriendTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+
+        cls.test_user = NewUserFactory.create(
+            email="test0@test.com",
+            password="password",
+            first_name="test",
+            last_name="user",
+            birth="1997-02-03",
+            gender="M",
+            phone_number="01000000000",
+        )
+
+        cls.test_friend = NewUserFactory.create(
+            email="test1@test.com",
+            password="password",
+            first_name="test",
+            last_name="friend",
+            birth="1997-02-03",
+            gender="M",
+            phone_number="01011111111",
+        )
+
+        cls.test_user.friends.add(cls.test_friend)
+        cls.test_user.save()
+        cls.users = NewUserFactory.create_batch(30)
+        for user in cls.users:
+            cls.test_user.friends.add(user)
+        cls.test_user.save()
+
+    def test_post_user_list(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.get(
+            f"/api/v1/user/{self.test_friend.id}/friend/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        # 테스트 프렌트의 친구는 유저뿐
+        self.assertEqual(len(data["results"]), 1)
+        self.assertEqual(data["results"][0]["username"], self.test_user.username)
+
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/friend/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        # 페이지네이션 돼서 20개
+        self.assertEqual(len(data["results"]), 20)
+
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/friend/?limit=9",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        # 9개로 제한
+        self.assertEqual(len(data["results"]), 9)
+
+    def test_post_user_notfound(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.get(
+            "/api/v1/user/100/friend/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_post_user_unauthorized(self):
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/friend/",
             content_type="application/json",
         )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
