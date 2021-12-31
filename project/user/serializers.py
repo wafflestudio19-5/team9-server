@@ -106,3 +106,67 @@ class UserSerializer(serializers.ModelSerializer):
 
         user = super().create(validated_data)
         return user
+
+
+class CompanySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Company
+        fields = (
+            "user",
+            "name",
+            "role",
+            "location",
+            "join_date",
+            "leave_date",
+            "is_active",
+            "detail",
+        )
+        read_only_fields = ["is_active"]
+
+    def validate(self, data):
+        join_date = data.get("join_date")
+        leave_date = data.get("leave_date")
+        if leave_date and leave_date < join_date:
+            raise serializers.ValidationError("기간이 유효하지 않습니다.")
+        return data
+
+
+class UniversitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = University
+        fields = (
+            "user",
+            "name",
+            "major",
+            "join_date",
+            "graduate_date",
+            "is_active",
+        )
+        read_only_fields = ["is_active"]
+
+    def validate(self, data):
+        join_date = data.get("join_date")
+        graduate_date = data.get("graduate_date")
+        if graduate_date and graduate_date < join_date:
+            raise serializers.ValidationError("기간이 유효하지 않습니다.")
+        return data
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    company = CompanySerializer(many=True, read_only=True)
+    university = UniversitySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = User
+        fields = (
+            "first_name",
+            "last_name",
+            "username",
+            "email",
+            "birth",
+            "gender",
+            "self_intro",
+            "profile_image",
+            "cover_image",
+        )
+        read_only_fields = ("username", "email")
