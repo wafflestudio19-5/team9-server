@@ -5,6 +5,7 @@ from .views import (
     UserLogoutView,
     KakaoView,
     KakaoCallbackView,
+    UserNewsfeedView,
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -17,6 +18,9 @@ urlpatterns = [
     path(
         "kakao/callback/", KakaoCallbackView.as_view(), name="kakao_callback"
     ),  # /api/v1/kakao/callback/
+    path(
+        "user/<int:user_id>/newsfeed/", UserNewsfeedView.as_view(), name="user_newsfeed"
+    ),  # /api/v1/user/{user_id}/newsfeed/
 ]
 
 # urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

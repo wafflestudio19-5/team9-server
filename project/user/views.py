@@ -2,14 +2,15 @@ import requests
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Model
 from django.http import JsonResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.db import IntegrityError
 from rest_framework import status, viewsets, permissions
+from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
-
+from drf_yasg import openapi
 from config.settings import get_secret
 from user.models import KakaoId
 from user.serializers import (
@@ -18,6 +19,8 @@ from user.serializers import (
     UserCreateSerializer,
     jwt_token_of,
 )
+from newsfeed.serializers import PostListSerializer
+from newsfeed.models import Post
 from drf_yasg.utils import swagger_auto_schema
 import uuid
 
@@ -136,3 +139,27 @@ class KakaoCallbackView(APIView):
                 return Response(
                     status=status.HTTP_400_BAD_REQUEST, data="해당 카카오 계정과 연결된 계정이 없습니다."
                 )
+
+
+jwt_header = openapi.Parameter(
+    "Authorization",
+    openapi.IN_HEADER,
+    type=openapi.TYPE_STRING,
+    default="JWT [put token here]",
+)
+
+
+class UserNewsfeedView(ListAPIView):
+    serializer_class = PostListSerializer
+    queryset = Post.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+
+    @swagger_auto_schema(
+        operation_description="선택된 유저가 작성한 게시글을 가져오기",
+        manual_parameters=[jwt_header],
+        responses={200: PostListSerializer(), 404: "유저를 찾을 수 없습니다."},
+    )
+    def get(self, request, user_id=None):
+        user = get_object_or_404(User, pk=user_id)
+        self.queryset = Post.objects.filter(author=user, mainpost=None)
+        return super().list(request)
