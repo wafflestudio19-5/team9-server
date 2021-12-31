@@ -17,7 +17,13 @@ class NewsfeedObject(models.Model):
 
 
 def get_directory_path(instance, filename):
-    return f"user/{instance.author}/{instance.mainpost.id}/{instance.id}/{filename}"
+    return (
+        f"user/{instance.author}/posts/{instance.mainpost.id}/{instance.id}/{filename}"
+    )
+
+
+def comment_directory_path(instance, filename):
+    return f"user/{instance.author}/comments/{instance.id}/{filename}"
 
 
 class Post(NewsfeedObject):
@@ -52,9 +58,7 @@ class Comment(NewsfeedObject):
     )
     depth = models.PositiveIntegerField(default=0)
 
-    file = models.FileField(
-        upload_to=f"user/{author}/{post}/%Y/%m/%d/{id}/", blank=True
-    )
+    file = models.FileField(upload_to=comment_directory_path, blank=True)
 
     def get_user_url(self):
         return f"/api/v1/user/{self.author}/"

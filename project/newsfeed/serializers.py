@@ -160,7 +160,6 @@ class CommentSerializer(serializers.ModelSerializer):
             post=validated_data["post"],
             author=validated_data["author"],
             content=validated_data["content"],
-            file=validated_data.get("file"),
             parent=validated_data.get("parent"),
             depth=validated_data.get("depth"),
         )

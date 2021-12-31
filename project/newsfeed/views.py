@@ -204,11 +204,15 @@ class CommentListView(ListCreateAPIView):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST, data="친구 혹은 자신의 게시글이 아닙니다."
             )
-
         serializer = CommentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        comment = serializer.save()
+        file = request.FILES.get("file")
+        if file:
+            comment.file.save(file.name, file, save=True)
+        return Response(
+            CommentListSerializer(comment).data, status=status.HTTP_201_CREATED
+        )
 
 
 class CommentLikeView(GenericAPIView):
