@@ -1,6 +1,6 @@
 from django.test import TestCase
 from factory.django import DjangoModelFactory
-from user.models import User
+from user.models import User, Company, University
 from faker import Faker
 from newsfeed.models import Post
 from user.serializers import jwt_token_of
@@ -69,6 +69,46 @@ class PostFactory(DjangoModelFactory):
         post.save()
 
         return post
+
+
+class CompanyFactory(DjangoModelFactory):
+    class Meta:
+        model = Company
+
+    @classmethod
+    def create(cls, **kwargs):
+        fake = Faker("ko_KR")
+        company = Company.objects.create(
+            user=kwargs.get("user"),
+            name=kwargs.get("name", fake.name(max_nb_chars=30)),
+            role=kwargs.get("role", fake.text(max_nb_chars=30)),
+            location=kwargs.get("location", fake.text(max_nb_chars=50)),
+            join_date=kwargs.get("join_date", fake.date()),
+            leave_date=kwargs.get("leave_date"),
+            is_active=kwargs.get("is_active", True),
+            detail=kwargs.get("detail", fake.text(max_nb_chars=300)),
+        )
+        company.save()
+        return company
+
+
+class UniversityFactory(DjangoModelFactory):
+    class Meta:
+        model = University
+
+    @classmethod
+    def create(cls, **kwargs):
+        fake = Faker("ko_KR")
+        university = University.objects.create(
+            user=kwargs.get("user"),
+            name=kwargs.get("name", fake.name(max_nb_chars=30)),
+            major=kwargs.get("role", fake.text(max_nb_chars=30)),
+            join_date=kwargs.get("join_date", fake.date()),
+            graduate_date=kwargs.get("graduate_date"),
+            is_active=kwargs.get("is_active", True),
+        )
+        university.save()
+        return university
 
 
 class SignUpUserTestCase(TestCase):
@@ -433,3 +473,17 @@ class UserFriendTestCase(TestCase):
             content_type="application/json",
         )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class UserProfileTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.test_user = NewUserFactory.create(
+            email="test0@test.com",
+            password="password",
+            first_name="test",
+            last_name="user",
+            birth="1997-02-03",
+            gender="M",
+            phone_number="01000000000",
+        )
