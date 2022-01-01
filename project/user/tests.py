@@ -80,7 +80,7 @@ class CompanyFactory(DjangoModelFactory):
         fake = Faker("ko_KR")
         company = Company.objects.create(
             user=kwargs.get("user"),
-            name=kwargs.get("name", fake.name(max_nb_chars=30)),
+            name=kwargs.get("name", fake.text(max_nb_chars=30)),
             role=kwargs.get("role", fake.text(max_nb_chars=30)),
             location=kwargs.get("location", fake.text(max_nb_chars=50)),
             join_date=kwargs.get("join_date", fake.date()),
@@ -101,7 +101,7 @@ class UniversityFactory(DjangoModelFactory):
         fake = Faker("ko_KR")
         university = University.objects.create(
             user=kwargs.get("user"),
-            name=kwargs.get("name", fake.name(max_nb_chars=30)),
+            name=kwargs.get("name", fake.text(max_nb_chars=30)),
             major=kwargs.get("role", fake.text(max_nb_chars=30)),
             join_date=kwargs.get("join_date", fake.date()),
             graduate_date=kwargs.get("graduate_date"),
@@ -487,3 +487,17 @@ class UserProfileTestCase(TestCase):
             gender="M",
             phone_number="01000000000",
         )
+        cls.test_friend = NewUserFactory.create()
+        CompanyFactory.create_batch(3, user=cls.test_user)
+        UniversityFactory.create_batch(3, user=cls.test_user)
+
+    def test_get_user_profile(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/profile/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        print(data)
