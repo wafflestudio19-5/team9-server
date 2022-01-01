@@ -1,10 +1,12 @@
 from django.urls import path, include
+from rest_framework.routers import SimpleRouter
+
 from .views import (
     UserLoginView,
     UserSignUpView,
     UserLogoutView,
     KakaoView,
-    KakaoCallbackView,
+    KakaoCallbackView, UserFriendRequestView,
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -17,6 +19,8 @@ urlpatterns = [
     path(
         "kakao/callback/", KakaoCallbackView.as_view(), name="kakao_callback"
     ),  # /api/v1/kakao/callback/
+    path("friend/request/", UserFriendRequestView.as_view(), name="friend_request"),  # /api/v1/friend/request/
+
 ]
 
 # urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

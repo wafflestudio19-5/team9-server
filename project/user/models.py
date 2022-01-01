@@ -92,9 +92,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     friends = models.ManyToManyField(
         "self", symmetrical=True, related_name="friends", blank=True
     )
-    friend_requests_to = models.ManyToManyField(
-        "self", symmetrical=False, related_name="friend_requests_from", blank=True
-    )
     # is_staff = models.BooleanField(default=False)
 
     jwt_secret = models.UUIDField(default=uuid.uuid4)
@@ -153,3 +150,9 @@ class KakaoId(models.Model):
 
     user = models.OneToOneField(User, on_delete=CASCADE, related_name="kakao")
     identifier = models.IntegerField(unique=True)
+
+
+class FriendRequest(models.Model):
+    sender = models.ForeignKey(User, on_delete=CASCADE, related_name="sent_friend_request")
+    receiver = models.ForeignKey(User, on_delete=CASCADE, related_name="received_friend_request")
+    created = models.DateTimeField(auto_now_add=True)
