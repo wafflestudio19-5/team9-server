@@ -139,14 +139,14 @@ class CompanySerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         leave_date = validated_data.get("leave_date")
         validated_data["is_active"] = (
-            not leave_date or leave_date < datetime.now().date()
+            not leave_date or leave_date > datetime.now().date()
         )
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
         instance = super().update(instance, validated_data)
         instance.is_active = (
-            not instance.leave_date or instance.leave_date < datetime.now().date()
+            not instance.leave_date or instance.leave_date > datetime.now().date()
         )
         instance.save()
         return instance
@@ -181,14 +181,14 @@ class UniversitySerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         graduate_date = validated_data.get("graduate_date")
         validated_data["is_active"] = (
-            not graduate_date or graduate_date < datetime.now().date()
+            not graduate_date or graduate_date > datetime.now().date()
         )
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
         instance = super().update(instance, validated_data)
         instance.is_active = (
-            not instance.graduate_date or instance.graduate_date < datetime.now().date()
+            not instance.graduate_date or instance.graduate_date > datetime.now().date()
         )
         instance.save()
         return instance
