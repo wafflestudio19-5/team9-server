@@ -126,8 +126,8 @@ class PostLikeView(GenericAPIView):
         post.likes = post.likes + 1
         post.save()
 
-        # if user.id != post.author.id:
-        NoticeCreate(user=user, content="PostLike", post=post)
+        if user.id != post.author.id:
+            NoticeCreate(user=user, content="PostLike", post=post)
 
         return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
 
@@ -230,8 +230,8 @@ class CommentListView(ListCreateAPIView):
         if file:
             comment.file.save(file.name, file, save=True)
 
-        # if user.id != post.author.id:
-        NoticeCreate(user=user, content="PostComment", post=post, comment=comment)
+        if user.id != post.author.id:
+            NoticeCreate(user=user, content="PostComment", post=post, comment=comment)
 
         return Response(
             CommentListSerializer(comment).data, status=status.HTTP_201_CREATED
@@ -258,8 +258,8 @@ class CommentLikeView(GenericAPIView):
         comment.save()
 
         post = comment.post
-        # if user.id != comment.author.id:
-        NoticeCreate(user=user, content="CommentLike", post=post, comment=comment)
+        if user.id != comment.author.id:
+            NoticeCreate(user=user, content="CommentLike", post=post, comment=comment)
 
         return Response(self.serializer_class(comment).data, status=status.HTTP_200_OK)
 
@@ -316,7 +316,6 @@ def NoticeCreate(**context):
 
     if notice:
         notice = notice[0]
-
         if user not in notice.senders.all():
             notice.count += 1
             notice.senders.add(user)
@@ -324,16 +323,19 @@ def NoticeCreate(**context):
         if comment:
             notice.comment = comment
         notice.save()
+
     else:
 
         data = {
             "user": target.id,
             "content": content,
             "post": post.id,
-            "url": f"newsfeed/{post.id}/",
+            "url": f"api/v1/newsfeed/{post.id}/",
         }
         if comment:
             data["comment"] = comment.id
+        if content == "CommentLike":
+            data["url"] = f"api/v1/newsfeed/{post.id}/{comment.id}/"
 
         serializer = NoticeSerializer(
             data=data,
