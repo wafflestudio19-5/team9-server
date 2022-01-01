@@ -7,6 +7,7 @@ from .views import (
     KakaoCallbackView,
     UserNewsfeedView,
     UserFriendView,
+    UserProfileView,
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -25,6 +26,9 @@ urlpatterns = [
     path(
         "user/<int:user_id>/friend/", UserFriendView.as_view(), name="user_friend"
     ),  # /api/v1/user/{user_id}/friend/
+    path(
+        "user/<int:user_id>/profile/", UserProfileView.as_view(), name="user_profile"
+    ),  # /api/v1/user/{user_id}/profile/
 ]
 
 # urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

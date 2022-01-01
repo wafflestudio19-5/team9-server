@@ -6,7 +6,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.db import IntegrityError
 from rest_framework import status, viewsets, permissions
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, RetrieveUpdateAPIView
 from rest_framework.views import APIView
 from rest_framework.decorators import action, api_view
 from rest_framework.pagination import LimitOffsetPagination
@@ -18,6 +18,9 @@ from user.serializers import (
     UserSerializer,
     UserLoginSerializer,
     UserCreateSerializer,
+    CompanySerializer,
+    UniversitySerializer,
+    UserProfileSerializer,
     jwt_token_of,
 )
 from newsfeed.serializers import PostListSerializer
@@ -181,3 +184,15 @@ class UserFriendView(ListAPIView):
         user = get_object_or_404(User, pk=user_id)
         self.queryset = User.objects.filter(friends=user)
         return super().list(request)
+
+
+class UserProfileView(RetrieveUpdateAPIView):
+    serializer_class = UserProfileSerializer
+    queryset = User.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, user_id=None):
+        return super().retrieve(request, pk=user_id)
+
+    def put(self, request, user_id=None):
+        return super().update(request, pk=user_id, partial=True)
