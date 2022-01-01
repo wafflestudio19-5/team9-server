@@ -211,8 +211,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "self_intro",
             "profile_image",
             "cover_image",
+            "company",
+            "university",
         )
-        read_only_fields = ("id", "username", "email")
+        read_only_fields = ("id", "username", "email", "company", "university")
 
     def validate(self, data):
         gender = data.get("gender")
