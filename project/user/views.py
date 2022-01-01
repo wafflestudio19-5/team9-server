@@ -131,19 +131,19 @@ class UserFriendRequestView(ListCreateAPIView):
                 "receiver": openapi.Schema(type=openapi.TYPE_NUMBER),
             },
         ),
-        responses={200: "삭제 완료되었습니다."},
+        responses={204: "삭제 완료되었습니다."},
     )
     def delete(self, request):
         user = request.user
         if (user.id != request.data.get("sender")) and (
             user.id != request.data.get("receiver")
         ):
-            return Response(status=status.HTTP_400_BAD_REQUEST, data="권한이 없습니다.")
+            return Response(status=status.HTTP_403_FORBIDDEN, data="권한이 없습니다.")
         serializer = FriendRequestAcceptDeleteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.delete(serializer.validated_data)
 
-        return Response(status=status.HTTP_200_OK, data="삭제 완료되었습니다.")
+        return Response(status=status.HTTP_204_NO_CONTENT, data="삭제 완료되었습니다.")
 
 
 class UserFriendView(APIView):
@@ -159,7 +159,7 @@ class UserFriendView(APIView):
                 "friend": openapi.Schema(type=openapi.TYPE_NUMBER),
             },
         ),
-        responses={200: "삭제 완료되었습니다."},
+        responses={204: "삭제 완료되었습니다."},
     )
     def delete(self, request):
         user = request.user
@@ -171,7 +171,7 @@ class UserFriendView(APIView):
                 status=status.HTTP_400_BAD_REQUEST, data="해당 친구가 존재하지 않습니다."
             )
         user.friends.remove(friend)
-        return Response(status=status.HTTP_200_OK, data="삭제 완료되었습니다.")
+        return Response(status=status.HTTP_204_NO_CONTENT, data="삭제 완료되었습니다.")
 
 
 KAKAO_APP_KEY = get_secret("KAKAO_APP_KEY")
