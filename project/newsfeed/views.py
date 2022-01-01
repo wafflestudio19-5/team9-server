@@ -7,9 +7,10 @@ from typing import Type
 from django.db.models import Q
 from django.db import transaction
 
-from .pagination import CommentPagination
+from .pagination import CommentPagination, NoticePagination
 from .serializers import (
-    NotificationSerializer,
+    NoticeSerializer,
+    NoticelistSerializer,
     PostListSerializer,
     PostSerializer,
     PostLikeSerializer,
@@ -17,7 +18,7 @@ from .serializers import (
     CommentSerializer,
     CommentLikeSerializer,
 )
-from .models import Notification, Post, Comment
+from .models import Notice, Post, Comment
 from user.models import User
 from datetime import datetime
 from django.shortcuts import get_object_or_404
@@ -125,14 +126,14 @@ class PostLikeView(GenericAPIView):
         post.likes = post.likes + 1
         post.save()
 
-        serializer = NotificationSerializer(
+        # if user.id != post.author.id:
+        serializer = NoticeSerializer(
             data={
-                "subject": user.username,
-                "object": post.author.id,
+                "user": post.author.id,
                 "post": post.id,
                 "url": f"newsfeed/{post.id}/",
-                "isPostLike": True,
-            }
+            },
+            context={"opponent": user.username, "isPostLike": True},
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -226,15 +227,18 @@ class CommentListView(ListCreateAPIView):
         if file:
             comment.file.save(file.name, file, save=True)
 
-        serializer = NotificationSerializer(
+        # if user.id != post.author.id:
+        serializer = NoticeSerializer(
             data={
-                "subject": user.username,
-                "object": post.author.id,
+                "user": post.author.id,
                 "post": post.id,
                 "comment": comment.id,
                 "url": f"newsfeed/{post.id}/",
+            },
+            context={
+                "opponent": user.username,
                 "isComment": True,
-            }
+            },
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -264,16 +268,18 @@ class CommentLikeView(GenericAPIView):
         comment.save()
 
         post = comment.post
-
-        serializer = NotificationSerializer(
+        # if user.id != comment.author.id:
+        serializer = NoticeSerializer(
             data={
-                "subject": user.username,
-                "object": comment.author.id,
+                "user": comment.author.id,
                 "post": post.id,
                 "comment": comment.id,
                 "url": f"newsfeed/{post.id}/",
+            },
+            context={
+                "opponent": user.username,
                 "isCommentLike": True,
-            }
+            },
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -305,7 +311,28 @@ class CommentLikeView(GenericAPIView):
         return Response(CommentLikeSerializer(comment).data, status=status.HTTP_200_OK)
 
 
-class NotificationView(GenericAPIView):
-    serializer_class = NotificationSerializer
-    queryset = Notification.objects.all()
+class NoticeView(ListCreateAPIView):
+    serializer_class = NoticelistSerializer
+    queryset = Notice.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
+    pagination_class = NoticePagination
+
+    def get(self, request, notice_id=None):
+
+        if not notice_id:
+            notices = request.user.notices.all()
+            return super().list(notices)
+        else:
+            notice = get_object_or_404(request.user.notices, id=notice_id)
+            notice.isChecked = True
+            notice.save()
+            return Response(
+                self.get_serializer(notice).data,
+                status=status.HTTP_200_OK,
+            )
+
+    def delete(self, request, notice_id=None):
+
+        notice = get_object_or_404(request.user.notices, id=notice_id)
+
+        return Response(notice.delete(), status=status.HTTP_200_OK)

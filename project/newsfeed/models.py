@@ -64,17 +64,15 @@ class Comment(NewsfeedObject):
         return f"/api/v1/user/{self.author}/"
 
 
-class Notification(models.Model):
+class Notice(models.Model):
 
     id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(User, on_delete=CASCADE, related_name="notifications")
-    post = models.ForeignKey(
-        Post, on_delete=CASCADE, null=True, related_name="notifications"
-    )
+    user = models.ForeignKey(User, on_delete=CASCADE, related_name="notices")
+    post = models.ForeignKey(Post, on_delete=CASCADE, null=True, related_name="notices")
     comment = models.ForeignKey(
-        Comment, on_delete=CASCADE, null=True, related_name="notifications"
+        Comment, on_delete=CASCADE, null=True, related_name="notices"
     )
-    content = models.CharField(max_length=100)
+    content = models.CharField(max_length=100, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     isChecked = models.BooleanField(default=False)
     url = models.CharField(max_length=1000)

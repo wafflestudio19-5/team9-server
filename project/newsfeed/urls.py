@@ -4,7 +4,7 @@ from .views import (
     PostLikeView,
     CommentListView,
     CommentLikeView,
-    NotificationView,
+    NoticeView,
 )
 from rest_framework.routers import SimpleRouter
 from django.conf import settings
@@ -15,5 +15,6 @@ urlpatterns = [
     path("newsfeed/<int:post_id>/comment/", CommentListView.as_view()),
     path("newsfeed/<int:post_id>/like/", PostLikeView.as_view()),
     path("newsfeed/<int:post_id>/<int:comment_id>/like/", CommentLikeView.as_view()),
-    path("newsfeed/notifications/", NotificationView.as_view()),
+    path("newsfeed/notices/", NoticeView.as_view()),
+    path("newsfeed/notices/<int:notice_id>/", NoticeView.as_view()),
 ]
