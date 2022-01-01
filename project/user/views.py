@@ -174,16 +174,6 @@ class UserFriendView(APIView):
         return Response(status=status.HTTP_200_OK, data="삭제 완료되었습니다.")
 
 
-class UserSearchListView(ListAPIView):
-    serializer_class = UserSerializer
-    permission_classes = (permissions.IsAuthenticated,)
-    pagination_class = UserPagination
-
-    def get(self, request):
-        user = request.user
-        search = request.GET.get("q")
-
-
 KAKAO_APP_KEY = get_secret("KAKAO_APP_KEY")
 
 
