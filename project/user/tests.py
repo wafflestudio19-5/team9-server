@@ -392,7 +392,7 @@ class FriendTestCase(TestCase):
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_delete_friend(self):
         user = self.test_user
