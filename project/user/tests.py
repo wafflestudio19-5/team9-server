@@ -5,6 +5,8 @@ from faker import Faker
 from newsfeed.models import Post
 from user.serializers import jwt_token_of
 from rest_framework import status
+from rest_framework.test import APITestCase
+import datetime
 import os
 from pathlib import Path
 import json
@@ -480,7 +482,7 @@ class UserFriendTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
-class UserProfileTestCase(TestCase):
+class UserProfileTestCase(APITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.test_user = NewUserFactory.create(
@@ -549,6 +551,73 @@ class UserProfileTestCase(TestCase):
     def test_get_user_profile_notfound(self):
         user_token = "JWT " + jwt_token_of(self.test_user)
         response = self.client.get(
+            f"/api/v1/user/{100}/profile/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_put_user_profile(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        testimage2 = SimpleUploadedFile(
+            name="testimage2.jpg",
+            content=open(os.path.join(BASE_DIR, "testimage2.jpg"), "rb").read(),
+            content_type="image/jpeg",
+        )
+        data = {
+            "first_name": "ttest",
+            "birth": "2002-05-14",
+            "gender": "F",
+            "self_intro": "nice to meet you",
+            "profile_image": testimage2,
+            "email": "asdf@asdf.com",
+        }
+        response = self.client.put(
+            f"/api/v1/user/{self.test_user.id}/profile/",
+            data=data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.test_user.refresh_from_db()
+        self.assertEqual("test0@test.com", self.test_user.email)
+        self.assertEqual(data["first_name"], self.test_user.first_name)
+        self.assertEqual("user", self.test_user.last_name)
+        self.assertEqual("userttest", self.test_user.username)
+        self.assertEqual(datetime.date(2002, 5, 14), self.test_user.birth)
+        self.assertEqual(data["gender"], self.test_user.gender)
+        self.assertEqual(data["self_intro"], self.test_user.self_intro)
+        self.assertIn("testimage2.jpg", self.test_user.profile_image.name)
+        self.assertNotIn("testimage2.jpg", self.test_user.cover_image.name)
+
+    def test_put_user_profile_unauthorized(self):
+        friend_token = "JWT " + jwt_token_of(self.test_friend)
+        testimage2 = SimpleUploadedFile(
+            name="testimage2.jpg",
+            content=open(os.path.join(BASE_DIR, "testimage2.jpg"), "rb").read(),
+            content_type="image/jpeg",
+        )
+        data = {
+            "first_name": "ttest",
+            "birth": "2002-05-14",
+            "gender": "F",
+            "self_intro": "nice to meet you",
+            "profile_image": testimage2,
+        }
+        response = self.client.put(
+            f"/api/v1/user/{self.test_user.id}/profile/",
+            data=data,
+            HTTP_AUTHORIZATION=friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = self.client.put(
+            f"/api/v1/user/{self.test_user.id}/profile/",
+            data=data,
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_get_user_profile_notfound(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.put(
             f"/api/v1/user/{100}/profile/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
