@@ -130,7 +130,7 @@ class Company(models.Model):
     role = models.CharField(max_length=30, blank=True)
     location = models.CharField(max_length=50, blank=True)
     join_date = models.DateField()
-    leave_date = models.DateField(blank=True)
+    leave_date = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=False)
     detail = models.CharField(max_length=300, blank=True)
 
@@ -142,7 +142,7 @@ class University(models.Model):
     name = models.CharField(max_length=30)
     major = models.CharField(max_length=30, blank=True)
     join_date = models.DateField()
-    graduate_date = models.DateField(blank=True)
+    graduate_date = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=False)
 
 
