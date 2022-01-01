@@ -1,6 +1,6 @@
 import requests
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Model
+from django.db.models import Model, Q
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
@@ -16,6 +16,7 @@ from rest_framework.viewsets import GenericViewSet
 from config.settings import get_secret
 from newsfeed.views import jwt_header
 from user.models import KakaoId, FriendRequest
+from user.pagination import UserPagination
 from user.serializers import (
     UserSerializer,
     UserLoginSerializer,
@@ -167,6 +168,24 @@ class UserFriendView(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST, data="해당 친구가 존재하지 않습니다.")
         user.friends.remove(friend)
         return Response(status=status.HTTP_200_OK, data="삭제 완료되었습니다.")
+
+
+class UserSearchListView(ListAPIView):
+    serializer_class = UserSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+    pagination_class = UserPagination
+
+    @swagger_auto_schema(
+        operation_description="유저 검색하기",
+        manual_parameters=[jwt_header, openapi.Parameter('q', openapi.IN_QUERY, description='search key',
+                                                         type=openapi.TYPE_STRING)],
+        responses={200: UserSerializer(many=True)}
+    )
+    def get(self, request):
+        user = request.user
+        query_params = request.GET.get("q")
+        self.queryset = User.objects.filter(username__icontains=query_params)
+        return super().list(request)
 
 
 KAKAO_APP_KEY = get_secret("KAKAO_APP_KEY")
