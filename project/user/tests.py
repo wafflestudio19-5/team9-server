@@ -373,7 +373,7 @@ class FriendTestCase(TestCase):
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse((FriendRequest.objects.filter(sender=sender, receiver=user)))
 
         # sender에 해당하는 친구 요청이 없는 경우
@@ -404,7 +404,7 @@ class FriendTestCase(TestCase):
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(user.friends.filter(pk=friend.id))
 
         # friend와 친구 관계가 없는 경우
