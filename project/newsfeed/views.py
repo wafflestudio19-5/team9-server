@@ -127,16 +127,7 @@ class PostLikeView(GenericAPIView):
         post.save()
 
         # if user.id != post.author.id:
-        serializer = NoticeSerializer(
-            data={
-                "user": post.author.id,
-                "post": post.id,
-                "url": f"newsfeed/{post.id}/",
-            },
-            context={"opponent": user.username, "isPostLike": True},
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        NoticeCreate(user=user, content="PostLike", post=post)
 
         return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
 
@@ -160,6 +151,18 @@ class PostLikeView(GenericAPIView):
         post.likeusers.remove(user)
         post.likes = post.likes - 1
         post.save()
+
+        notice = Notice.objects.filter(post=post, comment=None)
+        if notice.exists():
+            notice = notice[0]
+
+            if user in notice.senders.all():
+                if notice.senders.count() > 1:
+                    notice.senders.remove(user)
+                    notice.count -= 1
+                    notice.save()
+                else:
+                    notice.delete()
         return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
@@ -228,20 +231,7 @@ class CommentListView(ListCreateAPIView):
             comment.file.save(file.name, file, save=True)
 
         # if user.id != post.author.id:
-        serializer = NoticeSerializer(
-            data={
-                "user": post.author.id,
-                "post": post.id,
-                "comment": comment.id,
-                "url": f"newsfeed/{post.id}/",
-            },
-            context={
-                "opponent": user.username,
-                "isComment": True,
-            },
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        NoticeCreate(user=user, content="PostComment", post=post, comment=comment)
 
         return Response(
             CommentListSerializer(comment).data, status=status.HTTP_201_CREATED
@@ -269,20 +259,7 @@ class CommentLikeView(GenericAPIView):
 
         post = comment.post
         # if user.id != comment.author.id:
-        serializer = NoticeSerializer(
-            data={
-                "user": comment.author.id,
-                "post": post.id,
-                "comment": comment.id,
-                "url": f"newsfeed/{post.id}/",
-            },
-            context={
-                "opponent": user.username,
-                "isCommentLike": True,
-            },
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        NoticeCreate(user=user, content="CommentLike", post=post, comment=comment)
 
         return Response(self.serializer_class(comment).data, status=status.HTTP_200_OK)
 
@@ -294,11 +271,24 @@ class CommentLikeView(GenericAPIView):
     def delete(self, request, post_id=None, comment_id=None):
         user = request.user
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
+
         if not comment.likeusers.filter(id=user.id).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST, data="좋아요하지 않은 댓글입니다.")
+
         comment.likeusers.remove(user)
         comment.likes = comment.likes - 1
         comment.save()
+
+        notice = Notice.objects.filter(comment=comment)
+        if notice.exists():
+            notice = notice[0]
+            if user in notice.senders.all():
+                if notice.senders.count() > 1:
+                    notice.senders.remove(user)
+                    notice.count -= 1
+                    notice.save()
+                else:
+                    notice.delete()
         return Response(self.serializer_class(comment).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
@@ -309,6 +299,48 @@ class CommentLikeView(GenericAPIView):
     def get(self, request, post_id=None, comment_id=None):
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
         return Response(CommentLikeSerializer(comment).data, status=status.HTTP_200_OK)
+
+
+def NoticeCreate(**context):
+    content = context["content"]
+    user = context["user"]
+    post = context.get("post")
+    comment = context.get("comment")
+
+    if content == "CommentLike":
+        target = comment.author
+        notice = target.notices.filter(comment=comment.id, content__contains=content)
+    else:
+        target = post.author
+        notice = target.notices.filter(post=post.id, content__contains=content)
+
+    if notice:
+        notice = notice[0]
+
+        if user not in notice.senders.all():
+            notice.count += 1
+            notice.senders.add(user)
+
+        if comment:
+            notice.comment = comment
+        notice.save()
+    else:
+
+        data = {
+            "user": target.id,
+            "content": content,
+            "post": post.id,
+            "url": f"newsfeed/{post.id}/",
+        }
+        if comment:
+            data["comment"] = comment.id
+
+        serializer = NoticeSerializer(
+            data=data,
+            context={"sender": user},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
 
 class NoticeView(ListCreateAPIView):

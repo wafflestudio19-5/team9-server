@@ -261,28 +261,23 @@ class NoticeSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
 
-        opponent = self.context["opponent"]
         user = validated_data["user"]
         url = validated_data["url"]
+        content = validated_data["content"]
         post = validated_data.get("post")
         comment = validated_data.get("comment")
+        sender = self.context["sender"]
 
-        if self.context.get("isPostLike"):
-            content = f"{opponent}님이 내 게시물에 좋아요를 눌렀습니다."
-        elif self.context.get("isCommentLike"):
-            content = f"{opponent}님이 내 댓글에 좋아요를 눌렀습니다."
-        elif self.context.get("isComment"):
-            content = f"{opponent}님이 내 게시물에 댓글을 달았습니다."
-        elif self.context.get("isFriend"):
-            content = f"{opponent}님이 친구요청을 보냈습니다."
-
-        return Notice.objects.create(
+        notice = Notice.objects.create(
             user=user,
             content=content,
             post=post,
             comment=comment,
             url=url,
         )
+        notice.senders.add(sender)
+
+        return notice
 
 
 class NoticelistSerializer(serializers.ModelSerializer):
@@ -290,6 +285,7 @@ class NoticelistSerializer(serializers.ModelSerializer):
     posted_at = serializers.SerializerMethodField()
     post = serializers.SerializerMethodField()
     comment = serializers.SerializerMethodField()
+    senders = serializers.SerializerMethodField()
 
     class Meta:
         model = Notice
@@ -302,6 +298,8 @@ class NoticelistSerializer(serializers.ModelSerializer):
             "posted_at",
             "isChecked",
             "url",
+            "senders",
+            "count",
         )
 
     def get_posted_at(self, notice):
@@ -315,3 +313,6 @@ class NoticelistSerializer(serializers.ModelSerializer):
 
     def get_comment(self, notice):
         return CommentSerializer(notice.comment).data
+
+    def get_senders(self, notice):
+        return UserSerializer(notice.senders, many=True).data
