@@ -195,6 +195,7 @@ class UniversitySerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+
     company = CompanySerializer(many=True, read_only=True)
     university = UniversitySerializer(many=True, read_only=True)
 
@@ -214,11 +215,19 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "company",
             "university",
         )
-        read_only_fields = ("id", "username", "email", "company", "university")
+        read_only_fields = (
+            "id",
+            "username",
+            "email",
+            "company",
+            "university",
+            "profile_image",
+            "cover_image",
+        )
 
     def validate(self, data):
         gender = data.get("gender")
-        if gender and gender != "Male" and gender != "Female":
+        if gender and gender != "M" and gender != "F":
             raise serializers.ValidationError("성별이 잘못되었습니다.")
         birth = data.get("birth")
         if birth and birth > datetime.now().date():
@@ -226,7 +235,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return data
 
     def update(self, instance, validated_data):
-        validated_data["username"] = (
-            validated_data["last_name"] + validated_data["first_name"]
-        )
-        return super().update(instance, validated_data)
+        user = super().update(instance, validated_data)
+        user.username = user.last_name + user.first_name
+        user.save()
+        return user
