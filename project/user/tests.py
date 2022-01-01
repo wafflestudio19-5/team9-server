@@ -768,3 +768,109 @@ class UserProfileTestCase(APITestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_post_university_profile(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.post(
+            f"/api/v1/user/university/",
+            data=self.university_data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        self.assertEqual(data["user"], self.test_user.id)
+        self.assertEqual(data["name"], self.university_data["name"])
+        self.assertEqual(data["major"], self.university_data["major"])
+        self.assertEqual(data["join_date"], self.university_data["join_date"])
+        self.assertEqual(data["graduate_date"], self.university_data["graduate_date"])
+        self.assertEqual(data["is_active"], False)
+        self.test_user.refresh_from_db()
+        self.assertEqual(self.test_user.university.count(), 4)
+
+    def test_post_university_profile_bad_request(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        self.university_data["join_date"] = "2200-01-01"
+        response = self.client.post(
+            f"/api/v1/user/university/",
+            data=self.university_data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_post_university_profile_unauthorized(self):
+        response = self.client.post(
+            f"/api/v1/user/university/",
+            data=self.university_data,
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def tet_put_university_profile(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        self.university_data.pop("major")  # to check partial update
+        major = self.test_user.university.last().major
+        response = self.client.post(
+            f"/api/v1/user/university/{self.test_user.university.last()}/",
+            data=self.university_data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["user"], self.test_user.id)
+        self.assertEqual(data["name"], self.university_data["name"])
+        self.assertEqual(data["major"], major)
+        self.assertEqual(data["join_date"], self.university_data["join_date"])
+        self.assertEqual(data["graduate_date"], self.university_data["graduate_date"])
+        self.assertEqual(data["is_active"], False)
+
+    def test_put_university_profile_unauthorized(self):
+        response = self.client.put(
+            f"/api/v1/user/university/{self.test_user.university.last().id}/",
+            data=self.university_data,
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        friend_token = "JWT " + jwt_token_of(self.test_friend)
+        response = self.client.put(
+            f"/api/v1/user/university/{self.test_user.university.last().id}/",
+            data=self.university_data,
+            HTTP_AUTHORIZATION=friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_put_university_profile_not_found(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.put(
+            f"/api/v1/user/university/{100}/",
+            data=self.university_data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_delete_university_profile(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.delete(
+            f"/api/v1/user/university/{self.test_user.university.last().id}/",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.test_user.refresh_from_db()
+        self.assertEqual(self.test_user.university.count(), 2)
+
+    def test_delete_university_profile_unauthorized(self):
+        response = self.client.delete(
+            f"/api/v1/user/university/{self.test_user.university.last().id}/",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        friend_token = "JWT " + jwt_token_of(self.test_friend)
+        response = self.client.delete(
+            f"/api/v1/user/university/{self.test_user.university.last().id}/",
+            HTTP_AUTHORIZATION=friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_delete_university_profile_not_found(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.delete(
+            f"/api/v1/user/university/{100}/",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
