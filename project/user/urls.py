@@ -27,7 +27,7 @@ urlpatterns = [
         "user/<int:user_id>/friend/", UserFriendView.as_view(), name="user_friend"
     ),  # /api/v1/user/{user_id}/friend/
     path(
-        "user/<int:user_id>/profile/", UserProfileView.as_view(), name="user_profile"
+        "user/<int:pk>/profile/", UserProfileView.as_view(), name="user_profile"
     ),  # /api/v1/user/{user_id}/profile/
 ]
 
