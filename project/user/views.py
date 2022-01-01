@@ -200,4 +200,10 @@ class UserProfileView(RetrieveUpdateAPIView):
             return Response(
                 status=status.HTTP_401_UNAUTHORIZED, data="다른 유저의 프로필을 고칠 수 없습니다."
             )
+        profile_image = request.FILES.get("profile_image")
+        if profile_image:
+            user.profile_image.save(profile_image.name, profile_image, save=True)
+        cover_image = request.FILES.get("cover_image")
+        if cover_image:
+            user.cover_image.save(cover_image.name, cover_image, save=True)
         return super().update(request, pk=pk, partial=True)
