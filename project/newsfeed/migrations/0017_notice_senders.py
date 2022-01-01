@@ -8,13 +8,13 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('newsfeed', '0016_notice_count'),
+        ("newsfeed", "0016_notice_count"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='notice',
-            name='senders',
+            model_name="notice",
+            name="senders",
             field=models.ManyToManyField(null=True, to=settings.AUTH_USER_MODEL),
         ),
     ]
