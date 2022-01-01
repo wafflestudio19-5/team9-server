@@ -10,6 +10,8 @@ from .views import (
     UserProfileView,
     CompanyCreateView,
     CompanyView,
+    UniversityCreateView,
+    UniversityView,
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -37,6 +39,12 @@ urlpatterns = [
     path(
         "user/company/<int:pk>/", CompanyView.as_view(), name="company"
     ),  # /api/v1/user/company/{company_id}/
+    path(
+        "user/university/", UniversityCreateView.as_view(), name="university_create"
+    ),  # /api/v1/user/university/
+    path(
+        "user/university/<int:pk>/", UniversityView.as_view(), name="university"
+    ),  # /api/v1/user/university/{university_id}/
 ]
 
 # urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

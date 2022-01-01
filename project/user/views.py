@@ -253,3 +253,44 @@ class CompanyView(RetrieveUpdateDestroyAPIView):
                 status=status.HTTP_401_UNAUTHORIZED, data="다른 유저의 프로필을 고칠 수 없습니다."
             )
         return super().destroy(request, pk=pk)
+
+
+class UniversityCreateView(CreateAPIView):
+    serializer_class = UniversitySerializer
+    queryset = University.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request):
+        data = request.data.copy()
+        data["user"] = request.user.id
+        serializer = self.serializer_class(data=data)
+        serializer.is_valid(raise_exception=True)
+        university = serializer.save()
+        return Response(
+            self.serializer_class(university).data, status=status.HTTP_201_CREATED
+        )
+
+
+class UniversityView(RetrieveUpdateDestroyAPIView):
+    serializer_class = UniversitySerializer
+    queryset = University.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, pk=None):
+        return super().retrieve(request, pk=pk)
+
+    def put(self, request, pk=None):
+        university = get_object_or_404(University, pk=pk)
+        if request.user != university.user:
+            return Response(
+                status=status.HTTP_401_UNAUTHORIZED, data="다른 유저의 프로필을 고칠 수 없습니다."
+            )
+        return super().update(request, pk=pk, partial=True)
+
+    def delete(self, request, pk=None):
+        university = get_object_or_404(University, pk=pk)
+        if request.user != university.user:
+            return Response(
+                status=status.HTTP_401_UNAUTHORIZED, data="다른 유저의 프로필을 고칠 수 없습니다."
+            )
+        return super().destroy(request, pk=pk)
