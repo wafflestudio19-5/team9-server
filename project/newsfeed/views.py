@@ -226,12 +226,14 @@ class CommentListView(ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         comment = serializer.save()
 
+
         file = request.FILES.get("file")
         if file:
             comment.file.save(file.name, file, save=True)
 
         if user.id != post.author.id:
             NoticeCreate(user=user, content="PostComment", post=post, comment=comment)
+
 
         return Response(
             CommentListSerializer(comment).data, status=status.HTTP_201_CREATED

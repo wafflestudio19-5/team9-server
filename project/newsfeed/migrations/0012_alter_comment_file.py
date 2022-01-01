@@ -7,13 +7,15 @@ import newsfeed.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('newsfeed', '0011_alter_post_file'),
+        ("newsfeed", "0011_alter_post_file"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='comment',
-            name='file',
-            field=models.FileField(blank=True, upload_to=newsfeed.models.comment_directory_path),
+            model_name="comment",
+            name="file",
+            field=models.FileField(
+                blank=True, upload_to=newsfeed.models.comment_directory_path
+            ),
         ),
     ]
