@@ -6,14 +6,19 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.db import IntegrityError
 from rest_framework import status, viewsets, permissions
-from rest_framework.generics import ListAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import (
+    ListAPIView,
+    RetrieveUpdateAPIView,
+    CreateAPIView,
+    RetrieveUpdateDestroyAPIView,
+)
 from rest_framework.views import APIView
 from rest_framework.decorators import action, api_view
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from drf_yasg import openapi
 from config.settings import get_secret
-from user.models import KakaoId
+from user.models import KakaoId, Company, University
 from user.serializers import (
     UserSerializer,
     UserLoginSerializer,
@@ -207,3 +212,44 @@ class UserProfileView(RetrieveUpdateAPIView):
         if cover_image:
             user.cover_image.save(cover_image.name, cover_image, save=True)
         return super().update(request, pk=pk, partial=True)
+
+
+class CompanyCreateView(CreateAPIView):
+    serializer_class = CompanySerializer
+    queryset = Company.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request):
+        data = request.data.copy()
+        data["user"] = request.user.id
+        serializer = self.serializer_class(data=data)
+        serializer.is_valid(raise_exception=True)
+        company = serializer.save()
+        return Response(
+            self.serializer_class(company).data, status=status.HTTP_201_CREATED
+        )
+
+
+class CompanyView(RetrieveUpdateDestroyAPIView):
+    serializer_class = CompanySerializer
+    queryset = Company.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, pk=None):
+        return super().retrieve(request, pk=pk)
+
+    def put(self, request, pk=None):
+        company = get_object_or_404(Company, pk=pk)
+        if request.user != company.user:
+            return Response(
+                status=status.HTTP_401_UNAUTHORIZED, data="다른 유저의 프로필을 고칠 수 없습니다."
+            )
+        return super().update(request, pk=pk, partial=True)
+
+    def delete(self, request, pk=None):
+        company = get_object_or_404(Company, pk=pk)
+        if request.user != company.user:
+            return Response(
+                status=status.HTTP_401_UNAUTHORIZED, data="다른 유저의 프로필을 고칠 수 없습니다."
+            )
+        return super().destroy(request, pk=pk)
