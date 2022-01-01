@@ -14,7 +14,6 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from config.settings import get_secret
-from user.pagination import UserPagination
 from newsfeed.views import jwt_header
 from user.models import KakaoId, FriendRequest
 from user.serializers import (
@@ -111,6 +110,7 @@ class UserFriendRequestView(ListCreateAPIView):
                 "sender": openapi.Schema(type=openapi.TYPE_NUMBER),
             },
         ),
+        responses={200: "수락 완료되었습니다."}
     )
     def put(self, request):
         request.data["receiver"] = request.user.id
@@ -130,10 +130,11 @@ class UserFriendRequestView(ListCreateAPIView):
                 "receiver": openapi.Schema(type=openapi.TYPE_NUMBER),
             },
         ),
+        responses={200: "삭제 완료되었습니다."}
     )
     def delete(self, request):
         user = request.user
-        if (user.id != request.data.get("sender")) and (user.id != request.data.get("sender")):
+        if (user.id != request.data.get("sender")) and (user.id != request.data.get("receiver")):
             return Response(status=status.HTTP_400_BAD_REQUEST, data="권한이 없습니다.")
         serializer = FriendRequestAcceptDeleteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -142,19 +143,9 @@ class UserFriendRequestView(ListCreateAPIView):
         return Response(status=status.HTTP_200_OK, data="삭제 완료되었습니다.")
 
 
-class UserFriendView(ListAPIView):
-    pagination_class = UserPagination
+class UserFriendView(APIView):
     serializer_class = UserSerializer
     permission_classes = (permissions.IsAuthenticated,)
-
-    @swagger_auto_schema(
-        operation_description="친구 목록 불러오기",
-        manual_parameters=[jwt_header],
-    )
-    def get(self, request):
-        user = request.user
-        self.queryset = user.friends
-        return super().list(request)
 
     @swagger_auto_schema(
         operation_description="친구 삭제하기",
@@ -165,6 +156,7 @@ class UserFriendView(ListAPIView):
                 "friend": openapi.Schema(type=openapi.TYPE_NUMBER),
             },
         ),
+        responses={200: "삭제 완료되었습니다."}
     )
     def delete(self, request):
         user = request.user
