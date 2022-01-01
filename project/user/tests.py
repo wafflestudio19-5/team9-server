@@ -510,6 +510,21 @@ class UserProfileTestCase(APITestCase):
         CompanyFactory.create_batch(3, user=cls.test_user)
         UniversityFactory.create_batch(3, user=cls.test_user)
 
+        cls.company_data = {
+            "name": "Nexon",
+            "role": "programmer",
+            "location": "pangyo",
+            "join_date": "2021-01-01",
+            "leave_date": "2021-12-31",
+            "detail": "nexon programmer",
+        }
+        cls.university_data = {
+            "name": "SNU",
+            "major": "CSE",
+            "join_date": "2021-01-01",
+            "graduate_date": "2021-12-31",
+        }
+
     def test_get_user_profile(self):
         user_token = "JWT " + jwt_token_of(self.test_user)
         response = self.client.get(
@@ -620,6 +635,136 @@ class UserProfileTestCase(APITestCase):
         response = self.client.put(
             f"/api/v1/user/{100}/profile/",
             content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_post_company_profile(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.post(
+            f"/api/v1/user/company/",
+            data=self.company_data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        self.assertEqual(data["user"], self.test_user.id)
+        self.assertEqual(data["name"], self.company_data["name"])
+        self.assertEqual(data["role"], self.company_data["role"])
+        self.assertEqual(data["location"], self.company_data["location"])
+        self.assertEqual(data["join_date"], self.company_data["join_date"])
+        self.assertEqual(data["leave_date"], self.company_data["leave_date"])
+        self.assertEqual(data["detail"], self.company_data["detail"])
+        self.assertEqual(data["is_active"], False)
+        self.test_user.refresh_from_db()
+        self.assertEqual(self.test_user.company.count(), 4)
+
+    def test_post_company_profile_request_incomplete(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        self.company_data.pop("name")
+        response = self.client.post(
+            f"/api/v1/user/company/",
+            data=self.company_data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_post_company_profile_bad_request(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        self.company_data["join_date"] = "2200-01-01"
+        response = self.client.post(
+            f"/api/v1/user/company/",
+            data=self.company_data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_post_company_profile_unauthorized(self):
+        response = self.client.post(
+            f"/api/v1/user/company/",
+            data=self.company_data,
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_put_company_profile_request(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        self.company_data.pop("role")  # to check partial update
+        role = self.test_user.company.last().role
+        response = self.client.put(
+            f"/api/v1/user/company/{self.test_user.company.last().id}/",
+            data=self.company_data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["user"], self.test_user.id)
+        self.assertEqual(data["name"], self.company_data["name"])
+        self.assertEqual(data["role"], role)
+        self.assertEqual(data["location"], self.company_data["location"])
+        self.assertEqual(data["join_date"], self.company_data["join_date"])
+        self.assertEqual(data["leave_date"], self.company_data["leave_date"])
+        self.assertEqual(data["detail"], self.company_data["detail"])
+        self.assertEqual(data["is_active"], False)
+
+    def test_put_company_profile_bad_request(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        self.company_data["join_date"] = "2200-01-01"
+        response = self.client.put(
+            f"/api/v1/user/company/{self.test_user.company.last().id}/",
+            data=self.company_data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_put_company_profile_unauthorized(self):
+        response = self.client.put(
+            f"/api/v1/user/company/{self.test_user.company.last().id}/",
+            data=self.company_data,
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        friend_token = "JWT " + jwt_token_of(self.test_friend)
+        response = self.client.put(
+            f"/api/v1/user/company/{self.test_user.company.last().id}/",
+            data=self.company_data,
+            HTTP_AUTHORIZATION=friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_put_company_profile_not_found(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.put(
+            f"/api/v1/user/company/{100}/",
+            data=self.company_data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_delete_company_profile(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.delete(
+            f"/api/v1/user/company/{self.test_user.company.last().id}/",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.test_user.refresh_from_db()
+        self.assertEqual(self.test_user.company.count(), 2)
+
+    def test_delete_company_profile_unauthorized(self):
+        response = self.client.delete(
+            f"/api/v1/user/company/{self.test_user.company.last().id}/",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        friend_token = "JWT " + jwt_token_of(self.test_friend)
+        response = self.client.delete(
+            f"/api/v1/user/company/{self.test_user.company.last().id}/",
+            HTTP_AUTHORIZATION=friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_delete_company_profile_not_found(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.delete(
+            f"/api/v1/user/company/{100}/",
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
