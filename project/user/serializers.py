@@ -110,6 +110,24 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 
+class UserMutualFriendsSerializer(serializers.ModelSerializer):
+    mutual_friends = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ("id", "email", "username", "profile_image")
+        extra_kwargs = {"password": {"write_only": True}}
+
+    def get_mutual_friends(self, user):
+        request_user = self.context.get("user")
+        mutual_friends = request_user.friends.all() & user.friends.all()
+        count = len(mutual_friends)
+        examples = mutual_friends[:5]
+        data = UserSerializer(examples, many=True).data
+        data["count"] = count
+        return data
+
+
 class FriendRequestCreateSerializer(serializers.ModelSerializer):
     sender_profile = serializers.SerializerMethodField()
 
