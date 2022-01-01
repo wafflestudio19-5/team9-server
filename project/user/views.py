@@ -7,13 +7,14 @@ from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.db import IntegrityError
 from drf_yasg import openapi
 from rest_framework import status, viewsets, permissions
-from rest_framework.generics import ListCreateAPIView
+from rest_framework.generics import ListCreateAPIView, ListAPIView
 from rest_framework.views import APIView
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from config.settings import get_secret
+from user.pagination import UserPagination
 from newsfeed.views import jwt_header
 from user.models import KakaoId, FriendRequest
 from user.serializers import (
@@ -52,7 +53,6 @@ class UserLoginView(APIView):
 
     @swagger_auto_schema(request_body=UserLoginSerializer)
     def post(self, request):
-
         serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         token = serializer.validated_data["token"]
@@ -64,7 +64,6 @@ class UserLogoutView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request):
-
         request.user.jwt_secret = uuid.uuid4()
         request.user.save()
 
@@ -140,6 +139,41 @@ class UserFriendRequestView(ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.delete(serializer.validated_data)
 
+        return Response(status=status.HTTP_200_OK, data="삭제 완료되었습니다.")
+
+
+class UserFriendView(ListAPIView):
+    pagination_class = UserPagination
+    serializer_class = UserSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    @swagger_auto_schema(
+        operation_description="친구 목록 불러오기",
+        manual_parameters=[jwt_header],
+    )
+    def get(self, request):
+        user = request.user
+        self.queryset = user.friends
+        return super().list(request)
+
+    @swagger_auto_schema(
+        operation_description="친구 삭제하기",
+        manual_parameters=[jwt_header],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "friend": openapi.Schema(type=openapi.TYPE_NUMBER),
+            },
+        ),
+    )
+    def delete(self, request):
+        user = request.user
+        friend = request.data.get("friend")
+        if not friend:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data="friend를 입력해주세요")
+        if not user.friends.filter(pk=friend).exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST, data="해당 친구가 존재하지 않습니다.")
+        user.friends.remove(friend)
         return Response(status=status.HTTP_200_OK, data="삭제 완료되었습니다.")
 
 
