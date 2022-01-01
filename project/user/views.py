@@ -195,4 +195,9 @@ class UserProfileView(RetrieveUpdateAPIView):
         return super().retrieve(request, pk=user_id)
 
     def put(self, request, user_id=None):
+        user = get_object_or_404(User, pk=user_id)
+        if user != request.user:
+            return Response(
+                status=status.HTTP_401_UNAUTHORIZED, data="다른 유저의 프로필을 고칠 수 없습니다."
+            )
         return super().update(request, pk=user_id, partial=True)
