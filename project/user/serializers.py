@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import update_last_login
 from django.db import transaction
+from drf_yasg.utils import swagger_serializer_method
 from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
 from .models import User, Company, University, FriendRequest
@@ -110,6 +111,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class FriendRequestCreateSerializer(serializers.ModelSerializer):
+    sender_profile = serializers.SerializerMethodField()
 
     class Meta:
         model = FriendRequest
@@ -132,6 +134,11 @@ class FriendRequestCreateSerializer(serializers.ModelSerializer):
         if sender == receiver:
             raise serializers.ValidationError("자신에게 친구 요청을 보낼 수 없습니다.")
         return data
+
+    @swagger_serializer_method(serializer_or_field=UserSerializer)
+    def get_sender_profile(self, friend_request):
+        return UserSerializer(friend_request.sender).data
+
 
 
 # 친구 요청 수락 및 삭제
