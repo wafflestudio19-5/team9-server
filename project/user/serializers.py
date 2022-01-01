@@ -112,6 +112,7 @@ class CompanySerializer(serializers.ModelSerializer):
     class Meta:
         model = Company
         fields = (
+            "id",
             "user",
             "name",
             "role",
@@ -121,7 +122,12 @@ class CompanySerializer(serializers.ModelSerializer):
             "is_active",
             "detail",
         )
-        read_only_fields = ["is_active"]
+        read_only_fields = ["id", "is_active"]
+        extra_kwargs = {
+            "user": {"required": True},
+            "name": {"required": True},
+            "join_date": {"required": True},
+        }
 
     def validate(self, data):
         join_date = data.get("join_date")
@@ -130,11 +136,27 @@ class CompanySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("기간이 유효하지 않습니다.")
         return data
 
+    def create(self, validated_data):
+        leave_date = validated_data.get("leave_date")
+        validated_data["is_active"] = (
+            not leave_date or leave_date < datetime.now().date()
+        )
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        instance.is_active = (
+            not instance.leave_date or instance.leave_date < datetime.now().date()
+        )
+        instance.save()
+        return instance
+
 
 class UniversitySerializer(serializers.ModelSerializer):
     class Meta:
         model = University
         fields = (
+            "id",
             "user",
             "name",
             "major",
@@ -143,6 +165,11 @@ class UniversitySerializer(serializers.ModelSerializer):
             "is_active",
         )
         read_only_fields = ["is_active"]
+        extra_kwargs = {
+            "user": {"required": True},
+            "name": {"required": True},
+            "join_date": {"required": True},
+        }
 
     def validate(self, data):
         join_date = data.get("join_date")
@@ -150,6 +177,21 @@ class UniversitySerializer(serializers.ModelSerializer):
         if graduate_date and graduate_date < join_date:
             raise serializers.ValidationError("기간이 유효하지 않습니다.")
         return data
+
+    def create(self, validated_data):
+        graduate_date = validated_data.get("graduate_date")
+        validated_data["is_active"] = (
+            not graduate_date or graduate_date < datetime.now().date()
+        )
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        instance.is_active = (
+            not instance.graduate_date or instance.graduate_date < datetime.now().date()
+        )
+        instance.save()
+        return instance
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -159,6 +201,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
+            "id",
             "first_name",
             "last_name",
             "username",
@@ -169,4 +212,19 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "profile_image",
             "cover_image",
         )
-        read_only_fields = ("username", "email")
+        read_only_fields = ("id", "username", "email")
+
+    def validate(self, data):
+        gender = data.get("gender")
+        if gender and gender != "Male" and gender != "Female":
+            raise serializers.ValidationError("성별이 잘못되었습니다.")
+        birth = data.get("birth")
+        if birth and birth > datetime.now().date():
+            raise serializers.ValidationError("생일이 현재 시간보다 나중일 수는 없습니다.")
+        return data
+
+    def update(self, instance, validated_data):
+        validated_data["username"] = (
+            validated_data["last_name"] + validated_data["first_name"]
+        )
+        return super().update(instance, validated_data)
