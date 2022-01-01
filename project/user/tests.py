@@ -5,8 +5,13 @@ from faker import Faker
 from newsfeed.models import Post
 from user.serializers import jwt_token_of
 from rest_framework import status
+import os
+from pathlib import Path
 import json
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class UserFactory(DjangoModelFactory):
@@ -487,6 +492,18 @@ class UserProfileTestCase(TestCase):
             gender="M",
             phone_number="01000000000",
         )
+        cls.test_user.self_intro = "hihi~~"
+        cls.test_user.profile_image = SimpleUploadedFile(
+            name="testimage.jpg",
+            content=open(os.path.join(BASE_DIR, "testimage.jpg"), "rb").read(),
+            content_type="image/jpeg",
+        )
+        cls.test_user.cover_image = SimpleUploadedFile(
+            name="testimage.jpg",
+            content=open(os.path.join(BASE_DIR, "testimage.jpg"), "rb").read(),
+            content_type="image/jpeg",
+        )
+        cls.test_user.save()
         cls.test_friend = NewUserFactory.create()
         CompanyFactory.create_batch(3, user=cls.test_user)
         UniversityFactory.create_batch(3, user=cls.test_user)
@@ -500,4 +517,40 @@ class UserProfileTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        print(data)
+        self.assertEqual(data["id"], self.test_user.id)
+        self.assertEqual(data["email"], self.test_user.email)
+        self.assertEqual(data["first_name"], self.test_user.first_name)
+        self.assertEqual(data["last_name"], self.test_user.last_name)
+        self.assertEqual(data["username"], self.test_user.username)
+        self.assertEqual(data["birth"], self.test_user.birth)
+        self.assertEqual(data["gender"], self.test_user.gender)
+        self.assertEqual(data["self_intro"], self.test_user.self_intro)
+        self.assertIn("testimage.jpg", data["profile_image"])
+        self.assertIn("testimage.jpg", data["cover_image"])
+        self.assertEqual(len(data["company"]), 3)
+        self.assertEqual(len(data["university"]), 3)
+        friend_token = "JWT " + jwt_token_of(self.test_friend)
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/profile/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        newdata = response.json()
+        self.assertEqual(data, newdata)
+
+    def test_get_user_profile_unauthorized(self):
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/profile/",
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_get_user_profile_notfound(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.get(
+            f"/api/v1/user/{100}/profile/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
