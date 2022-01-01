@@ -320,6 +320,7 @@ class NoticeView(ListCreateAPIView):
     def get(self, request, notice_id=None):
 
         if not notice_id:
+
             notices = request.user.notices.all()
             return super().list(notices)
         else:

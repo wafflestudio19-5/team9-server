@@ -80,6 +80,24 @@ def format_time(time):
         return f"{time.year}년 {time.month}월 {time.day}일"
 
 
+def notice_format_time(time):
+    now = datetime.now()
+    time_elapsed = now - time
+    if time_elapsed < timedelta(minutes=1):
+        return "방금"
+    elif time_elapsed < timedelta(hours=1):
+        return f"{int(time_elapsed.seconds / 60)}분"
+    elif time_elapsed < timedelta(days=1):
+        return f"{int(time_elapsed.seconds / (60 * 60))}시간"
+    elif time_elapsed < timedelta(days=7):
+        return f"{time_elapsed.days}일"
+    else:
+        if time_elapsed.days > 60:
+            return False
+        week = time_elapsed.days // 7
+        return f"{week}주"
+
+
 class PostListSerializer(serializers.ModelSerializer):
 
     posted_at = serializers.SerializerMethodField()
@@ -287,7 +305,10 @@ class NoticelistSerializer(serializers.ModelSerializer):
         )
 
     def get_posted_at(self, notice):
-        return format_time(notice.created)
+        posted_at = notice_format_time(notice.created)
+        if posted_at == False:
+            notice.delete()
+        return posted_at
 
     def get_post(self, notice):
         return PostSerializer(notice.post).data
