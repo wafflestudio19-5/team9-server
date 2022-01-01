@@ -276,7 +276,9 @@ class FriendTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.data
         self.assertEqual(len(data["results"]), 20)
-        self.assertIn(data["results"][0]["sender"], [sender.id for sender in self.senders])
+        self.assertIn(
+            data["results"][0]["sender"], [sender.id for sender in self.senders]
+        )
 
         next_page = data["next"]
         response = self.client.get(
@@ -296,7 +298,11 @@ class FriendTestCase(TestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(FriendRequest.objects.filter(sender=self.test_user, receiver=self.test_stranger))
+        self.assertTrue(
+            FriendRequest.objects.filter(
+                sender=self.test_user, receiver=self.test_stranger
+            )
+        )
 
         # 자기 자신에게 친구 요청
         response = self.client.post(
@@ -394,7 +400,7 @@ class FriendTestCase(TestCase):
         friend = self.friends[0]
         response = self.client.delete(
             "/api/v1/friend/",
-            data={"friend":friend.id},
+            data={"friend": friend.id},
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )

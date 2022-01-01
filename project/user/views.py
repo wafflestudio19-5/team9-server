@@ -16,11 +16,14 @@ from rest_framework.viewsets import GenericViewSet
 from config.settings import get_secret
 from newsfeed.views import jwt_header
 from user.models import KakaoId, FriendRequest
+from user.pagination import UserPagination
 from user.serializers import (
     UserSerializer,
     UserLoginSerializer,
     UserCreateSerializer,
-    jwt_token_of, FriendRequestCreateSerializer, FriendRequestAcceptDeleteSerializer,
+    jwt_token_of,
+    FriendRequestCreateSerializer,
+    FriendRequestAcceptDeleteSerializer,
 )
 from drf_yasg.utils import swagger_auto_schema
 import uuid
@@ -77,7 +80,7 @@ class UserFriendRequestView(ListCreateAPIView):
     @swagger_auto_schema(
         operation_description="친구 요청 목록 불러오기",
         responses={200: FriendRequestCreateSerializer(many=True)},
-        manual_parameters=[jwt_header]
+        manual_parameters=[jwt_header],
     )
     def get(self, request):
         self.queryset = self.queryset.filter(receiver=request.user)
@@ -89,9 +92,7 @@ class UserFriendRequestView(ListCreateAPIView):
         manual_parameters=[jwt_header],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            properties={
-                "receiver": openapi.Schema(type=openapi.TYPE_NUMBER)
-            },
+            properties={"receiver": openapi.Schema(type=openapi.TYPE_NUMBER)},
         ),
     )
     def post(self, request):
@@ -110,7 +111,7 @@ class UserFriendRequestView(ListCreateAPIView):
                 "sender": openapi.Schema(type=openapi.TYPE_NUMBER),
             },
         ),
-        responses={200: "수락 완료되었습니다."}
+        responses={200: "수락 완료되었습니다."},
     )
     def put(self, request):
         request.data["receiver"] = request.user.id
@@ -130,11 +131,13 @@ class UserFriendRequestView(ListCreateAPIView):
                 "receiver": openapi.Schema(type=openapi.TYPE_NUMBER),
             },
         ),
-        responses={200: "삭제 완료되었습니다."}
+        responses={200: "삭제 완료되었습니다."},
     )
     def delete(self, request):
         user = request.user
-        if (user.id != request.data.get("sender")) and (user.id != request.data.get("receiver")):
+        if (user.id != request.data.get("sender")) and (
+            user.id != request.data.get("receiver")
+        ):
             return Response(status=status.HTTP_400_BAD_REQUEST, data="권한이 없습니다.")
         serializer = FriendRequestAcceptDeleteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -156,7 +159,7 @@ class UserFriendView(APIView):
                 "friend": openapi.Schema(type=openapi.TYPE_NUMBER),
             },
         ),
-        responses={200: "삭제 완료되었습니다."}
+        responses={200: "삭제 완료되었습니다."},
     )
     def delete(self, request):
         user = request.user
@@ -164,9 +167,21 @@ class UserFriendView(APIView):
         if not friend:
             return Response(status=status.HTTP_400_BAD_REQUEST, data="friend를 입력해주세요")
         if not user.friends.filter(pk=friend).exists():
-            return Response(status=status.HTTP_400_BAD_REQUEST, data="해당 친구가 존재하지 않습니다.")
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="해당 친구가 존재하지 않습니다."
+            )
         user.friends.remove(friend)
         return Response(status=status.HTTP_200_OK, data="삭제 완료되었습니다.")
+
+
+class UserSearchListView(ListAPIView):
+    serializer_class = UserSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+    pagination_class = UserPagination
+
+    def get(self, request):
+        user = request.user
+        search = request.GET.get("q")
 
 
 KAKAO_APP_KEY = get_secret("KAKAO_APP_KEY")
