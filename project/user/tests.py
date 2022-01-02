@@ -690,6 +690,7 @@ class UserProfileTestCase(APITestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_post_company_profile_unauthorized(self):
         response = self.client.post(
             f"/api/v1/user/company/",
@@ -726,6 +727,7 @@ class UserProfileTestCase(APITestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_put_company_profile_unauthorized(self):
         response = self.client.put(
             f"/api/v1/user/company/{self.test_user.company.last().id}/",
@@ -806,6 +808,7 @@ class UserProfileTestCase(APITestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_post_university_profile_unauthorized(self):
         response = self.client.post(
             f"/api/v1/user/university/",
@@ -968,7 +971,6 @@ class FriendTestCase(TestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-          
         # 유효하지 않은 유저 id에 친구 요청
         response = self.client.post(
             "/api/v1/friend/request/",
@@ -977,7 +979,6 @@ class FriendTestCase(TestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-          
     def test_accept_friend_request(self):
         user = self.test_user
         user_token = "JWT " + jwt_token_of(user)
@@ -1022,7 +1023,6 @@ class FriendTestCase(TestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        
         # 자신이 sender 혹은 receiver가 아닌 경우
         response = self.client.delete(
             "/api/v1/friend/request/",
@@ -1053,4 +1053,3 @@ class FriendTestCase(TestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-

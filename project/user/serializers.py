@@ -242,6 +242,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+
 class FriendRequestCreateSerializer(serializers.ModelSerializer):
     sender_profile = serializers.SerializerMethodField()
 

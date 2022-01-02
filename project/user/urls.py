@@ -48,7 +48,7 @@ urlpatterns = [
     path(
         "user/university/<int:pk>/", UniversityView.as_view(), name="university"
     ),  # /api/v1/user/university/{university_id}/
-    path(        
+    path(
         "friend/request/", UserFriendRequestView.as_view(), name="friend_request"
     ),  # /api/v1/friend/request/
     path("friend/", UserFriendView.as_view(), name="friend"),  # /api/v1/friend/
