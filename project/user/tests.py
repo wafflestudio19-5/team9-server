@@ -480,7 +480,7 @@ class UserFriendTestCase(TestCase):
     def test_post_user_notfound(self):
         user_token = "JWT " + jwt_token_of(self.test_user)
         response = self.client.get(
-            "/api/v1/user/100/friend/",
+            "/api/v1/user/10000/friend/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
