@@ -979,6 +979,7 @@ class FriendTestCase(TestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_accept_friend_request(self):
         user = self.test_user
         user_token = "JWT " + jwt_token_of(user)
