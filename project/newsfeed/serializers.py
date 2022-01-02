@@ -27,7 +27,7 @@ class PostSerializer(serializers.ModelSerializer):
             "file",
             "created",
             "updated",
-            "like",
+            "likes",
             "comments",
         )
         extra_kwargs = {"content": {"help_text": "무슨 생각을 하고 계신가요?"}}
