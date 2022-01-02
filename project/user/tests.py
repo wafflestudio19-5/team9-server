@@ -1,6 +1,8 @@
 from django.test import TestCase
 from factory.django import DjangoModelFactory
-from user.models import User
+from faker import Faker
+
+from user.models import User, FriendRequest
 from user.serializers import jwt_token_of
 from rest_framework import status
 import json
@@ -15,7 +17,19 @@ class UserFactory(DjangoModelFactory):
 
     @classmethod
     def create(cls, **kwargs):
-        user = User.objects.create(**kwargs)
+        fake = Faker("ko_KR")
+        user = User.objects.create(
+            email=kwargs.get("email", fake.email()),
+            password=kwargs.get("password", fake.password()),
+            first_name=kwargs.get("first_name", fake.first_name()),
+            last_name=kwargs.get("last_name", fake.last_name()),
+            birth=kwargs.get("birth", fake.date()),
+            gender=kwargs.get(
+                "gender", fake.random_choices(elements=("M", "F"), length=1)[0]
+            ),
+            phone_number=kwargs.get("phone_number", fake.numerify(text="010########")),
+        )
+        user.username = user.first_name + user.last_name
         user.set_password(kwargs.get("password", ""))
         user.save()
 
@@ -231,3 +245,173 @@ class LogoutTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertNotEqual(user_token, "JWT " + jwt_token_of(self.user))
+
+
+class FriendRequestFactory(DjangoModelFactory):
+    class Meta:
+        model = FriendRequest
+
+
+class FriendTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.friends = UserFactory.create_batch(25)
+        cls.test_user = UserFactory.create()
+        for friend in cls.friends:
+            cls.test_user.friends.add(friend)
+        cls.senders = UserFactory.create_batch(25)
+        for sender in cls.senders:
+            FriendRequestFactory.create(sender=sender, receiver=cls.test_user)
+
+        cls.test_stranger = UserFactory.create()
+
+    def test_get_friend_request(self):
+        user = self.test_user
+        user_token = "JWT " + jwt_token_of(user)
+        response = self.client.get(
+            "/api/v1/friend/request/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.data
+        self.assertEqual(len(data["results"]), 20)
+        self.assertIn(
+            data["results"][0]["sender"], [sender.id for sender in self.senders]
+        )
+
+        next_page = data["next"]
+        response = self.client.get(
+            next_page,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(len(response.data["results"]), 5)
+
+    def test_send_friend_request(self):
+        user = self.test_user
+        user_token = "JWT " + jwt_token_of(user)
+        response = self.client.post(
+            "/api/v1/friend/request/",
+            data={"receiver": self.test_stranger.id},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(
+            FriendRequest.objects.filter(
+                sender=self.test_user, receiver=self.test_stranger
+            )
+        )
+
+        # 자기 자신에게 친구 요청
+        response = self.client.post(
+            "/api/v1/friend/request/",
+            data={"receiver": self.test_user.id},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 이미 친구인 유저에 친구 요청
+        response = self.client.post(
+            "/api/v1/friend/request/",
+            data={"receiver": self.friends[0].id},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 자신에게 이미 친구 요청을 보낸 유저에게 친구 요청
+        response = self.client.post(
+            "/api/v1/friend/request/",
+            data={"receiver": self.senders[0].id},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 유효하지 않은 유저 id에 친구 요청
+        response = self.client.post(
+            "/api/v1/friend/request/",
+            data={"receiver": -1},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_accept_friend_request(self):
+        user = self.test_user
+        user_token = "JWT " + jwt_token_of(user)
+        sender = self.senders[0]
+        response = self.client.put(
+            "/api/v1/friend/request/",
+            data={"sender": sender.id},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse((FriendRequest.objects.filter(sender=sender, receiver=user)))
+        self.assertIn(sender, user.friends.all())
+
+        # sender에 해당하는 친구 요청이 없는 경우
+        response = self.client.put(
+            "/api/v1/friend/request/",
+            data={"sender": self.test_stranger.id},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_delete_friend_request(self):
+        user = self.test_user
+        user_token = "JWT " + jwt_token_of(user)
+        sender = self.senders[0]
+        response = self.client.delete(
+            "/api/v1/friend/request/",
+            data={"sender": sender.id, "receiver": user.id},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse((FriendRequest.objects.filter(sender=sender, receiver=user)))
+
+        # sender에 해당하는 친구 요청이 없는 경우
+        response = self.client.delete(
+            "/api/v1/friend/request/",
+            data={"sender": self.test_stranger.id, "receiver": user.id},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 자신이 sender 혹은 receiver가 아닌 경우
+        response = self.client.delete(
+            "/api/v1/friend/request/",
+            data={"sender": sender.id, "receiver": self.test_stranger.id},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_delete_friend(self):
+        user = self.test_user
+        user_token = "JWT " + jwt_token_of(user)
+        friend = self.friends[0]
+        response = self.client.delete(
+            "/api/v1/friend/",
+            data={"friend": friend.id},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(user.friends.filter(pk=friend.id))
+
+        # friend와 친구 관계가 없는 경우
+        response = self.client.delete(
+            "/api/v1/friend/",
+            data={"friend": self.test_stranger.id},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
