@@ -726,7 +726,6 @@ class UserProfileTestCase(APITestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        
     def test_put_company_profile_unauthorized(self):
         response = self.client.put(
             f"/api/v1/user/company/{self.test_user.company.last().id}/",
