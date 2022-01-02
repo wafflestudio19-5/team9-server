@@ -9,7 +9,8 @@ from .views import (
     KakaoCallbackView,
     UserNewsfeedView,
     UserFriendRequestView,
-    UserFriendView,
+    UserFriendDeleteView,
+    UserFriendListView,
     UserProfileView,
     CompanyCreateView,
     CompanyView,
@@ -31,7 +32,7 @@ urlpatterns = [
         "user/<int:user_id>/newsfeed/", UserNewsfeedView.as_view(), name="user_newsfeed"
     ),  # /api/v1/user/{user_id}/newsfeed/
     path(
-        "user/<int:user_id>/friend/", UserFriendView.as_view(), name="user_friend"
+        "user/<int:user_id>/friend/", UserFriendListView.as_view(), name="user_friend"
     ),  # /api/v1/user/{user_id}/friend/
     path(
         "user/<int:pk>/profile/", UserProfileView.as_view(), name="user_profile"
@@ -51,7 +52,7 @@ urlpatterns = [
     path(
         "friend/request/", UserFriendRequestView.as_view(), name="friend_request"
     ),  # /api/v1/friend/request/
-    path("friend/", UserFriendView.as_view(), name="friend"),  # /api/v1/friend/
+    path("friend/", UserFriendDeleteView.as_view(), name="friend"),  # /api/v1/friend/
 ]
 
 # urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
