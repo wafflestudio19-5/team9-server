@@ -57,7 +57,7 @@ class PostSerializer(serializers.ModelSerializer):
         return data
 
     def get_subposts(self, post):
-        return PostSerializer(post.subposts, many=True).data
+        return PostListSerializer(post.subposts, many=True).data
 
     def get_comment_count(self, post):
         return Comment.objects.filter(post=post).count()
@@ -123,7 +123,7 @@ class PostListSerializer(serializers.ModelSerializer):
 
     @swagger_serializer_method(serializer_or_field=PostSerializer)
     def get_subposts(self, post):
-        return PostSerializer(post.subposts, many=True).data
+        return PostListSerializer(post.subposts, many=True).data
 
     @swagger_serializer_method(serializer_or_field=UserSerializer)
     def get_author(self, post):
