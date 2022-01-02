@@ -21,7 +21,10 @@ from user.serializers import (
     UserSerializer,
     UserLoginSerializer,
     UserCreateSerializer,
-    jwt_token_of, FriendRequestCreateSerializer, FriendRequestAcceptDeleteSerializer, UserMutualFriendsSerializer,
+    jwt_token_of,
+    FriendRequestCreateSerializer,
+    FriendRequestAcceptDeleteSerializer,
+    UserMutualFriendsSerializer,
 )
 from drf_yasg.utils import swagger_auto_schema
 import uuid
@@ -78,7 +81,7 @@ class UserFriendRequestView(ListCreateAPIView):
     @swagger_auto_schema(
         operation_description="친구 요청 목록 불러오기",
         responses={200: FriendRequestCreateSerializer(many=True)},
-        manual_parameters=[jwt_header]
+        manual_parameters=[jwt_header],
     )
     def get(self, request):
         self.queryset = self.queryset.filter(receiver=request.user)
@@ -90,9 +93,7 @@ class UserFriendRequestView(ListCreateAPIView):
         manual_parameters=[jwt_header],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            properties={
-                "receiver": openapi.Schema(type=openapi.TYPE_NUMBER)
-            },
+            properties={"receiver": openapi.Schema(type=openapi.TYPE_NUMBER)},
         ),
     )
     def post(self, request):
@@ -111,7 +112,7 @@ class UserFriendRequestView(ListCreateAPIView):
                 "sender": openapi.Schema(type=openapi.TYPE_NUMBER),
             },
         ),
-        responses={200: "수락 완료되었습니다."}
+        responses={200: "수락 완료되었습니다."},
     )
     def put(self, request):
         request.data["receiver"] = request.user.id
@@ -134,7 +135,9 @@ class UserFriendRequestView(ListCreateAPIView):
     )
     def delete(self, request):
         user = request.user
-        if (user.id != request.data.get("sender")) and (user.id != request.data.get("receiver")):
+        if (user.id != request.data.get("sender")) and (
+            user.id != request.data.get("receiver")
+        ):
             return Response(status=status.HTTP_403_FORBIDDEN, data="권한이 없습니다.")
         serializer = FriendRequestAcceptDeleteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -163,7 +166,9 @@ class UserFriendView(APIView):
         if not friend:
             return Response(status=status.HTTP_400_BAD_REQUEST, data="friend를 입력해주세요")
         if not user.friends.filter(pk=friend).exists():
-            return Response(status=status.HTTP_400_BAD_REQUEST, data="해당 친구가 존재하지 않습니다.")
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="해당 친구가 존재하지 않습니다."
+            )
         user.friends.remove(friend)
         return Response(status=status.HTTP_204_NO_CONTENT, data="삭제 완료되었습니다.")
 
@@ -175,9 +180,16 @@ class UserSearchListView(ListAPIView):
 
     @swagger_auto_schema(
         operation_description="유저 검색하기",
-        manual_parameters=[jwt_header, openapi.Parameter('q', openapi.IN_QUERY, description='search key',
-                                                         type=openapi.TYPE_STRING)],
-        responses={200: UserMutualFriendsSerializer(many=True)}
+        manual_parameters=[
+            jwt_header,
+            openapi.Parameter(
+                "q",
+                openapi.IN_QUERY,
+                description="search key",
+                type=openapi.TYPE_STRING,
+            ),
+        ],
+        responses={200: UserMutualFriendsSerializer(many=True)},
     )
     def get(self, request):
         user = request.user

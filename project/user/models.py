@@ -153,6 +153,10 @@ class KakaoId(models.Model):
 
 
 class FriendRequest(models.Model):
-    sender = models.ForeignKey(User, on_delete=CASCADE, related_name="sent_friend_request")
-    receiver = models.ForeignKey(User, on_delete=CASCADE, related_name="received_friend_request")
+    sender = models.ForeignKey(
+        User, on_delete=CASCADE, related_name="sent_friend_request"
+    )
+    receiver = models.ForeignKey(
+        User, on_delete=CASCADE, related_name="received_friend_request"
+    )
     created = models.DateTimeField(auto_now_add=True)

@@ -116,7 +116,14 @@ class UserMutualFriendsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("id", "email", "username", "profile_image", "is_friend", "mutual_friends")
+        fields = (
+            "id",
+            "email",
+            "username",
+            "profile_image",
+            "is_friend",
+            "mutual_friends",
+        )
         extra_kwargs = {"password": {"write_only": True}}
 
     # 공통 친구의 개수와 예시 최대 2명까지 나열
@@ -143,13 +150,14 @@ class FriendRequestCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FriendRequest
-        fields = '__all__'
+        fields = "__all__"
 
     def create(self, validated_data):
         sender = validated_data.get("sender")
         receiver = validated_data.get("receiver")
-        friend_request, is_created = FriendRequest.objects.update_or_create(sender=sender, receiver=receiver,
-                                                                            defaults={"created": datetime.now()})
+        friend_request, is_created = FriendRequest.objects.update_or_create(
+            sender=sender, receiver=receiver, defaults={"created": datetime.now()}
+        )
         return friend_request
 
     def validate(self, data):
@@ -157,7 +165,11 @@ class FriendRequestCreateSerializer(serializers.ModelSerializer):
         sender = data["sender"]
         if sender.friends.filter(pk=receiver.id).exists():
             raise serializers.ValidationError("이미 친구입니다.")
-        if FriendRequest.objects.all().filter(sender=receiver, receiver=sender).exists():
+        if (
+            FriendRequest.objects.all()
+            .filter(sender=receiver, receiver=sender)
+            .exists()
+        ):
             raise serializers.ValidationError("이 유저에게 친구 요청을 받았습니다.")
         if sender == receiver:
             raise serializers.ValidationError("자신에게 친구 요청을 보낼 수 없습니다.")
@@ -168,10 +180,8 @@ class FriendRequestCreateSerializer(serializers.ModelSerializer):
         return UserSerializer(friend_request.sender).data
 
 
-
 # 친구 요청 수락 및 삭제
 class FriendRequestAcceptDeleteSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = FriendRequest
         fields = "__all__"
@@ -179,7 +189,9 @@ class FriendRequestAcceptDeleteSerializer(serializers.ModelSerializer):
     def validate(self, data):
         receiver = data["receiver"]
         sender = data["sender"]
-        friend_request = FriendRequest.objects.all().filter(sender=sender, receiver=receiver)
+        friend_request = FriendRequest.objects.all().filter(
+            sender=sender, receiver=receiver
+        )
         if not friend_request.exists():
             raise serializers.ValidationError("해당 친구 요청이 존재하지 않습니다.")
         data["friend_request"] = friend_request.first()
