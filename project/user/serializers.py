@@ -110,7 +110,6 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 
-# 유저 프로필과 함께
 class UserMutualFriendsSerializer(serializers.ModelSerializer):
     is_friend = serializers.SerializerMethodField()
     mutual_friends = serializers.SerializerMethodField()
@@ -120,17 +119,23 @@ class UserMutualFriendsSerializer(serializers.ModelSerializer):
         fields = ("id", "email", "username", "profile_image", "is_friend", "mutual_friends")
         extra_kwargs = {"password": {"write_only": True}}
 
+    # 공통 친구의 개수와 예시 최대 2명까지 나열
     def get_mutual_friends(self, user):
         request_user = self.context["request"].user
+        if user == request_user:
+            return None
         mutual_friends = request_user.friends.all() & user.friends.all()
         count = len(mutual_friends)
-        examples = mutual_friends[:5]
-        data = {"count": count, "examples": UserMutualFriendsSerializer(examples, many=True).data}
+        example = mutual_friends.first()
+        example_username = example.username if example else None
+        data = {"count": count, "example": example_username}
         return data
 
     def get_is_friend(self, user):
         request_user = self.context["request"].user
-        return request_user.friends.filter(pk=user.id).exists()
+        if user == request_user:
+            return None
+        return user.friends.filter(pk=request_user.id).exists()
 
 
 class FriendRequestCreateSerializer(serializers.ModelSerializer):
