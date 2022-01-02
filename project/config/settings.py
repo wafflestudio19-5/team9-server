@@ -96,7 +96,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "HOST": "localhost",
+        "HOST": "database-careerly.cq3boo3w9eua.ap-northeast-2.rds.amazonaws.com",
         "PORT": 3306,
         "NAME": "toy_project",  # database name 변경
         "USER": "admin",
