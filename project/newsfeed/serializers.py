@@ -2,8 +2,9 @@ from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_serializer_method
 from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
-from .models import Post, Comment, NewsfeedObject
+from .models import Notice, Post, Comment, NewsfeedObject
 from user.serializers import UserSerializer
+from user.models import User
 from datetime import datetime, timedelta
 from pytz import timezone
 
@@ -77,6 +78,24 @@ def format_time(time):
         return f"{time.month}월 {time.day}일"
     else:
         return f"{time.year}년 {time.month}월 {time.day}일"
+
+
+def notice_format_time(time):
+    now = datetime.now()
+    time_elapsed = now - time
+    if time_elapsed < timedelta(minutes=1):
+        return "방금"
+    elif time_elapsed < timedelta(hours=1):
+        return f"{int(time_elapsed.seconds / 60)}분"
+    elif time_elapsed < timedelta(days=1):
+        return f"{int(time_elapsed.seconds / (60 * 60))}시간"
+    elif time_elapsed < timedelta(days=7):
+        return f"{time_elapsed.days}일"
+    else:
+        if time_elapsed.days > 60:
+            return False
+        week = time_elapsed.days // 7
+        return f"{week}주"
 
 
 class PostListSerializer(serializers.ModelSerializer):
@@ -226,3 +245,74 @@ class CommentListSerializer(serializers.ModelSerializer):
         # if children.count() > 2:
         #     children = children[children.count()-4:]
         return CommentListSerializer(children, many=True, context=self.context).data
+
+
+class NoticeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notice
+        fields = (
+            "id",
+            "user",
+            "post",
+            "comment",
+            "content",
+            "url",
+        )
+
+    def create(self, validated_data):
+
+        user = validated_data["user"]
+        url = validated_data["url"]
+        content = validated_data["content"]
+        post = validated_data.get("post")
+        comment = validated_data.get("comment")
+        sender = self.context["sender"]
+
+        notice = Notice.objects.create(
+            user=user,
+            content=content,
+            post=post,
+            comment=comment,
+            url=url,
+        )
+        notice.senders.add(sender)
+
+        return notice
+
+
+class NoticelistSerializer(serializers.ModelSerializer):
+
+    posted_at = serializers.SerializerMethodField()
+    post = serializers.SerializerMethodField()
+    comment = serializers.SerializerMethodField()
+    senders = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Notice
+        fields = (
+            "id",
+            "user",
+            "post",
+            "comment",
+            "content",
+            "posted_at",
+            "isChecked",
+            "url",
+            "senders",
+            "count",
+        )
+
+    def get_posted_at(self, notice):
+        posted_at = notice_format_time(notice.created)
+        if posted_at == False:
+            notice.delete()
+        return posted_at
+
+    def get_post(self, notice):
+        return PostSerializer(notice.post).data
+
+    def get_comment(self, notice):
+        return CommentSerializer(notice.comment).data
+
+    def get_senders(self, notice):
+        return UserSerializer(notice.senders, many=True).data

@@ -7,8 +7,10 @@ from typing import Type
 from django.db.models import Q
 from django.db import transaction
 
-from .pagination import CommentPagination
+from .pagination import CommentPagination, NoticePagination
 from .serializers import (
+    NoticeSerializer,
+    NoticelistSerializer,
     PostListSerializer,
     PostSerializer,
     PostLikeSerializer,
@@ -16,7 +18,7 @@ from .serializers import (
     CommentSerializer,
     CommentLikeSerializer,
 )
-from .models import Post, Comment
+from .models import Notice, Post, Comment
 from user.models import User
 from datetime import datetime
 from django.shortcuts import get_object_or_404
@@ -123,6 +125,10 @@ class PostLikeView(GenericAPIView):
         post.likeusers.add(user)
         post.likes = post.likes + 1
         post.save()
+
+        if user.id != post.author.id:
+            NoticeCreate(user=user, content="PostLike", post=post)
+
         return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
@@ -145,6 +151,18 @@ class PostLikeView(GenericAPIView):
         post.likeusers.remove(user)
         post.likes = post.likes - 1
         post.save()
+
+        notice = Notice.objects.filter(post=post, comment=None)
+        if notice.exists():
+            notice = notice[0]
+
+            if user in notice.senders.all():
+                if notice.senders.count() > 1:
+                    notice.senders.remove(user)
+                    notice.count -= 1
+                    notice.save()
+                else:
+                    notice.delete()
         return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
@@ -207,9 +225,14 @@ class CommentListView(ListCreateAPIView):
         serializer = CommentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         comment = serializer.save()
+
         file = request.FILES.get("file")
         if file:
             comment.file.save(file.name, file, save=True)
+
+        if user.id != post.author.id:
+            NoticeCreate(user=user, content="PostComment", post=post, comment=comment)
+
         return Response(
             CommentListSerializer(comment).data, status=status.HTTP_201_CREATED
         )
@@ -233,6 +256,11 @@ class CommentLikeView(GenericAPIView):
         comment.likeusers.add(user)
         comment.likes = comment.likes + 1
         comment.save()
+
+        post = comment.post
+        if user.id != comment.author.id:
+            NoticeCreate(user=user, content="CommentLike", post=post, comment=comment)
+
         return Response(self.serializer_class(comment).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
@@ -243,11 +271,24 @@ class CommentLikeView(GenericAPIView):
     def delete(self, request, post_id=None, comment_id=None):
         user = request.user
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
+
         if not comment.likeusers.filter(id=user.id).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST, data="좋아요하지 않은 댓글입니다.")
+
         comment.likeusers.remove(user)
         comment.likes = comment.likes - 1
         comment.save()
+
+        notice = Notice.objects.filter(comment=comment)
+        if notice.exists():
+            notice = notice[0]
+            if user in notice.senders.all():
+                if notice.senders.count() > 1:
+                    notice.senders.remove(user)
+                    notice.count -= 1
+                    notice.save()
+                else:
+                    notice.delete()
         return Response(self.serializer_class(comment).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
@@ -258,3 +299,75 @@ class CommentLikeView(GenericAPIView):
     def get(self, request, post_id=None, comment_id=None):
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
         return Response(CommentLikeSerializer(comment).data, status=status.HTTP_200_OK)
+
+
+def NoticeCreate(**context):
+    content = context["content"]
+    user = context["user"]
+    post = context.get("post")
+    comment = context.get("comment")
+
+    if content == "CommentLike":
+        target = comment.author
+        notice = target.notices.filter(comment=comment.id, content__contains=content)
+    else:
+        target = post.author
+        notice = target.notices.filter(post=post.id, content__contains=content)
+
+    if notice:
+        notice = notice[0]
+        if user not in notice.senders.all():
+            notice.count += 1
+            notice.senders.add(user)
+
+        if comment:
+            notice.comment = comment
+        notice.save()
+
+    else:
+
+        data = {
+            "user": target.id,
+            "content": content,
+            "post": post.id,
+            "url": f"api/v1/newsfeed/{post.id}/",
+        }
+        if comment:
+            data["comment"] = comment.id
+        if content == "CommentLike":
+            data["url"] = f"api/v1/newsfeed/{post.id}/{comment.id}/"
+
+        serializer = NoticeSerializer(
+            data=data,
+            context={"sender": user},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+
+class NoticeView(ListCreateAPIView):
+    serializer_class = NoticelistSerializer
+    queryset = Notice.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+    pagination_class = NoticePagination
+
+    def get(self, request, notice_id=None):
+
+        if not notice_id:
+
+            notices = request.user.notices.all()
+            return super().list(notices)
+        else:
+            notice = get_object_or_404(request.user.notices, id=notice_id)
+            notice.isChecked = True
+            notice.save()
+            return Response(
+                self.get_serializer(notice).data,
+                status=status.HTTP_200_OK,
+            )
+
+    def delete(self, request, notice_id=None):
+
+        notice = get_object_or_404(request.user.notices, id=notice_id)
+
+        return Response(notice.delete(), status=status.HTTP_200_OK)
