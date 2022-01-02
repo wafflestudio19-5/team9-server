@@ -125,12 +125,12 @@ class User(AbstractBaseUser, PermissionsMixin):
 class Company(models.Model):
 
     # join_date, leave_date 입력 양식 정해주기
-    user = models.ForeignKey(User, on_delete=CASCADE)
+    user = models.ForeignKey(User, on_delete=CASCADE, related_name="company")
     name = models.CharField(max_length=30)
     role = models.CharField(max_length=30, blank=True)
     location = models.CharField(max_length=50, blank=True)
     join_date = models.DateField()
-    leave_date = models.DateField(blank=True)
+    leave_date = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=False)
     detail = models.CharField(max_length=300, blank=True)
 
@@ -138,11 +138,11 @@ class Company(models.Model):
 class University(models.Model):
 
     # join_date, leave_date 입력 양식 정해주기
-    user = models.ForeignKey(User, on_delete=CASCADE)
+    user = models.ForeignKey(User, on_delete=CASCADE, related_name="university")
     name = models.CharField(max_length=30)
     major = models.CharField(max_length=30, blank=True)
     join_date = models.DateField()
-    graduate_date = models.DateField(blank=True)
+    graduate_date = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=False)
 
 
