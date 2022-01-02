@@ -233,7 +233,7 @@ class NoticeTestCase(TestCase):
             content_type="application/json",
             HTTP_AUTHORIZATION=self.user_token,
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
         response = self.client.get(
             "/api/v1/newsfeed/notices/",

@@ -75,11 +75,12 @@ class PostListView(ListCreateAPIView):
 
         user = request.user
 
-        request.data["author"] = user.id
-
         files = request.FILES.getlist("file")
 
-        serializer = PostSerializer(data=request.data)
+        data = request.data.copy()
+        data["author"] = user.id
+
+        serializer = PostSerializer(data=data)
 
         serializer.is_valid(raise_exception=True)
         mainpost = serializer.save()
@@ -91,7 +92,7 @@ class PostListView(ListCreateAPIView):
                         "author": user.id,
                         "content": request.data.getlist("subposts", [""])[i],
                         "mainpost": mainpost.id,
-                    }
+                    },
                 )
                 serializer.is_valid(raise_exception=True)
                 subpost = serializer.save()
@@ -210,10 +211,11 @@ class CommentListView(ListCreateAPIView):
     @transaction.atomic
     def post(self, request, post_id=None):
         user = request.user
+        data = request.data.copy()
+        data["author"] = user.id
 
-        request.data["author"] = user.id
         post = get_object_or_404(self.queryset, pk=post_id)
-        request.data["post"] = post.id
+        data["post"] = post.id
 
         if (
             not user.friends.filter(id=post.author.id).exists()
@@ -222,7 +224,7 @@ class CommentListView(ListCreateAPIView):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST, data="친구 혹은 자신의 게시글이 아닙니다."
             )
-        serializer = CommentSerializer(data=request.data)
+        serializer = CommentSerializer(data=data, context={"user": user, "post": post})
         serializer.is_valid(raise_exception=True)
         comment = serializer.save()
 
@@ -370,4 +372,4 @@ class NoticeView(ListCreateAPIView):
 
         notice = get_object_or_404(request.user.notices, id=notice_id)
 
-        return Response(notice.delete(), status=status.HTTP_200_OK)
+        return Response(notice.delete(), status=status.HTTP_204_NO_CONTENT)
