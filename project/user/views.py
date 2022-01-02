@@ -21,7 +21,7 @@ from user.serializers import (
     UserSerializer,
     UserLoginSerializer,
     UserCreateSerializer,
-    jwt_token_of, FriendRequestCreateSerializer, FriendRequestAcceptDeleteSerializer,
+    jwt_token_of, FriendRequestCreateSerializer, FriendRequestAcceptDeleteSerializer, UserMutualFriendsSerializer,
 )
 from drf_yasg.utils import swagger_auto_schema
 import uuid
@@ -131,17 +131,16 @@ class UserFriendRequestView(ListCreateAPIView):
                 "receiver": openapi.Schema(type=openapi.TYPE_NUMBER),
             },
         ),
-        responses={200: "삭제 완료되었습니다."}
     )
     def delete(self, request):
         user = request.user
         if (user.id != request.data.get("sender")) and (user.id != request.data.get("receiver")):
-            return Response(status=status.HTTP_400_BAD_REQUEST, data="권한이 없습니다.")
+            return Response(status=status.HTTP_403_FORBIDDEN, data="권한이 없습니다.")
         serializer = FriendRequestAcceptDeleteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.delete(serializer.validated_data)
 
-        return Response(status=status.HTTP_200_OK, data="삭제 완료되었습니다.")
+        return Response(status=status.HTTP_204_NO_CONTENT, data="삭제 완료되었습니다.")
 
 
 class UserFriendView(APIView):
@@ -157,7 +156,6 @@ class UserFriendView(APIView):
                 "friend": openapi.Schema(type=openapi.TYPE_NUMBER),
             },
         ),
-        responses={200: "삭제 완료되었습니다."}
     )
     def delete(self, request):
         user = request.user
@@ -167,11 +165,11 @@ class UserFriendView(APIView):
         if not user.friends.filter(pk=friend).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST, data="해당 친구가 존재하지 않습니다.")
         user.friends.remove(friend)
-        return Response(status=status.HTTP_200_OK, data="삭제 완료되었습니다.")
+        return Response(status=status.HTTP_204_NO_CONTENT, data="삭제 완료되었습니다.")
 
 
 class UserSearchListView(ListAPIView):
-    serializer_class = UserSerializer
+    serializer_class = UserMutualFriendsSerializer
     permission_classes = (permissions.IsAuthenticated,)
     pagination_class = UserPagination
 
@@ -179,12 +177,13 @@ class UserSearchListView(ListAPIView):
         operation_description="유저 검색하기",
         manual_parameters=[jwt_header, openapi.Parameter('q', openapi.IN_QUERY, description='search key',
                                                          type=openapi.TYPE_STRING)],
-        responses={200: UserSerializer(many=True)}
+        responses={200: UserMutualFriendsSerializer(many=True)}
     )
     def get(self, request):
         user = request.user
-        query_params = request.GET.get("q")
-        self.queryset = User.objects.filter(username__icontains=query_params)
+        request.data["request_user"] = user
+        search_key = request.GET.get("q")
+        self.queryset = User.objects.filter(username__icontains=search_key)
         return super().list(request)
 
 
