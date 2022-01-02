@@ -884,8 +884,8 @@ class UserProfileTestCase(APITestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        
-        
+
+
 class FriendRequestFactory(DjangoModelFactory):
     class Meta:
         model = FriendRequest
