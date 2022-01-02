@@ -158,7 +158,7 @@ class UserFriendRequestView(ListCreateAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT, data="삭제 완료되었습니다.")
 
 
-class UserFriendView(APIView):
+class UserFriendDeleteView(APIView):
     serializer_class = UserSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -281,7 +281,7 @@ class UserNewsfeedView(ListAPIView):
         return super().list(request)
 
 
-class UserFriendView(ListAPIView):
+class UserFriendListView(ListAPIView):
     serializer_class = UserSerializer
     queryset = User.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
