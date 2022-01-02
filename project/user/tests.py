@@ -635,7 +635,7 @@ class UserProfileTestCase(APITestCase):
             data=data,
             HTTP_AUTHORIZATION=friend_token,
         )
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         response = self.client.put(
             f"/api/v1/user/{self.test_user.id}/profile/",
             data=data,
@@ -740,7 +740,7 @@ class UserProfileTestCase(APITestCase):
             data=self.company_data,
             HTTP_AUTHORIZATION=friend_token,
         )
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_put_company_profile_not_found(self):
         user_token = "JWT " + jwt_token_of(self.test_user)
@@ -771,7 +771,7 @@ class UserProfileTestCase(APITestCase):
             f"/api/v1/user/company/{self.test_user.company.last().id}/",
             HTTP_AUTHORIZATION=friend_token,
         )
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_delete_company_profile_not_found(self):
         user_token = "JWT " + jwt_token_of(self.test_user)
@@ -846,7 +846,7 @@ class UserProfileTestCase(APITestCase):
             data=self.university_data,
             HTTP_AUTHORIZATION=friend_token,
         )
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_put_university_profile_not_found(self):
         user_token = "JWT " + jwt_token_of(self.test_user)
@@ -877,7 +877,7 @@ class UserProfileTestCase(APITestCase):
             f"/api/v1/user/university/{self.test_user.university.last().id}/",
             HTTP_AUTHORIZATION=friend_token,
         )
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_delete_university_profile_not_found(self):
         user_token = "JWT " + jwt_token_of(self.test_user)

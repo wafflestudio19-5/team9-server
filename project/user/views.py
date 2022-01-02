@@ -310,7 +310,7 @@ class UserProfileView(RetrieveUpdateAPIView):
         user = get_object_or_404(User, pk=pk)
         if user != request.user:
             return Response(
-                status=status.HTTP_401_UNAUTHORIZED, data="다른 유저의 프로필을 고칠 수 없습니다."
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 프로필을 고칠 수 없습니다."
             )
         profile_image = request.FILES.get("profile_image")
         if profile_image:
@@ -349,7 +349,7 @@ class CompanyView(RetrieveUpdateDestroyAPIView):
         company = get_object_or_404(Company, pk=pk)
         if request.user != company.user:
             return Response(
-                status=status.HTTP_401_UNAUTHORIZED, data="다른 유저의 프로필을 고칠 수 없습니다."
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 프로필을 고칠 수 없습니다."
             )
         return super().update(request, pk=pk, partial=True)
 
@@ -357,7 +357,7 @@ class CompanyView(RetrieveUpdateDestroyAPIView):
         company = get_object_or_404(Company, pk=pk)
         if request.user != company.user:
             return Response(
-                status=status.HTTP_401_UNAUTHORIZED, data="다른 유저의 프로필을 고칠 수 없습니다."
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 프로필을 고칠 수 없습니다."
             )
         return super().destroy(request, pk=pk)
 
@@ -390,7 +390,7 @@ class UniversityView(RetrieveUpdateDestroyAPIView):
         university = get_object_or_404(University, pk=pk)
         if request.user != university.user:
             return Response(
-                status=status.HTTP_401_UNAUTHORIZED, data="다른 유저의 프로필을 고칠 수 없습니다."
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 프로필을 고칠 수 없습니다."
             )
         return super().update(request, pk=pk, partial=True)
 
@@ -398,6 +398,6 @@ class UniversityView(RetrieveUpdateDestroyAPIView):
         university = get_object_or_404(University, pk=pk)
         if request.user != university.user:
             return Response(
-                status=status.HTTP_401_UNAUTHORIZED, data="다른 유저의 프로필을 고칠 수 없습니다."
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 프로필을 고칠 수 없습니다."
             )
         return super().destroy(request, pk=pk)
