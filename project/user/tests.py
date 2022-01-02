@@ -156,6 +156,8 @@ class SignUpUserTestCase(TestCase):
         data["email"] = "waffle2@test.com"
         response = self.client.post("/api/v1/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        self.assertEqual(data["username"], "이민준")
 
         self.assertEqual(User.objects.count(), 2)
         self.assertEqual(User.objects.last().username, "이민준")
@@ -979,6 +981,7 @@ class FriendTestCase(TestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_accept_friend_request(self):
         user = self.test_user
         user_token = "JWT " + jwt_token_of(user)

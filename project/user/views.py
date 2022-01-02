@@ -58,7 +58,8 @@ class UserSignUpView(APIView):
             return Response(status=status.HTTP_409_CONFLICT, data="이미 존재하는 유저 이메일입니다.")
 
         return Response(
-            {"user": user.email, "token": jwt_token}, status=status.HTTP_201_CREATED
+            {"user": user.email, "username": user.username, "token": jwt_token},
+            status=status.HTTP_201_CREATED,
         )
 
 
