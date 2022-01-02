@@ -5,9 +5,11 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.db import IntegrityError
+from drf_yasg import openapi
 from rest_framework import status, viewsets, permissions
 from rest_framework.generics import (
     ListAPIView,
+    ListCreateAPIView,
     RetrieveUpdateAPIView,
     CreateAPIView,
     RetrieveUpdateDestroyAPIView,
@@ -18,7 +20,10 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from drf_yasg import openapi
 from config.settings import get_secret
-from user.models import KakaoId, Company, University
+from user.models import KakaoId, Company, University, FriendRequest
+from rest_framework.viewsets import GenericViewSet
+from newsfeed.views import jwt_header
+from user.pagination import UserPagination
 from user.serializers import (
     UserSerializer,
     UserLoginSerializer,
@@ -27,6 +32,8 @@ from user.serializers import (
     UniversitySerializer,
     UserProfileSerializer,
     jwt_token_of,
+    FriendRequestCreateSerializer,
+    FriendRequestAcceptDeleteSerializer,
 )
 from newsfeed.serializers import PostListSerializer
 from newsfeed.models import Post
@@ -60,7 +67,6 @@ class UserLoginView(APIView):
 
     @swagger_auto_schema(request_body=UserLoginSerializer)
     def post(self, request):
-
         serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         token = serializer.validated_data["token"]
@@ -72,11 +78,112 @@ class UserLogoutView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request):
-
         request.user.jwt_secret = uuid.uuid4()
         request.user.save()
 
         return Response("로그아웃 되었습니다.", status=status.HTTP_200_OK)
+
+
+class UserFriendRequestView(ListCreateAPIView):
+    serializer_class = FriendRequestCreateSerializer
+    queryset = FriendRequest.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+
+    @swagger_auto_schema(
+        operation_description="친구 요청 목록 불러오기",
+        responses={200: FriendRequestCreateSerializer(many=True)},
+        manual_parameters=[jwt_header],
+    )
+    def get(self, request):
+        self.queryset = self.queryset.filter(receiver=request.user)
+        return super().list(request)
+
+    @swagger_auto_schema(
+        operation_description="친구 요청 보내기",
+        responses={201: FriendRequestCreateSerializer()},
+        manual_parameters=[jwt_header],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={"receiver": openapi.Schema(type=openapi.TYPE_NUMBER)},
+        ),
+    )
+    def post(self, request):
+        request.data["sender"] = request.user.id
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_201_CREATED, data=serializer.data)
+
+    @swagger_auto_schema(
+        operation_description="친구 요청 수락하기",
+        manual_parameters=[jwt_header],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "sender": openapi.Schema(type=openapi.TYPE_NUMBER),
+            },
+        ),
+        responses={200: "수락 완료되었습니다."},
+    )
+    def put(self, request):
+        request.data["receiver"] = request.user.id
+        serializer = FriendRequestAcceptDeleteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.accept(serializer.validated_data)
+
+        return Response(status=status.HTTP_200_OK, data="수락 완료되었습니다.")
+
+    @swagger_auto_schema(
+        operation_description="친구 요청 삭제하기",
+        manual_parameters=[jwt_header],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "sender": openapi.Schema(type=openapi.TYPE_NUMBER),
+                "receiver": openapi.Schema(type=openapi.TYPE_NUMBER),
+            },
+        ),
+        responses={204: "삭제 완료되었습니다."},
+    )
+    def delete(self, request):
+        user = request.user
+        if (user.id != request.data.get("sender")) and (
+            user.id != request.data.get("receiver")
+        ):
+            return Response(status=status.HTTP_403_FORBIDDEN, data="권한이 없습니다.")
+        serializer = FriendRequestAcceptDeleteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.delete(serializer.validated_data)
+
+        return Response(status=status.HTTP_204_NO_CONTENT, data="삭제 완료되었습니다.")
+
+
+class UserFriendView(APIView):
+    serializer_class = UserSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    @swagger_auto_schema(
+        operation_description="친구 삭제하기",
+        manual_parameters=[jwt_header],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "friend": openapi.Schema(type=openapi.TYPE_NUMBER),
+            },
+        ),
+        responses={204: "삭제 완료되었습니다."},
+    )
+    def delete(self, request):
+        user = request.user
+        friend = request.data.get("friend")
+        if not friend:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data="friend를 입력해주세요")
+        if not user.friends.filter(pk=friend).exists():
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="해당 친구가 존재하지 않습니다."
+            )
+        user.friends.remove(friend)
+        return Response(status=status.HTTP_204_NO_CONTENT, data="삭제 완료되었습니다.")
 
 
 KAKAO_APP_KEY = get_secret("KAKAO_APP_KEY")

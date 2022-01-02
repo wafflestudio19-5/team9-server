@@ -1,4 +1,6 @@
 from django.urls import path, include
+from rest_framework.routers import SimpleRouter
+
 from .views import (
     UserLoginView,
     UserSignUpView,
@@ -6,6 +8,7 @@ from .views import (
     KakaoView,
     KakaoCallbackView,
     UserNewsfeedView,
+    UserFriendRequestView,
     UserFriendView,
     UserProfileView,
     CompanyCreateView,
@@ -45,6 +48,10 @@ urlpatterns = [
     path(
         "user/university/<int:pk>/", UniversityView.as_view(), name="university"
     ),  # /api/v1/user/university/{university_id}/
+    path(        
+        "friend/request/", UserFriendRequestView.as_view(), name="friend_request"
+    ),  # /api/v1/friend/request/
+    path("friend/", UserFriendView.as_view(), name="friend"),  # /api/v1/friend/
 ]
 
 # urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
