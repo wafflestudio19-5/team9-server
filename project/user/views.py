@@ -42,6 +42,8 @@ from newsfeed.models import Post
 from drf_yasg.utils import swagger_auto_schema
 import uuid
 
+from newsfeed.views import NoticeCreate
+
 User = get_user_model()
 
 
@@ -60,7 +62,7 @@ class UserSignUpView(APIView):
             return Response(status=status.HTTP_409_CONFLICT, data="이미 존재하는 유저 이메일입니다.")
 
         return Response(
-            {"user": user.email, "username": user.username, "token": jwt_token},
+            {"user": UserSerializer(user).data, "token": jwt_token},
             status=status.HTTP_201_CREATED,
         )
 
@@ -73,8 +75,16 @@ class UserLoginView(APIView):
         serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         token = serializer.validated_data["token"]
+        user = serializer.validated_data["user"]
 
-        return Response({"success": True, "token": token}, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "success": True,
+                "user": UserSerializer(user).data,
+                "token": token,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class UserLogoutView(APIView):
@@ -115,6 +125,8 @@ class UserFriendRequestView(ListCreateAPIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        # NoticeCreate(user=request.user, content="FriendRequest", receiver=request.data['receiver'])
+
         return Response(status=status.HTTP_201_CREATED, data=serializer.data)
 
     @swagger_auto_schema(
@@ -133,6 +145,8 @@ class UserFriendRequestView(ListCreateAPIView):
         serializer = FriendRequestAcceptDeleteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.accept(serializer.validated_data)
+
+        # NoticeCreate(user=request.user, content="FriendAccept", receiver=request.data['sender'])
 
         return Response(status=status.HTTP_200_OK, data="수락 완료되었습니다.")
 
