@@ -114,7 +114,7 @@ class PostListView(ListCreateAPIView):
                 subpost = serializer.save()
                 subpost.file.save(files[i].name, files[i], save=True)
 
-        return Response(PostSerializer(mainpost).data, status=status.HTTP_201_CREATED)
+        return Response(PostSerializer(mainpost, context={"request": request}).data, status=status.HTTP_201_CREATED)
 
 
 class PostLikeView(GenericAPIView):
@@ -146,7 +146,7 @@ class PostLikeView(GenericAPIView):
         if user.id != post.author.id:
             NoticeCreate(user=user, content="PostLike", post=post)
 
-        return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
+        return Response(self.get_serializer(post).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_description="게시물 좋아요 취소하기",
@@ -180,7 +180,7 @@ class PostLikeView(GenericAPIView):
                     notice.save()
                 else:
                     notice.delete()
-        return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
+        return Response(self.get_serializer(post).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_description="해당 post의 좋아요 개수, 좋아요 한 유저 가져오기",
@@ -251,7 +251,7 @@ class CommentListView(ListCreateAPIView):
             NoticeCreate(user=user, content="PostComment", post=post, comment=comment)
 
         return Response(
-            CommentListSerializer(comment).data, status=status.HTTP_201_CREATED
+            self.get_serializer(comment).data, status=status.HTTP_201_CREATED
         )
 
 
@@ -278,7 +278,7 @@ class CommentLikeView(GenericAPIView):
         if user.id != comment.author.id:
             NoticeCreate(user=user, content="CommentLike", post=post, comment=comment)
 
-        return Response(self.serializer_class(comment).data, status=status.HTTP_200_OK)
+        return Response(self.get_serializer(comment).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_description="comment 좋아요 취소하기",
@@ -306,7 +306,7 @@ class CommentLikeView(GenericAPIView):
                     notice.save()
                 else:
                     notice.delete()
-        return Response(self.serializer_class(comment).data, status=status.HTTP_200_OK)
+        return Response(self.get_serializer(comment).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_description="해당 comment의 좋아요 개수, 좋아요 한 유저 가져오기",
