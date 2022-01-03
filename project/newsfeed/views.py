@@ -372,7 +372,7 @@ class NoticeView(GenericAPIView):
     )
     def get(self, request, notice_id=None):
         notice = get_object_or_404(request.user.notices, id=notice_id)
-        notice.isChecked = True
+        notice.is_checked = True
         notice.save()
         return Response(
             self.get_serializer(notice).data,

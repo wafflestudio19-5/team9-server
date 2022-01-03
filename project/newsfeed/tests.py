@@ -120,10 +120,10 @@ class NoticeTestCase(TestCase):
         self.assertEqual(
             data["results"][0]["url"], f"api/v1/newsfeed/{self.test_post.id}/"
         )
-        self.assertEqual(data["results"][0]["isChecked"], False)
+        self.assertEqual(data["results"][0]["is_checked"], False)
         self.assertEqual(data["results"][0]["comment"]["content"], "알림 테스트 댓글입니다...9")
 
-        # 알림 isChecked
+        # 알림 is_checked
         response = self.client.get(
             f"/api/v1/newsfeed/notices/{notice_id}/",
             content_type="application/json",
@@ -131,7 +131,7 @@ class NoticeTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        self.assertEqual(data["isChecked"], True)
+        self.assertEqual(data["is_checked"], True)
 
         # 자기자신 알림 X
         response = self.client.post(
@@ -199,7 +199,7 @@ class NoticeTestCase(TestCase):
             data["results"][0]["url"],
             f"api/v1/newsfeed/{self.test_post.id}/{self.test_comment.id}/",
         )
-        self.assertEqual(data["results"][0]["isChecked"], False)
+        self.assertEqual(data["results"][0]["is_checked"], False)
         self.assertEqual(data["results"][0]["comment"]["content"], "알림 테스트 댓글입니다.")
 
         # 게시글 좋아요
@@ -225,7 +225,7 @@ class NoticeTestCase(TestCase):
             data["results"][0]["url"],
             f"api/v1/newsfeed/{self.test_post.id}/",
         )
-        self.assertEqual(data["results"][0]["isChecked"], False)
+        self.assertEqual(data["results"][0]["is_checked"], False)
 
         # 알림 삭제
         response = self.client.delete(

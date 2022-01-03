@@ -75,6 +75,6 @@ class Notice(models.Model):
     )
     content = models.CharField(max_length=30, blank=True)
     created = models.DateTimeField(auto_now_add=True)
-    isChecked = models.BooleanField(default=False)
+    is_checked = models.BooleanField(default=False)
     url = models.CharField(max_length=1000)
     count = models.PositiveIntegerField(default=0)

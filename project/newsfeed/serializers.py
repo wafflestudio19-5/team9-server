@@ -365,7 +365,7 @@ class NoticelistSerializer(serializers.ModelSerializer):
             "comment",
             "content",
             "posted_at",
-            "isChecked",
+            "is_checked",
             "url",
             "senders",
             "count",
