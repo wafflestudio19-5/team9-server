@@ -36,7 +36,7 @@ class UserFactory(DjangoModelFactory):
             ),
             phone_number=kwargs.get("phone_number", fake.numerify(text="010########")),
         )
-        user.username = user.first_name + user.last_name
+        user.username = user.last_name + user.first_name
         user.set_password(kwargs.get("password", ""))
         user.save()
 
@@ -156,6 +156,8 @@ class SignUpUserTestCase(TestCase):
         data["email"] = "waffle2@test.com"
         response = self.client.post("/api/v1/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        self.assertEqual(data["username"], "이민준")
 
         self.assertEqual(User.objects.count(), 2)
         self.assertEqual(User.objects.last().username, "이민준")
@@ -635,7 +637,7 @@ class UserProfileTestCase(APITestCase):
             data=data,
             HTTP_AUTHORIZATION=friend_token,
         )
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         response = self.client.put(
             f"/api/v1/user/{self.test_user.id}/profile/",
             data=data,
@@ -740,7 +742,7 @@ class UserProfileTestCase(APITestCase):
             data=self.company_data,
             HTTP_AUTHORIZATION=friend_token,
         )
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_put_company_profile_not_found(self):
         user_token = "JWT " + jwt_token_of(self.test_user)
@@ -771,7 +773,7 @@ class UserProfileTestCase(APITestCase):
             f"/api/v1/user/company/{self.test_user.company.last().id}/",
             HTTP_AUTHORIZATION=friend_token,
         )
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_delete_company_profile_not_found(self):
         user_token = "JWT " + jwt_token_of(self.test_user)
@@ -846,7 +848,7 @@ class UserProfileTestCase(APITestCase):
             data=self.university_data,
             HTTP_AUTHORIZATION=friend_token,
         )
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_put_university_profile_not_found(self):
         user_token = "JWT " + jwt_token_of(self.test_user)
@@ -877,7 +879,7 @@ class UserProfileTestCase(APITestCase):
             f"/api/v1/user/university/{self.test_user.university.last().id}/",
             HTTP_AUTHORIZATION=friend_token,
         )
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_delete_university_profile_not_found(self):
         user_token = "JWT " + jwt_token_of(self.test_user)
@@ -979,6 +981,7 @@ class FriendTestCase(TestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_accept_friend_request(self):
         user = self.test_user
         user_token = "JWT " + jwt_token_of(user)
@@ -1053,3 +1056,50 @@ class FriendTestCase(TestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class SearchTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.test_user = UserFactory.create(
+            first_name="와플",
+            last_name="김",
+        )
+        cls.test_stranger = UserFactory.create(
+            first_name="cd",
+            last_name="ab",
+        )
+        # username = 공통친구
+        cls.test_mutual_friends = UserFactory.create_batch(
+            25, first_name="친구", last_name="공통"
+        )
+        for mutual_friend in cls.test_mutual_friends:
+            cls.test_user.friends.add(mutual_friend)
+            cls.test_stranger.friends.add(mutual_friend)
+
+    def test_search(self):
+        user = self.test_user
+        user_token = "JWT " + jwt_token_of(user)
+        response = self.client.get(
+            "/api/v1/search/?q=Bc",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()["results"]
+        self.assertEqual(len(data), 1)
+        self.assertFalse(data[0]["is_friend"])
+        self.assertEqual(data[0]["mutual_friends"]["count"], 25)
+        self.assertEqual(data[0]["mutual_friends"]["example"], "공통친구")
+
+        # test_mutual_friends 검색
+        response = self.client.get(
+            "/api/v1/search/?q=공통친구",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 20)
+        self.assertTrue(data["results"][0]["is_friend"])
+        self.assertEqual(data["results"][0]["mutual_friends"]["count"], 0)

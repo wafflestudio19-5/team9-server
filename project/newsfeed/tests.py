@@ -727,11 +727,11 @@ class CommentTestCase(TestCase):
             author=cls.test_stranger, content="모르는 사람의 테스트 게시물입니다.", likes=30
         )
 
-        cls.depth_zero = CommentFactory.create(
-            author=cls.test_friend, post=cls.my_post, depth=0, content="depth 0"
-        )
         CommentFactory.create_batch(
             35, author=cls.test_friend, post=cls.my_post, depth=0
+        )
+        cls.depth_zero = CommentFactory.create(
+            author=cls.test_friend, post=cls.my_post, depth=0, content="depth 0"
         )
         cls.depth_one = CommentFactory.create(
             author=cls.test_friend,

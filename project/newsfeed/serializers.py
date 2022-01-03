@@ -17,7 +17,9 @@ class PostSerializer(serializers.ModelSerializer):
 
         model = Post
 
+
         fields = ("id", "author", "content", "mainpost", "subposts", "likes")
+        
         extra_kwargs = {"content": {"help_text": "무슨 생각을 하고 계신가요?"}}
 
     def create(self, validated_data):
@@ -47,8 +49,8 @@ class PostSerializer(serializers.ModelSerializer):
         return data
 
     def get_subposts(self, post):
-        return SubPostSerializer(post.subposts, many=True).data
 
+        return SubPostSerializer(post.subposts, many=True).data
 
 def format_time(time):
     now = datetime.now()
@@ -90,7 +92,7 @@ class MainPostSerializer(serializers.ModelSerializer):
     posted_at = serializers.SerializerMethodField()
     subposts = serializers.SerializerMethodField()
     author = serializers.SerializerMethodField()
-    comment_count = serializers.SerializerMethodField()
+    comments = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -101,7 +103,7 @@ class MainPostSerializer(serializers.ModelSerializer):
             "subposts",
             "likes",
             "posted_at",
-            "comment_count",
+            "comments",
         )
 
     def get_posted_at(self, post):
@@ -114,7 +116,7 @@ class MainPostSerializer(serializers.ModelSerializer):
     def get_author(self, post):
         return UserSerializer(post.author).data
 
-    def get_comment_count(self, post):
+    def get_comments(self, post):
         return Comment.objects.filter(post=post).count()
 
 
