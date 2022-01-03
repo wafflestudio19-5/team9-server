@@ -17,9 +17,7 @@ class PostSerializer(serializers.ModelSerializer):
 
         model = Post
 
-
         fields = ("id", "author", "content", "mainpost", "subposts", "likes")
-        
         extra_kwargs = {"content": {"help_text": "무슨 생각을 하고 계신가요?"}}
 
     def create(self, validated_data):
@@ -48,9 +46,11 @@ class PostSerializer(serializers.ModelSerializer):
 
         return data
 
+    @swagger_serializer_method(serializer_or_field=SubPostSerializer)
     def get_subposts(self, post):
 
         return SubPostSerializer(post.subposts, many=True).data
+
 
 def format_time(time):
     now = datetime.now()
@@ -109,6 +109,7 @@ class MainPostSerializer(serializers.ModelSerializer):
     def get_posted_at(self, post):
         return format_time(post.created)
 
+    @swagger_serializer_method(serializer_or_field=SubPostSerializer)
     def get_subposts(self, post):
         return SubPostSerializer(post.subposts, many=True).data
 
