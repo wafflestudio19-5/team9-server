@@ -7,7 +7,7 @@ from typing import Type
 from django.db.models import Q
 from django.db import transaction
 
-from .pagination import CommentPagination, NoticePagination
+from .pagination import NoticePagination
 from .serializers import (
     NoticeSerializer,
     NoticelistSerializer,
@@ -179,7 +179,6 @@ class PostLikeView(GenericAPIView):
 class CommentListView(ListCreateAPIView):
     serializer_class = CommentListSerializer
     queryset = Post.objects.all()
-    pagination_class = CommentPagination
     permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(

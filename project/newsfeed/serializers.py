@@ -12,7 +12,7 @@ from pytz import timezone
 class PostSerializer(serializers.ModelSerializer):
 
     subposts = serializers.SerializerMethodField()
-    comment_count = serializers.SerializerMethodField()
+    comments = serializers.SerializerMethodField()
 
     class Meta:
 
@@ -28,7 +28,7 @@ class PostSerializer(serializers.ModelSerializer):
             "created",
             "updated",
             "likes",
-            "comment_count",
+            "comments",
         )
         extra_kwargs = {"content": {"help_text": "무슨 생각을 하고 계신가요?"}}
 
@@ -59,7 +59,7 @@ class PostSerializer(serializers.ModelSerializer):
     def get_subposts(self, post):
         return PostSerializer(post.subposts, many=True).data
 
-    def get_comment_count(self, post):
+    def get_comments(self, post):
         return Comment.objects.filter(post=post).count()
 
 
@@ -103,7 +103,7 @@ class PostListSerializer(serializers.ModelSerializer):
     posted_at = serializers.SerializerMethodField()
     subposts = serializers.SerializerMethodField()
     author = serializers.SerializerMethodField()
-    comment_count = serializers.SerializerMethodField()
+    comments = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -115,7 +115,7 @@ class PostListSerializer(serializers.ModelSerializer):
             "file",
             "likes",
             "posted_at",
-            "comment_count",
+            "comments",
         )
 
     def get_posted_at(self, post):
@@ -129,7 +129,7 @@ class PostListSerializer(serializers.ModelSerializer):
     def get_author(self, post):
         return UserSerializer(post.author).data
 
-    def get_comment_count(self, post):
+    def get_comments(self, post):
         return Comment.objects.filter(post=post).count()
 
 
