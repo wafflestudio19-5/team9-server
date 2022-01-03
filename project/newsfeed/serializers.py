@@ -122,7 +122,7 @@ class MainPostSerializer(serializers.ModelSerializer):
 class SubPostSerializer(serializers.ModelSerializer):
 
     posted_at = serializers.SerializerMethodField()
-    comment_count = serializers.SerializerMethodField()
+    comments = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -133,13 +133,13 @@ class SubPostSerializer(serializers.ModelSerializer):
             "file",
             "likes",
             "posted_at",
-            "comment_count",
+            "comments",
         )
 
     def get_posted_at(self, post):
         return format_time(post.created)
 
-    def get_comment_count(self, post):
+    def get_comments(self, post):
         return Comment.objects.filter(post=post).count()
 
 
