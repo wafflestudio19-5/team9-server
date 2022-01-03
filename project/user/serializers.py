@@ -113,7 +113,6 @@ class UserSerializer(serializers.ModelSerializer):
 class UserMutualFriendsSerializer(serializers.ModelSerializer):
     is_friend = serializers.SerializerMethodField()
     mutual_friends = serializers.SerializerMethodField()
-    
     class Meta:
         model = User
         fields = (
@@ -143,8 +142,8 @@ class UserMutualFriendsSerializer(serializers.ModelSerializer):
         if user == request_user:
             return None
         return user.friends.filter(pk=request_user.id).exists()
-      
-      
+
+
 class CompanySerializer(serializers.ModelSerializer):
     class Meta:
         model = Company
@@ -235,7 +234,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     company = CompanySerializer(many=True, read_only=True)
     university = UniversitySerializer(many=True, read_only=True)
-          
     class Meta:
         model = User
         fields = (
