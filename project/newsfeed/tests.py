@@ -319,7 +319,9 @@ class NewsFeedTestCase(TestCase):
 
         PostFactory.create(author=cls.test_user, content="나의 테스트 게시물입니다.", likes=10)
 
-        PostFactory.create(author=cls.test_friend, content="친구의 테스트 게시물입니다.", likes=20)
+        cls.friend_post = PostFactory.create(author=cls.test_friend, content="친구의 테스트 게시물입니다.", likes=20)
+        cls.friend_post.likeusers.add(cls.test_user)
+        cls.friend_post.save()
 
         PostFactory.create(
             author=cls.test_stranger, content="모르는 사람의 테스트 게시물입니다.", likes=30
@@ -354,6 +356,9 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(
             data["results"][0]["likes"], self.test_friend.posts.last().likes
         )
+
+        # is_liked 확인
+        self.assertTrue(data["results"][0]["is_liked"])
 
         # test_stranger의 피드
         user_token = "JWT " + jwt_token_of(self.test_stranger)
@@ -740,6 +745,8 @@ class CommentTestCase(TestCase):
             content="depth 1",
             parent=cls.depth_zero,
         )
+        cls.depth_one.likeusers.add(cls.test_user)
+        cls.depth_one.save()
         CommentFactory.create_batch(
             5, author=cls.test_friend, post=cls.my_post, depth=1, parent=cls.depth_zero
         )
@@ -770,6 +777,7 @@ class CommentTestCase(TestCase):
         # 모든 계층에서 시간 오름차순으로 배열 (먼저 생성된 게 앞에)
         self.assertEqual(data["results"][0]["content"], "depth 0")
         self.assertEqual(data["results"][0]["children"][0]["content"], "depth 1")
+        self.assertTrue(data["results"][0]["children"][0]["is_liked"])
         self.assertEqual(
             data["results"][0]["children"][0]["children"][0]["content"], "depth 2"
         )
