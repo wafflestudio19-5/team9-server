@@ -12,12 +12,13 @@ from pytz import timezone
 class PostSerializer(serializers.ModelSerializer):
 
     subposts = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
 
     class Meta:
 
         model = Post
 
-        fields = ("id", "author", "content", "mainpost", "subposts", "likes")
+        fields = ("id", "author", "content", "mainpost", "subposts", "likes", "is_liked")
         extra_kwargs = {"content": {"help_text": "무슨 생각을 하고 계신가요?"}}
 
     def create(self, validated_data):
@@ -49,6 +50,16 @@ class PostSerializer(serializers.ModelSerializer):
     def get_subposts(self, post):
 
         return SubPostSerializer(post.subposts, many=True).data
+
+    def get_is_liked(self, post):
+        request = self.context.get("request")
+        if not request:
+            return None
+
+        if post.likeusers.filter(pk=request.user.id).exists():
+            return True
+
+        return False
 
 
 def format_time(time):
@@ -92,6 +103,7 @@ class MainPostSerializer(serializers.ModelSerializer):
     subposts = serializers.SerializerMethodField()
     author = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -103,13 +115,14 @@ class MainPostSerializer(serializers.ModelSerializer):
             "likes",
             "posted_at",
             "comments",
+            "is_liked",
         )
 
     def get_posted_at(self, post):
         return format_time(post.created)
 
     def get_subposts(self, post):
-        return SubPostSerializer(post.subposts, many=True).data
+        return SubPostSerializer(post.subposts, many=True, context=self.context).data
 
     @swagger_serializer_method(serializer_or_field=UserSerializer)
     def get_author(self, post):
@@ -118,11 +131,22 @@ class MainPostSerializer(serializers.ModelSerializer):
     def get_comments(self, post):
         return Comment.objects.filter(post=post).count()
 
+    def get_is_liked(self, post):
+        request = self.context.get("request")
+        if not request:
+            return None
+
+        if post.likeusers.filter(pk=request.user.id).exists():
+            return True
+
+        return False
+
 
 class SubPostSerializer(serializers.ModelSerializer):
 
     posted_at = serializers.SerializerMethodField()
-    comment_count = serializers.SerializerMethodField()
+    comments = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -133,15 +157,25 @@ class SubPostSerializer(serializers.ModelSerializer):
             "file",
             "likes",
             "posted_at",
-            "comment_count",
+            "comments",
+            "is_liked",
         )
 
     def get_posted_at(self, post):
         return format_time(post.created)
 
-    def get_comment_count(self, post):
+    def get_comments(self, post):
         return Comment.objects.filter(post=post).count()
 
+    def get_is_liked(self, post):
+        request = self.context.get("request")
+        if not request:
+            return None
+
+        if post.likeusers.filter(pk=request.user.id).exists():
+            return True
+
+        return False
 
 class PostLikeSerializer(serializers.ModelSerializer):
     likeusers = serializers.SerializerMethodField()
@@ -168,6 +202,8 @@ class CommentLikeSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    is_liked = serializers.SerializerMethodField()
+
     class Meta:
 
         model = Comment
@@ -182,6 +218,7 @@ class CommentSerializer(serializers.ModelSerializer):
             "depth",
             "created",
             "likes",
+            "is_liked",
         )
 
     def create(self, validated_data):
@@ -217,12 +254,23 @@ class CommentSerializer(serializers.ModelSerializer):
 
         return data
 
+    def get_is_liked(self, comment):
+        request = self.context.get("request")
+        if not request:
+            return None
+
+        if comment.likeusers.filter(pk=request.user.id).exists():
+            return True
+
+        return False
+
 
 class CommentListSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
     posted_at = serializers.SerializerMethodField()
     children_count = serializers.SerializerMethodField()
     children = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
@@ -237,6 +285,7 @@ class CommentListSerializer(serializers.ModelSerializer):
             "parent",
             "children_count",
             "children",
+            "is_liked",
         )
 
     @swagger_serializer_method(serializer_or_field=UserSerializer)
@@ -255,6 +304,16 @@ class CommentListSerializer(serializers.ModelSerializer):
         # if children.count() > 2:
         #     children = children[children.count()-4:]
         return CommentListSerializer(children, many=True, context=self.context).data
+
+    def get_is_liked(self, comment):
+        request = self.context.get("request")
+        if not request:
+            return None
+
+        if comment.likeusers.filter(pk=request.user.id).exists():
+            return True
+
+        return False
 
 
 class NoticeSerializer(serializers.ModelSerializer):
@@ -306,7 +365,7 @@ class NoticelistSerializer(serializers.ModelSerializer):
             "comment",
             "content",
             "posted_at",
-            "isChecked",
+            "is_checked",
             "url",
             "senders",
             "count",
