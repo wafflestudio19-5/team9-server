@@ -254,12 +254,12 @@ class CommentSerializer(serializers.ModelSerializer):
 
         return data
 
-    def get_is_liked(self, post):
+    def get_is_liked(self, comment):
         request = self.context.get("request")
         if not request:
             return None
 
-        if post.likeusers.filter(pk=request.user.id).exists():
+        if comment.likeusers.filter(pk=request.user.id).exists():
             return True
 
         return False
@@ -305,12 +305,12 @@ class CommentListSerializer(serializers.ModelSerializer):
         #     children = children[children.count()-4:]
         return CommentListSerializer(children, many=True, context=self.context).data
 
-    def get_is_liked(self, post):
+    def get_is_liked(self, comment):
         request = self.context.get("request")
         if not request:
             return None
 
-        if post.likeusers.filter(pk=request.user.id).exists():
+        if comment.likeusers.filter(pk=request.user.id).exists():
             return True
 
         return False
