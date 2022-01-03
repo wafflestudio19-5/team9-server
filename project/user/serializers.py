@@ -113,7 +113,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UserMutualFriendsSerializer(serializers.ModelSerializer):
     is_friend = serializers.SerializerMethodField()
     mutual_friends = serializers.SerializerMethodField()
-
+    
     class Meta:
         model = User
         fields = (
@@ -143,6 +143,139 @@ class UserMutualFriendsSerializer(serializers.ModelSerializer):
         if user == request_user:
             return None
         return user.friends.filter(pk=request_user.id).exists()
+      
+      
+class CompanySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Company
+        fields = (
+            "id",
+            "user",
+            "name",
+            "role",
+            "location",
+            "join_date",
+            "leave_date",
+            "is_active",
+            "detail",
+        )
+        read_only_fields = ["id", "is_active"]
+        extra_kwargs = {
+            "user": {"required": True},
+            "name": {"required": True},
+            "join_date": {"required": True},
+        }
+
+    def validate(self, data):
+        join_date = data.get("join_date")
+        leave_date = data.get("leave_date")
+        if leave_date and leave_date < join_date:
+            raise serializers.ValidationError("기간이 유효하지 않습니다.")
+        return data
+
+    def create(self, validated_data):
+        leave_date = validated_data.get("leave_date")
+        validated_data["is_active"] = (
+            not leave_date or leave_date > datetime.now().date()
+        )
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        instance.is_active = (
+            not instance.leave_date or instance.leave_date > datetime.now().date()
+        )
+        instance.save()
+        return instance
+
+
+class UniversitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = University
+        fields = (
+            "id",
+            "user",
+            "name",
+            "major",
+            "join_date",
+            "graduate_date",
+            "is_active",
+        )
+        read_only_fields = ["is_active"]
+        extra_kwargs = {
+            "user": {"required": True},
+            "name": {"required": True},
+            "join_date": {"required": True},
+        }
+
+    def validate(self, data):
+        join_date = data.get("join_date")
+        graduate_date = data.get("graduate_date")
+        if graduate_date and graduate_date < join_date:
+            raise serializers.ValidationError("기간이 유효하지 않습니다.")
+        return data
+
+    def create(self, validated_data):
+        graduate_date = validated_data.get("graduate_date")
+        validated_data["is_active"] = (
+            not graduate_date or graduate_date > datetime.now().date()
+        )
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        instance.is_active = (
+            not instance.graduate_date or instance.graduate_date > datetime.now().date()
+        )
+        instance.save()
+        return instance
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+
+    company = CompanySerializer(many=True, read_only=True)
+    university = UniversitySerializer(many=True, read_only=True)
+          
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "first_name",
+            "last_name",
+            "username",
+            "email",
+            "birth",
+            "gender",
+            "self_intro",
+            "profile_image",
+            "cover_image",
+            "company",
+            "university",
+        )
+        read_only_fields = (
+            "id",
+            "username",
+            "email",
+            "company",
+            "university",
+            "profile_image",
+            "cover_image",
+        )
+
+    def validate(self, data):
+        gender = data.get("gender")
+        if gender and gender != "M" and gender != "F":
+            raise serializers.ValidationError("성별이 잘못되었습니다.")
+        birth = data.get("birth")
+        if birth and birth > datetime.now().date():
+            raise serializers.ValidationError("생일이 현재 시간보다 나중일 수는 없습니다.")
+        return data
+
+    def update(self, instance, validated_data):
+        user = super().update(instance, validated_data)
+        user.username = user.last_name + user.first_name
+        user.save()
+        return user
 
 
 class FriendRequestCreateSerializer(serializers.ModelSerializer):
@@ -170,7 +303,8 @@ class FriendRequestCreateSerializer(serializers.ModelSerializer):
             .filter(sender=receiver, receiver=sender)
             .exists()
         ):
-            raise serializers.ValidationError("이 유저에게 친구 요청을 받았습니다.")
+            raise serializers.ValidationError("이 유저에게 이미 친구 요청을 받았습니다.")
+
         if sender == receiver:
             raise serializers.ValidationError("자신에게 친구 요청을 보낼 수 없습니다.")
         return data
