@@ -113,6 +113,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UserMutualFriendsSerializer(serializers.ModelSerializer):
     is_friend = serializers.SerializerMethodField()
     mutual_friends = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = (
@@ -234,6 +235,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     company = CompanySerializer(many=True, read_only=True)
     university = UniversitySerializer(many=True, read_only=True)
+
     class Meta:
         model = User
         fields = (
