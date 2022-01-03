@@ -6,12 +6,13 @@ from rest_framework.response import Response
 from typing import Type
 from django.db.models import Q
 from django.db import transaction
-
+import json
+import ast
 from .pagination import CommentPagination, NoticePagination
 from .serializers import (
     NoticeSerializer,
     NoticelistSerializer,
-    PostListSerializer,
+    MainPostSerializer,
     PostSerializer,
     PostLikeSerializer,
     CommentListSerializer,
@@ -34,14 +35,14 @@ jwt_header = openapi.Parameter(
 
 class PostListView(ListCreateAPIView):
 
-    serializer_class = PostListSerializer
+    serializer_class = MainPostSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
         operation_description="로그인된 유저의 friend들의 post들을 최신순으로 가져오기",
         manual_parameters=[jwt_header],
-        responses={200: PostListSerializer()},
+        responses={200: MainPostSerializer()},
     )
     def get(self, request):
 
@@ -76,24 +77,39 @@ class PostListView(ListCreateAPIView):
         user = request.user
 
         files = request.FILES.getlist("file")
+        context = {"isFile": False}
+        if files:
+            context["isFile"] = True
 
         data = request.data.copy()
         data["author"] = user.id
 
-        serializer = PostSerializer(data=data)
+        serializer = PostSerializer(data=data, context=context)
 
         serializer.is_valid(raise_exception=True)
         mainpost = serializer.save()
         if files:
+            contents = request.data.getlist("subposts", [])
+
             for i in range(len(files)):
 
-                serializer = PostSerializer(
-                    data={
-                        "author": user.id,
-                        "content": request.data.getlist("subposts", [""])[i],
-                        "mainpost": mainpost.id,
-                    },
-                )
+                if len(contents) > i:
+                    serializer = PostSerializer(
+                        data={
+                            "author": user.id,
+                            "content": contents[i],
+                            "mainpost": mainpost.id,
+                        },
+                        context=context,
+                    )
+                else:
+                    serializer = PostSerializer(
+                        data={
+                            "author": user.id,
+                            "mainpost": mainpost.id,
+                        },
+                        context=context,
+                    )
                 serializer.is_valid(raise_exception=True)
                 subpost = serializer.save()
                 subpost.file.save(files[i].name, files[i], save=True)

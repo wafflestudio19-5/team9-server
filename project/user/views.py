@@ -35,7 +35,7 @@ from user.serializers import (
     FriendRequestCreateSerializer,
     FriendRequestAcceptDeleteSerializer,
 )
-from newsfeed.serializers import PostListSerializer
+from newsfeed.serializers import MainPostSerializer
 from newsfeed.models import Post
 from drf_yasg.utils import swagger_auto_schema
 import uuid
@@ -266,14 +266,14 @@ jwt_header = openapi.Parameter(
 
 
 class UserNewsfeedView(ListAPIView):
-    serializer_class = PostListSerializer
+    serializer_class = MainPostSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
         operation_description="선택된 유저가 작성한 게시글을 가져오기",
         manual_parameters=[jwt_header],
-        responses={200: PostListSerializer(), 404: "유저를 찾을 수 없습니다."},
+        responses={200: MainPostSerializer(), 404: "유저를 찾을 수 없습니다."},
     )
     def get(self, request, user_id=None):
         user = get_object_or_404(User, pk=user_id)
