@@ -1,6 +1,6 @@
 import requests
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Model
+from django.db.models import Model, Q
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
@@ -23,6 +23,7 @@ from config.settings import get_secret
 from user.models import KakaoId, Company, University, FriendRequest
 from rest_framework.viewsets import GenericViewSet
 from newsfeed.views import jwt_header
+from user.models import KakaoId, FriendRequest
 from user.pagination import UserPagination
 from user.serializers import (
     UserSerializer,
@@ -34,6 +35,7 @@ from user.serializers import (
     jwt_token_of,
     FriendRequestCreateSerializer,
     FriendRequestAcceptDeleteSerializer,
+    UserMutualFriendsSerializer,
 )
 from newsfeed.serializers import MainPostSerializer
 from newsfeed.models import Post
@@ -201,6 +203,32 @@ class UserFriendDeleteView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT, data="삭제 완료되었습니다.")
 
 
+class UserSearchListView(ListAPIView):
+    serializer_class = UserMutualFriendsSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+    pagination_class = UserPagination
+
+    @swagger_auto_schema(
+        operation_description="유저 검색하기",
+        manual_parameters=[
+            jwt_header,
+            openapi.Parameter(
+                "q",
+                openapi.IN_QUERY,
+                description="search key",
+                type=openapi.TYPE_STRING,
+            ),
+        ],
+        responses={200: UserMutualFriendsSerializer(many=True)},
+    )
+    def get(self, request):
+        user = request.user
+        request.data["request_user"] = user
+        search_key = request.GET.get("q")
+        self.queryset = User.objects.filter(username__icontains=search_key)
+        return super().list(request)
+
+
 KAKAO_APP_KEY = get_secret("KAKAO_APP_KEY")
 
 
@@ -288,7 +316,7 @@ class UserNewsfeedView(ListAPIView):
     @swagger_auto_schema(
         operation_description="선택된 유저가 작성한 게시글을 가져오기",
         manual_parameters=[jwt_header],
-        responses={200: MainPostSerializer(), 404: "유저를 찾을 수 없습니다."},
+        responses={200: MainPostSerializer()},
     )
     def get(self, request, user_id=None):
         user = get_object_or_404(User, pk=user_id)
@@ -305,7 +333,7 @@ class UserFriendListView(ListAPIView):
     @swagger_auto_schema(
         operation_description="선택된 유저의 친구들을 가져오기",
         manual_parameters=[jwt_header],
-        responses={200: UserSerializer(), 404: "유저를 찾을 수 없습니다."},
+        responses={200: UserSerializer()},
     )
     def get(self, request, user_id=None):
         user = get_object_or_404(User, pk=user_id)
@@ -318,14 +346,24 @@ class UserProfileView(RetrieveUpdateAPIView):
     queryset = User.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
+    @swagger_auto_schema(
+        operation_description="유저의 프로필 정보 가져오기",
+        manual_parameters=[jwt_header],
+        responses={200: UserProfileSerializer()},
+    )
     def get(self, request, pk=None):
         return super().retrieve(request, pk=pk)
 
+    @swagger_auto_schema(
+        operation_description="프로필 정보 편집하기",
+        manual_parameters=[jwt_header],
+        responses={200: UserProfileSerializer()},
+    )
     def put(self, request, pk=None):
         user = get_object_or_404(User, pk=pk)
         if user != request.user:
             return Response(
-                status=status.HTTP_401_UNAUTHORIZED, data="다른 유저의 프로필을 고칠 수 없습니다."
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 프로필을 고칠 수 없습니다."
             )
         profile_image = request.FILES.get("profile_image")
         if profile_image:
@@ -335,12 +373,22 @@ class UserProfileView(RetrieveUpdateAPIView):
             user.cover_image.save(cover_image.name, cover_image, save=True)
         return super().update(request, pk=pk, partial=True)
 
+    # 부모의 patch 메서드를 drf-yasg가 읽지 않게 오버리이딩
+    @swagger_auto_schema(auto_schema=None)
+    def patch(self, request, *args, **kwargs):
+        return Response(status.HTTP_204_NO_CONTENT)
+
 
 class CompanyCreateView(CreateAPIView):
     serializer_class = CompanySerializer
     queryset = Company.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
+    @swagger_auto_schema(
+        operation_description="회사 정보 생성하기",
+        manual_parameters=[jwt_header],
+        responses={200: CompanySerializer()},
+    )
     def post(self, request):
         data = request.data.copy()
         data["user"] = request.user.id
@@ -357,24 +405,43 @@ class CompanyView(RetrieveUpdateDestroyAPIView):
     queryset = Company.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
+    @swagger_auto_schema(
+        operation_description="회사 정보 가져오기",
+        manual_parameters=[jwt_header],
+        responses={200: CompanySerializer()},
+    )
     def get(self, request, pk=None):
         return super().retrieve(request, pk=pk)
 
+    @swagger_auto_schema(
+        operation_description="회사 정보 수정하기",
+        manual_parameters=[jwt_header],
+        responses={200: CompanySerializer()},
+    )
     def put(self, request, pk=None):
         company = get_object_or_404(Company, pk=pk)
         if request.user != company.user:
             return Response(
-                status=status.HTTP_401_UNAUTHORIZED, data="다른 유저의 프로필을 고칠 수 없습니다."
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 프로필을 고칠 수 없습니다."
             )
         return super().update(request, pk=pk, partial=True)
 
+    @swagger_auto_schema(
+        operation_description="회사 정보 삭제하기",
+        manual_parameters=[jwt_header],
+    )
     def delete(self, request, pk=None):
         company = get_object_or_404(Company, pk=pk)
         if request.user != company.user:
             return Response(
-                status=status.HTTP_401_UNAUTHORIZED, data="다른 유저의 프로필을 고칠 수 없습니다."
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 프로필을 고칠 수 없습니다."
             )
         return super().destroy(request, pk=pk)
+
+    # 부모의 patch 메서드를 drf-yasg가 읽지 않게 오버리이딩
+    @swagger_auto_schema(auto_schema=None)
+    def patch(self, request, *args, **kwargs):
+        return Response(status.HTTP_204_NO_CONTENT)
 
 
 class UniversityCreateView(CreateAPIView):
@@ -382,6 +449,11 @@ class UniversityCreateView(CreateAPIView):
     queryset = University.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
+    @swagger_auto_schema(
+        operation_description="대학 정보 수정하기",
+        manual_parameters=[jwt_header],
+        responses={200: UniversitySerializer()},
+    )
     def post(self, request):
         data = request.data.copy()
         data["user"] = request.user.id
@@ -398,21 +470,40 @@ class UniversityView(RetrieveUpdateDestroyAPIView):
     queryset = University.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
+    @swagger_auto_schema(
+        operation_description="대학 정보 가져오기",
+        manual_parameters=[jwt_header],
+        responses={200: UniversitySerializer()},
+    )
     def get(self, request, pk=None):
         return super().retrieve(request, pk=pk)
 
+    @swagger_auto_schema(
+        operation_description="대학 정보 수정하기",
+        manual_parameters=[jwt_header],
+        responses={200: UniversitySerializer()},
+    )
     def put(self, request, pk=None):
         university = get_object_or_404(University, pk=pk)
         if request.user != university.user:
             return Response(
-                status=status.HTTP_401_UNAUTHORIZED, data="다른 유저의 프로필을 고칠 수 없습니다."
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 프로필을 고칠 수 없습니다."
             )
         return super().update(request, pk=pk, partial=True)
 
+    @swagger_auto_schema(
+        operation_description="대학 정보 삭제하기",
+        manual_parameters=[jwt_header],
+    )
     def delete(self, request, pk=None):
         university = get_object_or_404(University, pk=pk)
         if request.user != university.user:
             return Response(
-                status=status.HTTP_401_UNAUTHORIZED, data="다른 유저의 프로필을 고칠 수 없습니다."
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 프로필을 고칠 수 없습니다."
             )
         return super().destroy(request, pk=pk)
+
+    # 부모의 patch 메서드를 drf-yasg가 읽지 않게 오버리이딩
+    @swagger_auto_schema(auto_schema=None)
+    def patch(self, request, *args, **kwargs):
+        return Response(status.HTTP_204_NO_CONTENT)

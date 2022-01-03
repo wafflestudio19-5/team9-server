@@ -1,14 +1,14 @@
 from drf_yasg import openapi
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
-from rest_framework.generics import ListCreateAPIView, GenericAPIView
+from rest_framework.generics import ListCreateAPIView, GenericAPIView, ListAPIView
 from rest_framework.response import Response
 from typing import Type
 from django.db.models import Q
 from django.db import transaction
-import json
-import ast
-from .pagination import CommentPagination, NoticePagination
+
+from .pagination import NoticePagination
+
 from .serializers import (
     NoticeSerializer,
     NoticelistSerializer,
@@ -114,7 +114,7 @@ class PostListView(ListCreateAPIView):
                 subpost = serializer.save()
                 subpost.file.save(files[i].name, files[i], save=True)
 
-        return Response(PostSerializer(mainpost).data, status=status.HTTP_201_CREATED)
+        return Response(PostSerializer(mainpost, context={"request": request}).data, status=status.HTTP_201_CREATED)
 
 
 class PostLikeView(GenericAPIView):
@@ -146,7 +146,7 @@ class PostLikeView(GenericAPIView):
         if user.id != post.author.id:
             NoticeCreate(user=user, content="PostLike", post=post)
 
-        return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
+        return Response(self.get_serializer(post).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_description="게시물 좋아요 취소하기",
@@ -180,7 +180,7 @@ class PostLikeView(GenericAPIView):
                     notice.save()
                 else:
                     notice.delete()
-        return Response(self.serializer_class(post).data, status=status.HTTP_200_OK)
+        return Response(self.get_serializer(post).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_description="해당 post의 좋아요 개수, 좋아요 한 유저 가져오기",
@@ -195,7 +195,6 @@ class PostLikeView(GenericAPIView):
 class CommentListView(ListCreateAPIView):
     serializer_class = CommentListSerializer
     queryset = Post.objects.all()
-    pagination_class = CommentPagination
     permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
@@ -252,7 +251,7 @@ class CommentListView(ListCreateAPIView):
             NoticeCreate(user=user, content="PostComment", post=post, comment=comment)
 
         return Response(
-            CommentListSerializer(comment).data, status=status.HTTP_201_CREATED
+            self.get_serializer(comment).data, status=status.HTTP_201_CREATED
         )
 
 
@@ -279,7 +278,7 @@ class CommentLikeView(GenericAPIView):
         if user.id != comment.author.id:
             NoticeCreate(user=user, content="CommentLike", post=post, comment=comment)
 
-        return Response(self.serializer_class(comment).data, status=status.HTTP_200_OK)
+        return Response(self.get_serializer(comment).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_description="comment 좋아요 취소하기",
@@ -307,7 +306,7 @@ class CommentLikeView(GenericAPIView):
                     notice.save()
                 else:
                     notice.delete()
-        return Response(self.serializer_class(comment).data, status=status.HTTP_200_OK)
+        return Response(self.get_serializer(comment).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_description="해당 comment의 좋아요 개수, 좋아요 한 유저 가져오기",
@@ -364,29 +363,45 @@ def NoticeCreate(**context):
         serializer.save()
 
 
-class NoticeView(ListCreateAPIView):
+class NoticeView(GenericAPIView):
     serializer_class = NoticelistSerializer
-    queryset = Notice.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
-    pagination_class = NoticePagination
 
+    @swagger_auto_schema(
+        operation_description="알림 읽기",
+        responses={200: NoticelistSerializer()},
+        manual_parameters=[jwt_header],
+    )
     def get(self, request, notice_id=None):
+        notice = get_object_or_404(request.user.notices, id=notice_id)
+        notice.is_checked = True
+        notice.save()
+        return Response(
+            self.get_serializer(notice).data,
+            status=status.HTTP_200_OK,
+        )
 
-        if not notice_id:
-
-            notices = request.user.notices.all()
-            return super().list(notices)
-        else:
-            notice = get_object_or_404(request.user.notices, id=notice_id)
-            notice.isChecked = True
-            notice.save()
-            return Response(
-                self.get_serializer(notice).data,
-                status=status.HTTP_200_OK,
-            )
-
+    @swagger_auto_schema(
+        operation_description="알림 삭제하기",
+        manual_parameters=[jwt_header],
+    )
     def delete(self, request, notice_id=None):
 
         notice = get_object_or_404(request.user.notices, id=notice_id)
 
         return Response(notice.delete(), status=status.HTTP_204_NO_CONTENT)
+
+
+class NoticeListView(ListAPIView):
+    serializer_class = NoticelistSerializer
+    queryset = Notice.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+    pagination_class = NoticePagination
+
+    @swagger_auto_schema(
+        operation_description="알림 목록 불러오기",
+        responses={200: NoticelistSerializer(many=True)},
+        manual_parameters=[jwt_header],
+    )
+    def get(self, request):
+        notices = request.user.notices.all()
+        return super().list(notices)

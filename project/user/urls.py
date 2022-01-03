@@ -11,6 +11,7 @@ from .views import (
     UserFriendRequestView,
     UserFriendDeleteView,
     UserFriendListView,
+    UserSearchListView,
     UserProfileView,
     CompanyCreateView,
     CompanyView,
@@ -53,6 +54,7 @@ urlpatterns = [
         "friend/request/", UserFriendRequestView.as_view(), name="friend_request"
     ),  # /api/v1/friend/request/
     path("friend/", UserFriendDeleteView.as_view(), name="friend"),  # /api/v1/friend/
+    path("search/", UserSearchListView.as_view(), name="search"),  # /api/v1/search/
 ]
 
 # urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
