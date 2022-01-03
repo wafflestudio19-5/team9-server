@@ -327,7 +327,6 @@ def NoticeCreate(**context):
     if content == "CommentLike":
         target = comment.author
         notice = target.notices.filter(comment=comment.id, content__contains=content)
-    
     else:
         target = post.author
         notice = target.notices.filter(post=post.id, content__contains=content)
