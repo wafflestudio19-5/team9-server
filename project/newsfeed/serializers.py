@@ -46,7 +46,6 @@ class PostSerializer(serializers.ModelSerializer):
 
         return data
 
-    @swagger_serializer_method(serializer_or_field=SubPostSerializer)
     def get_subposts(self, post):
 
         return SubPostSerializer(post.subposts, many=True).data
@@ -109,7 +108,6 @@ class MainPostSerializer(serializers.ModelSerializer):
     def get_posted_at(self, post):
         return format_time(post.created)
 
-    @swagger_serializer_method(serializer_or_field=SubPostSerializer)
     def get_subposts(self, post):
         return SubPostSerializer(post.subposts, many=True).data
 
