@@ -441,20 +441,6 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual("첫번째 사진입니다.", data["subposts"][0]["content"])
         self.assertIn("testimage.jpg", data["subposts"][0]["file"])
 
-        # Content 내용이 없을 경우 오류
-        data = {
-            "author": self.test_user.id,
-            "subposts": ["첫번째 사진입니다."],
-            "file": test_image,
-        }
-        response = self.client.post(
-            "/api/v1/newsfeed/",
-            data=data,
-            HTTP_AUTHORIZATION=user_token,
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        data = response.json()
-
         # 뉴스피드에 추가됐는지 여부
         response = self.client.get(
             "/api/v1/newsfeed/",
@@ -465,6 +451,53 @@ class NewsFeedTestCase(TestCase):
         data = response.json()
         self.assertEqual(data["results"][0]["id"], post_id)
         self.assertIn("testimage.jpg", data["results"][0]["subposts"][0]["file"])
+
+        # File이 없는데 Content 내용이 없을 경우 오류, File이 하나라도 있으면 content 없어도 댐
+        data = {
+            "author": self.test_user.id,
+            "subposts": ["첫번째 사진입니다."],
+            "file": test_image,
+        }
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        data = {
+            "author": self.test_user.id,
+            "file": test_image,
+        }
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        data = {
+            "author": self.test_user.id,
+            "content": "FOR TEST !!",
+            "file": test_image,
+        }
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        data = {
+            "author": self.test_user.id,
+        }
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class LikeTestCase(TestCase):

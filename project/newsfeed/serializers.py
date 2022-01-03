@@ -12,31 +12,19 @@ from pytz import timezone
 class PostSerializer(serializers.ModelSerializer):
 
     subposts = serializers.SerializerMethodField()
-    comments = serializers.SerializerMethodField()
 
     class Meta:
 
         model = Post
 
-        fields = (
-            "id",
-            "author",
-            "content",
-            "mainpost",
-            "subposts",
-            "file",
-            "created",
-            "updated",
-            "likes",
-            "comments",
-        )
+        fields = ("id", "author", "content", "mainpost", "subposts", "likes")
         extra_kwargs = {"content": {"help_text": "무슨 생각을 하고 계신가요?"}}
 
     def create(self, validated_data):
 
         mainpost = validated_data.get("mainpost", None)
         author = validated_data["author"]
-        content = validated_data["content"]
+        content = validated_data.get("content", "")
 
         if mainpost:
             post = Post.objects.create(
@@ -50,17 +38,17 @@ class PostSerializer(serializers.ModelSerializer):
     def validate(self, data):
 
         content = data.get("content", None)
+        isFile = self.context["isFile"]
 
-        if not content:
-            raise serializers.ValidationError("내용을 입력해주세요.")
+        if not isFile:
+            if not content:
+                raise serializers.ValidationError("내용을 입력해주세요.")
 
         return data
 
     def get_subposts(self, post):
-        return PostSerializer(post.subposts, many=True).data
 
-    def get_comments(self, post):
-        return Comment.objects.filter(post=post).count()
+        return SubPostSerializer(post.subposts, many=True).data
 
 
 def format_time(time):
@@ -98,7 +86,7 @@ def notice_format_time(time):
         return f"{week}주"
 
 
-class PostListSerializer(serializers.ModelSerializer):
+class MainPostSerializer(serializers.ModelSerializer):
 
     posted_at = serializers.SerializerMethodField()
     subposts = serializers.SerializerMethodField()
@@ -112,7 +100,6 @@ class PostListSerializer(serializers.ModelSerializer):
             "author",
             "content",
             "subposts",
-            "file",
             "likes",
             "posted_at",
             "comments",
@@ -121,15 +108,38 @@ class PostListSerializer(serializers.ModelSerializer):
     def get_posted_at(self, post):
         return format_time(post.created)
 
-    @swagger_serializer_method(serializer_or_field=PostSerializer)
     def get_subposts(self, post):
-        return PostSerializer(post.subposts, many=True).data
+        return SubPostSerializer(post.subposts, many=True).data
 
     @swagger_serializer_method(serializer_or_field=UserSerializer)
     def get_author(self, post):
         return UserSerializer(post.author).data
 
     def get_comments(self, post):
+        return Comment.objects.filter(post=post).count()
+
+
+class SubPostSerializer(serializers.ModelSerializer):
+
+    posted_at = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Post
+        fields = (
+            "id",
+            "content",
+            "mainpost",
+            "file",
+            "likes",
+            "posted_at",
+            "comment_count",
+        )
+
+    def get_posted_at(self, post):
+        return format_time(post.created)
+
+    def get_comment_count(self, post):
         return Comment.objects.filter(post=post).count()
 
 
