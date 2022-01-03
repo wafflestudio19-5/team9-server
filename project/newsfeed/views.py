@@ -1,7 +1,7 @@
 from drf_yasg import openapi
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
-from rest_framework.generics import ListCreateAPIView, GenericAPIView
+from rest_framework.generics import ListCreateAPIView, GenericAPIView, ListAPIView
 from rest_framework.response import Response
 from typing import Type
 from django.db.models import Q
@@ -347,29 +347,45 @@ def NoticeCreate(**context):
         serializer.save()
 
 
-class NoticeView(ListCreateAPIView):
+class NoticeView(GenericAPIView):
     serializer_class = NoticelistSerializer
-    queryset = Notice.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
-    pagination_class = NoticePagination
 
+    @swagger_auto_schema(
+        operation_description="알림 읽기",
+        responses={200: NoticelistSerializer()},
+        manual_parameters=[jwt_header],
+    )
     def get(self, request, notice_id=None):
+        notice = get_object_or_404(request.user.notices, id=notice_id)
+        notice.isChecked = True
+        notice.save()
+        return Response(
+            self.get_serializer(notice).data,
+            status=status.HTTP_200_OK,
+        )
 
-        if not notice_id:
-
-            notices = request.user.notices.all()
-            return super().list(notices)
-        else:
-            notice = get_object_or_404(request.user.notices, id=notice_id)
-            notice.isChecked = True
-            notice.save()
-            return Response(
-                self.get_serializer(notice).data,
-                status=status.HTTP_200_OK,
-            )
-
+    @swagger_auto_schema(
+        operation_description="알림 삭제하기",
+        manual_parameters=[jwt_header],
+    )
     def delete(self, request, notice_id=None):
 
         notice = get_object_or_404(request.user.notices, id=notice_id)
 
         return Response(notice.delete(), status=status.HTTP_204_NO_CONTENT)
+
+
+class NoticeListView(ListAPIView):
+    serializer_class = NoticelistSerializer
+    queryset = Notice.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+    pagination_class = NoticePagination
+
+    @swagger_auto_schema(
+        operation_description="알림 목록 불러오기",
+        responses={200: NoticelistSerializer(many=True)},
+        manual_parameters=[jwt_header],
+    )
+    def get(self, request):
+        notices = request.user.notices.all()
+        return super().list(notices)
