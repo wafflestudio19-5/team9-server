@@ -130,56 +130,41 @@ class PostLikeView(GenericAPIView):
     def put(self, request, post_id=None):
         user = request.user
         post = get_object_or_404(self.queryset, pk=post_id)
+        if (
+            not user.friends.filter(id=post.author.id).exists()
+            and post.author.id != user.id
+        ):
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="친구 혹은 자신의 게시글이 아닙니다."
+            )
+
+        # 이미 좋아요 한 게시물 -> 좋아요 취소, 관련 알림 삭제
         if post.likeusers.filter(id=user.id).exists():
-            return Response(status=status.HTTP_400_BAD_REQUEST, data="이미 좋아요 한 게시글입니다.")
-        if (
-            not user.friends.filter(id=post.author.id).exists()
-            and post.author.id != user.id
-        ):
-            return Response(
-                status=status.HTTP_400_BAD_REQUEST, data="친구 혹은 자신의 게시글이 아닙니다."
-            )
-        post.likeusers.add(user)
-        post.likes = post.likes + 1
-        post.save()
+            post.likeusers.remove(user)
+            post.likes = post.likes - 1
+            post.save()
 
-        if user.id != post.author.id:
-            NoticeCreate(user=user, content="PostLike", post=post)
+            notice = Notice.objects.filter(post=post, comment=None)
+            if notice.exists():
+                notice = notice[0]
 
-        return Response(self.get_serializer(post).data, status=status.HTTP_200_OK)
+                if user in notice.senders.all():
+                    if notice.senders.count() > 1:
+                        notice.senders.remove(user)
+                        notice.count -= 1
+                        notice.save()
+                    else:
+                        notice.delete()
 
-    @swagger_auto_schema(
-        operation_description="게시물 좋아요 취소하기",
-        responses={200: PostSerializer()},
-        manual_parameters=[jwt_header],
-    )
-    def delete(self, request, post_id=None):
-        user = request.user
-        post = get_object_or_404(self.queryset, pk=post_id)
-        if not post.likeusers.filter(id=user.id).exists():
-            return Response(status=status.HTTP_400_BAD_REQUEST, data="좋아요하지 않은 게시글입니다.")
-        if (
-            not user.friends.filter(id=post.author.id).exists()
-            and post.author.id != user.id
-        ):
-            return Response(
-                status=status.HTTP_400_BAD_REQUEST, data="친구 혹은 자신의 게시글이 아닙니다."
-            )
-        post.likeusers.remove(user)
-        post.likes = post.likes - 1
-        post.save()
+        # 좋아요 하지 않은 게시물 -> 좋아요 하기, 알림 생성
+        else:
+            post.likeusers.add(user)
+            post.likes = post.likes + 1
+            post.save()
 
-        notice = Notice.objects.filter(post=post, comment=None)
-        if notice.exists():
-            notice = notice[0]
+            if user.id != post.author.id:
+                NoticeCreate(user=user, content="PostLike", post=post)
 
-            if user in notice.senders.all():
-                if notice.senders.count() > 1:
-                    notice.senders.remove(user)
-                    notice.count -= 1
-                    notice.save()
-                else:
-                    notice.delete()
         return Response(self.get_serializer(post).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
@@ -268,44 +253,36 @@ class CommentLikeView(GenericAPIView):
     def put(self, request, post_id=None, comment_id=None):
         user = request.user
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
+
+        # 이미 좋아요 한 댓글 -> 좋아요 취소, 관련 알림 삭제
         if comment.likeusers.filter(id=user.id).exists():
-            return Response(status=status.HTTP_400_BAD_REQUEST, data="이미 좋아요 한 댓글입니다.")
-        comment.likeusers.add(user)
-        comment.likes = comment.likes + 1
-        comment.save()
+            comment.likeusers.remove(user)
+            comment.likes = comment.likes - 1
+            comment.save()
 
-        post = comment.post
-        if user.id != comment.author.id:
-            NoticeCreate(user=user, content="CommentLike", post=post, comment=comment)
+            notice = Notice.objects.filter(comment=comment)
+            if notice.exists():
+                notice = notice[0]
+                if user in notice.senders.all():
+                    if notice.senders.count() > 1:
+                        notice.senders.remove(user)
+                        notice.count -= 1
+                        notice.save()
+                    else:
+                        notice.delete()
 
-        return Response(self.get_serializer(comment).data, status=status.HTTP_200_OK)
+        # 좋아요 하지 않은 댓글 -> 좋아요 하기, 알림 생성
+        else:
+            comment.likeusers.add(user)
+            comment.likes = comment.likes + 1
+            comment.save()
 
-    @swagger_auto_schema(
-        operation_description="comment 좋아요 취소하기",
-        responses={200: CommentSerializer()},
-        manual_parameters=[jwt_header],
-    )
-    def delete(self, request, post_id=None, comment_id=None):
-        user = request.user
-        comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
+            post = comment.post
+            if user.id != comment.author.id:
+                NoticeCreate(
+                    user=user, content="CommentLike", post=post, comment=comment
+                )
 
-        if not comment.likeusers.filter(id=user.id).exists():
-            return Response(status=status.HTTP_400_BAD_REQUEST, data="좋아요하지 않은 댓글입니다.")
-
-        comment.likeusers.remove(user)
-        comment.likes = comment.likes - 1
-        comment.save()
-
-        notice = Notice.objects.filter(comment=comment)
-        if notice.exists():
-            notice = notice[0]
-            if user in notice.senders.all():
-                if notice.senders.count() > 1:
-                    notice.senders.remove(user)
-                    notice.count -= 1
-                    notice.save()
-                else:
-                    notice.delete()
         return Response(self.get_serializer(comment).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(

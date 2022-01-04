@@ -246,7 +246,7 @@ class NoticeTestCase(TestCase):
         self.assertNotEqual(data["results"][-1]["id"], notice_id)
 
         # 알림 취소
-        response = self.client.delete(
+        response = self.client.put(
             f"/api/v1/newsfeed/{self.test_post.id}/like/",
             content_type="application/json",
             HTTP_AUTHORIZATION=self.friends_token[0],
@@ -261,7 +261,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][0]["count"], 8)
         self.assertEqual(len(data["results"][0]["senders"]), 9)
 
-        response = self.client.delete(
+        response = self.client.put(
             f"/api/v1/newsfeed/{self.test_post.id}/{self.test_comment.id}/like/",
             content_type="application/json",
             HTTP_AUTHORIZATION=self.friends_token[0],
@@ -568,7 +568,7 @@ class LikeTestCase(TestCase):
         data = response.json()
         self.assertEqual(data["likes"], 1)
 
-        response = self.client.delete(
+        response = self.client.put(
             "/api/v1/newsfeed/" + str(post.id) + "/like/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
@@ -584,45 +584,6 @@ class LikeTestCase(TestCase):
             content_type="application/json",
         )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-    def test_duplicate_like_or_dislike(self):  # 2회 이상 좋아요 혹은 좋아요 취소
-        user = self.test_user
-        post = self.test_friend.posts.last()
-        user_token = "JWT " + jwt_token_of(user)
-        response = self.client.put(
-            "/api/v1/newsfeed/" + str(post.id) + "/like/",
-            content_type="application/json",
-            HTTP_AUTHORIZATION=user_token,
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.json()
-        self.assertEqual(data["likes"], 1)
-        response = self.client.put(
-            "/api/v1/newsfeed/" + str(post.id) + "/like/",
-            content_type="application/json",
-            HTTP_AUTHORIZATION=user_token,
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        post.refresh_from_db()
-        self.assertEqual(post.likes, 1)
-
-        response = self.client.delete(
-            "/api/v1/newsfeed/" + str(post.id) + "/like/",
-            content_type="application/json",
-            HTTP_AUTHORIZATION=user_token,
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.json()
-        self.assertEqual(data["likes"], 0)
-
-        response = self.client.delete(
-            "/api/v1/newsfeed/" + str(post.id) + "/like/",
-            content_type="application/json",
-            HTTP_AUTHORIZATION=user_token,
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        post.refresh_from_db()
-        self.assertEqual(post.likes, 0)
 
     def test_like_not_friend(self):  # 친구 아닌데 게시글 좋아요
         user = self.test_user
@@ -649,7 +610,7 @@ class LikeTestCase(TestCase):
         data = response.json()
         self.assertEqual(data["likes"], 1)
 
-        response = self.client.delete(
+        response = self.client.put(
             "/api/v1/newsfeed/" + str(post.id) + "/like/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
@@ -922,7 +883,7 @@ class CommentTestCase(TestCase):
         self.assertEqual(data["likes"], 1)
         self.assertEqual(data["likeusers"][0]["id"], self.test_user.id)
 
-        response = self.client.delete(
+        response = self.client.put(
             f"/api/v1/newsfeed/{self.my_post.id}/{self.depth_zero.id}/like/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
