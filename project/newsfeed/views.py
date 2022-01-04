@@ -279,7 +279,9 @@ class CommentLikeView(GenericAPIView):
 
             post = comment.post
             if user.id != comment.author.id:
-                NoticeCreate(user=user, content="CommentLike", post=post, comment=comment)
+                NoticeCreate(
+                    user=user, content="CommentLike", post=post, comment=comment
+                )
 
         return Response(self.get_serializer(comment).data, status=status.HTTP_200_OK)
 
