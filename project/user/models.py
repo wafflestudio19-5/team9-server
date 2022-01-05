@@ -12,6 +12,10 @@ from django.db.models.deletion import CASCADE
 from django.utils import timezone
 
 
+def get_directory_path(instance, filename):
+    return f"user/{instance.author}"
+
+
 class CustomUserManager(BaseUserManager):
 
     use_in_migrations = True
@@ -74,16 +78,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_login = models.DateTimeField(auto_now=True)
     date_joined = models.DateTimeField(auto_now_add=True)
 
-    # 프로필에서 추가, 편집할 수 있는 필드
-    # 나중에 유저의 커버이미지, 프로필이미지 view함수 만들 때, images폴더 안에 있는 사진들 중
-    # 가장 최신 꺼를 불러오는 방향으로 하거나, 기존에 있는 사진 삭제하고 새로운 사진을 추가하는 방식으로
-    # 짜야할 것 같습니다.
     self_intro = models.CharField(max_length=300, blank=True)
     profile_image = models.ImageField(
-        upload_to=f"user/{email}/profile_images/%Y/%m/%d/", blank=True
+        upload_to=f"{get_directory_path}/profile_images/%Y/%m/%d/", blank=True
     )
     cover_image = models.ImageField(
-        upload_to=f"user/{email}/cover_images/%Y/%m/%d/", blank=True
+        upload_to=f"{get_directory_path}/cover_images/%Y/%m/%d/", blank=True
     )
 
     # friends 는 다대다 + 재귀적 모델, symmetrical 옵션은 대칭이라는 뜻으로
