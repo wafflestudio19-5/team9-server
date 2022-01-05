@@ -231,6 +231,14 @@ class UniversitySerializer(serializers.ModelSerializer):
         return instance
 
 
+class UserPutSwaggerSerializer(serializers.Serializer):
+    first_name = serializers.CharField(required=False)
+    last_name = serializers.CharField(required=False)
+    birth = serializers.DateField(required=False)
+    gender = serializers.CharField(required=False)
+    self_intro = serializers.CharField(required=False)
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
 
     company = CompanySerializer(many=True, read_only=True)

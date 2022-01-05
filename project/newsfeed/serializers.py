@@ -18,7 +18,15 @@ class PostSerializer(serializers.ModelSerializer):
 
         model = Post
 
-        fields = ("id", "author", "content", "mainpost", "subposts", "likes", "is_liked")
+        fields = (
+            "id",
+            "author",
+            "content",
+            "mainpost",
+            "subposts",
+            "likes",
+            "is_liked",
+        )
         extra_kwargs = {"content": {"help_text": "무슨 생각을 하고 계신가요?"}}
 
     def create(self, validated_data):
@@ -177,6 +185,7 @@ class SubPostSerializer(serializers.ModelSerializer):
 
         return False
 
+
 class PostLikeSerializer(serializers.ModelSerializer):
     likeusers = serializers.SerializerMethodField()
 
@@ -199,6 +208,13 @@ class CommentLikeSerializer(serializers.ModelSerializer):
     @swagger_serializer_method(serializer_or_field=UserSerializer)
     def get_likeusers(self, comment):
         return UserSerializer(comment.likeusers, many=True).data
+
+
+class CommentSwaggerSerializer(serializers.Serializer):
+    content = serializers.CharField(required=True)
+    parent = serializers.IntegerField(
+        required=False, help_text="부모 댓글의 id. Depth가 0인 경우 해당 필드를 비워두세요."
+    )
 
 
 class CommentSerializer(serializers.ModelSerializer):
