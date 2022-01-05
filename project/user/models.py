@@ -10,10 +10,17 @@ from django.contrib.auth.models import (
 )
 from django.db.models.deletion import CASCADE
 from django.utils import timezone
+from datetime import datetime
 
 
-def get_directory_path(instance, filename):
-    return f"user/{instance.author}"
+def get_profile_image_path(instance, filename):
+    upload_date = datetime.now().strftime("%Y%m%d")
+    return f"user/{instance.email}/profile_images/{upload_date}/{filename}"
+
+
+def get_cover_image_path(instance, filename):
+    upload_date = datetime.now().strftime("%Y%m%d")
+    return f"user/{instance.email}/cover_images/{upload_date}/{filename}"
 
 
 class CustomUserManager(BaseUserManager):
@@ -79,12 +86,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     date_joined = models.DateTimeField(auto_now_add=True)
 
     self_intro = models.CharField(max_length=300, blank=True)
-    profile_image = models.ImageField(
-        upload_to=f"{get_directory_path}/profile_images/%Y/%m/%d/", blank=True
-    )
-    cover_image = models.ImageField(
-        upload_to=f"{get_directory_path}/cover_images/%Y/%m/%d/", blank=True
-    )
+    profile_image = models.ImageField(upload_to=get_profile_image_path, blank=True)
+    cover_image = models.ImageField(upload_to=get_cover_image_path, blank=True)
 
     # friends 는 다대다 + 재귀적 모델, symmetrical 옵션은 대칭이라는 뜻으로
     # 인스타그램처럼 내가 팔로우 해도 상대가 팔로우 안할 수 있는 경우 symmetrical = False
