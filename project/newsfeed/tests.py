@@ -100,7 +100,6 @@ class NoticeTestCase(TestCase):
             response = self.client.post(
                 f"/api/v1/newsfeed/{self.test_post.id}/comment/",
                 data={"content": f"알림 테스트 댓글입니다...{i}"},
-                content_type="application/json",
                 HTTP_AUTHORIZATION=friend_token,
             )
 
@@ -137,7 +136,6 @@ class NoticeTestCase(TestCase):
         response = self.client.post(
             f"/api/v1/newsfeed/{self.test_post.id}/comment/",
             data={"content": "본인이 단 댓글은 알림에 뜨지 않습니다."},
-            content_type="application/json",
             HTTP_AUTHORIZATION=self.user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -156,7 +154,6 @@ class NoticeTestCase(TestCase):
         response = self.client.post(
             f"/api/v1/newsfeed/{self.test_post.id}/comment/",
             data={"content": "이미 댓글을 단 사람은, 또 댓글을 달아도 알림에 추가되지 않습니다."},
-            content_type="application/json",
             HTTP_AUTHORIZATION=self.friends_token[0],
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -779,7 +776,6 @@ class CommentTestCase(TestCase):
         response = self.client.post(
             f"/api/v1/newsfeed/{self.friend_post.id}/comment/",
             data=data,
-            content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -820,7 +816,6 @@ class CommentTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         data = response.json()
-        self.assertEqual(data["non_field_errors"], ["내용을 입력해주세요."])
 
         # Parent가 존재하지 않을 경우 오류
         data = {

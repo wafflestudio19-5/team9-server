@@ -203,7 +203,7 @@ class CommentListView(ListCreateAPIView):
         manual_parameters=[
             jwt_header,
             openapi.Parameter(
-                name="profile_image",
+                name="file",
                 in_=openapi.IN_FORM,
                 type=openapi.TYPE_FILE,
                 required=False,
