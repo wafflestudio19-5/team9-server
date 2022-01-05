@@ -157,7 +157,7 @@ class SignUpUserTestCase(TestCase):
         response = self.client.post("/api/v1/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         data = response.json()
-        self.assertEqual(data["username"], "이민준")
+        self.assertEqual(data["user"]["username"], "이민준")
 
         self.assertEqual(User.objects.count(), 2)
         self.assertEqual(User.objects.last().username, "이민준")
