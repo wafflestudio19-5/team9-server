@@ -10,6 +10,17 @@ from django.contrib.auth.models import (
 )
 from django.db.models.deletion import CASCADE
 from django.utils import timezone
+from datetime import datetime
+
+
+def get_profile_image_path(instance, filename):
+    upload_date = datetime.now().strftime("%Y%m%d")
+    return f"user/{instance.email}/profile_images/{upload_date}/{filename}"
+
+
+def get_cover_image_path(instance, filename):
+    upload_date = datetime.now().strftime("%Y%m%d")
+    return f"user/{instance.email}/cover_images/{upload_date}/{filename}"
 
 
 class CustomUserManager(BaseUserManager):
@@ -74,17 +85,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_login = models.DateTimeField(auto_now=True)
     date_joined = models.DateTimeField(auto_now_add=True)
 
-    # 프로필에서 추가, 편집할 수 있는 필드
-    # 나중에 유저의 커버이미지, 프로필이미지 view함수 만들 때, images폴더 안에 있는 사진들 중
-    # 가장 최신 꺼를 불러오는 방향으로 하거나, 기존에 있는 사진 삭제하고 새로운 사진을 추가하는 방식으로
-    # 짜야할 것 같습니다.
     self_intro = models.CharField(max_length=300, blank=True)
-    profile_image = models.ImageField(
-        upload_to=f"user/{email}/profile_images/%Y/%m/%d/", blank=True
-    )
-    cover_image = models.ImageField(
-        upload_to=f"user/{email}/cover_images/%Y/%m/%d/", blank=True
-    )
+    profile_image = models.ImageField(upload_to=get_profile_image_path, blank=True)
+    cover_image = models.ImageField(upload_to=get_cover_image_path, blank=True)
 
     # friends 는 다대다 + 재귀적 모델, symmetrical 옵션은 대칭이라는 뜻으로
     # 인스타그램처럼 내가 팔로우 해도 상대가 팔로우 안할 수 있는 경우 symmetrical = False

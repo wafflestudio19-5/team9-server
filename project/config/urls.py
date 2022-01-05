@@ -16,7 +16,7 @@ schema_view = get_schema_view(
         default_version="v1",
         description="Facebook toy project",
     ),
-    url="http://3.34.188.255",
+    url="http://13.125.113.114/",
     public=True,
     permission_classes=(permissions.AllowAny,),
 )
