@@ -1,5 +1,5 @@
 from drf_yasg import openapi
-from rest_framework import status, viewsets, permissions
+from rest_framework import status, viewsets, permissions, parsers
 from rest_framework.decorators import action
 from rest_framework.generics import ListCreateAPIView, GenericAPIView, ListAPIView
 from rest_framework.response import Response
@@ -17,7 +17,7 @@ from .serializers import (
     PostLikeSerializer,
     CommentListSerializer,
     CommentSerializer,
-    CommentLikeSerializer,
+    CommentLikeSerializer, CommentSwaggerSerializer,
 )
 from .models import Notice, Post, Comment
 from user.models import User
@@ -30,6 +30,7 @@ jwt_header = openapi.Parameter(
     openapi.IN_HEADER,
     type=openapi.TYPE_STRING,
     default="JWT [put token here]",
+    required=True
 )
 
 
@@ -181,6 +182,7 @@ class CommentListView(ListCreateAPIView):
     serializer_class = CommentListSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
+    parser_classes = (parsers.MultiPartParser, parsers.FileUploadParser)
 
     @swagger_auto_schema(
         operation_description="해당 post의 comment들 가져오기",
@@ -194,19 +196,15 @@ class CommentListView(ListCreateAPIView):
     @swagger_auto_schema(
         operation_description="comment 생성하기",
         responses={201: CommentSerializer()},
-        manual_parameters=[jwt_header],
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                "content": openapi.Schema(type=openapi.TYPE_STRING),
-                "file": openapi.Schema(type=openapi.TYPE_STRING),
-                "parent": openapi.Schema(
-                    type=openapi.TYPE_NUMBER,
-                    description="parent comment ID",
-                    default=None,
-                ),
-            },
-        ),
+        manual_parameters=[jwt_header,
+                           openapi.Parameter(
+                               name="profile_image",
+                               in_=openapi.IN_FORM,
+                               type=openapi.TYPE_FILE,
+                               required=False,
+                           ),
+                           ],
+        request_body=CommentSwaggerSerializer(),
     )
     @transaction.atomic
     def post(self, request, post_id=None):

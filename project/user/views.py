@@ -6,7 +6,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.db import IntegrityError
 from drf_yasg import openapi
-from rest_framework import status, viewsets, permissions
+from rest_framework import status, viewsets, permissions, parsers
 from rest_framework.generics import (
     ListAPIView,
     ListCreateAPIView,
@@ -35,7 +35,7 @@ from user.serializers import (
     jwt_token_of,
     FriendRequestCreateSerializer,
     FriendRequestAcceptDeleteSerializer,
-    UserMutualFriendsSerializer,
+    UserMutualFriendsSerializer, UserPutSwaggerSerializer,
 )
 from newsfeed.serializers import MainPostSerializer
 from newsfeed.models import Post
@@ -305,6 +305,7 @@ jwt_header = openapi.Parameter(
     openapi.IN_HEADER,
     type=openapi.TYPE_STRING,
     default="JWT [put token here]",
+    required=True
 )
 
 
@@ -345,6 +346,7 @@ class UserProfileView(RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
     queryset = User.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
+    parser_classes = (parsers.MultiPartParser, parsers.FileUploadParser)
 
     @swagger_auto_schema(
         operation_description="유저의 프로필 정보 가져오기",
@@ -356,7 +358,21 @@ class UserProfileView(RetrieveUpdateAPIView):
 
     @swagger_auto_schema(
         operation_description="프로필 정보 편집하기",
-        manual_parameters=[jwt_header],
+        manual_parameters=[jwt_header,
+                           openapi.Parameter(
+                               name="profile_image",
+                               in_=openapi.IN_FORM,
+                               type=openapi.TYPE_FILE,
+                               required=False,
+                           ),
+                           openapi.Parameter(
+                               name="cover_image",
+                               in_=openapi.IN_FORM,
+                               type=openapi.TYPE_FILE,
+                               required=False,
+                           ),
+                           ],
+        request_body=UserPutSwaggerSerializer(),
         responses={200: UserProfileSerializer()},
     )
     def put(self, request, pk=None):
