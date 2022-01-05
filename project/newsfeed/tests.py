@@ -319,7 +319,9 @@ class NewsFeedTestCase(TestCase):
 
         PostFactory.create(author=cls.test_user, content="나의 테스트 게시물입니다.", likes=10)
 
-        cls.friend_post = PostFactory.create(author=cls.test_friend, content="친구의 테스트 게시물입니다.", likes=20)
+        cls.friend_post = PostFactory.create(
+            author=cls.test_friend, content="친구의 테스트 게시물입니다.", likes=20
+        )
         cls.friend_post.likeusers.add(cls.test_user)
         cls.friend_post.save()
 

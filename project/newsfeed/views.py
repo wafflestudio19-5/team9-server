@@ -17,7 +17,8 @@ from .serializers import (
     PostLikeSerializer,
     CommentListSerializer,
     CommentSerializer,
-    CommentLikeSerializer, CommentSwaggerSerializer,
+    CommentLikeSerializer,
+    CommentSwaggerSerializer,
 )
 from .models import Notice, Post, Comment
 from user.models import User
@@ -30,7 +31,7 @@ jwt_header = openapi.Parameter(
     openapi.IN_HEADER,
     type=openapi.TYPE_STRING,
     default="JWT [put token here]",
-    required=True
+    required=True,
 )
 
 
@@ -115,7 +116,10 @@ class PostListView(ListCreateAPIView):
                 subpost = serializer.save()
                 subpost.file.save(files[i].name, files[i], save=True)
 
-        return Response(PostSerializer(mainpost, context={"request": request}).data, status=status.HTTP_201_CREATED)
+        return Response(
+            PostSerializer(mainpost, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class PostLikeView(GenericAPIView):
@@ -196,14 +200,15 @@ class CommentListView(ListCreateAPIView):
     @swagger_auto_schema(
         operation_description="comment 생성하기",
         responses={201: CommentSerializer()},
-        manual_parameters=[jwt_header,
-                           openapi.Parameter(
-                               name="profile_image",
-                               in_=openapi.IN_FORM,
-                               type=openapi.TYPE_FILE,
-                               required=False,
-                           ),
-                           ],
+        manual_parameters=[
+            jwt_header,
+            openapi.Parameter(
+                name="profile_image",
+                in_=openapi.IN_FORM,
+                type=openapi.TYPE_FILE,
+                required=False,
+            ),
+        ],
         request_body=CommentSwaggerSerializer(),
     )
     @transaction.atomic

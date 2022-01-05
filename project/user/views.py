@@ -35,7 +35,8 @@ from user.serializers import (
     jwt_token_of,
     FriendRequestCreateSerializer,
     FriendRequestAcceptDeleteSerializer,
-    UserMutualFriendsSerializer, UserPutSwaggerSerializer,
+    UserMutualFriendsSerializer,
+    UserPutSwaggerSerializer,
 )
 from newsfeed.serializers import MainPostSerializer
 from newsfeed.models import Post
@@ -305,7 +306,7 @@ jwt_header = openapi.Parameter(
     openapi.IN_HEADER,
     type=openapi.TYPE_STRING,
     default="JWT [put token here]",
-    required=True
+    required=True,
 )
 
 
@@ -358,20 +359,21 @@ class UserProfileView(RetrieveUpdateAPIView):
 
     @swagger_auto_schema(
         operation_description="프로필 정보 편집하기",
-        manual_parameters=[jwt_header,
-                           openapi.Parameter(
-                               name="profile_image",
-                               in_=openapi.IN_FORM,
-                               type=openapi.TYPE_FILE,
-                               required=False,
-                           ),
-                           openapi.Parameter(
-                               name="cover_image",
-                               in_=openapi.IN_FORM,
-                               type=openapi.TYPE_FILE,
-                               required=False,
-                           ),
-                           ],
+        manual_parameters=[
+            jwt_header,
+            openapi.Parameter(
+                name="profile_image",
+                in_=openapi.IN_FORM,
+                type=openapi.TYPE_FILE,
+                required=False,
+            ),
+            openapi.Parameter(
+                name="cover_image",
+                in_=openapi.IN_FORM,
+                type=openapi.TYPE_FILE,
+                required=False,
+            ),
+        ],
         request_body=UserPutSwaggerSerializer(),
         responses={200: UserProfileSerializer()},
     )
