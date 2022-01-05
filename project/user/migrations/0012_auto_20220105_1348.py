@@ -6,18 +6,24 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('user', '0011_merge_0009_friendrequest_0010_auto_20220101_2137'),
+        ("user", "0011_merge_0009_friendrequest_0010_auto_20220101_2137"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='user',
-            name='cover_image',
-            field=models.ImageField(blank=True, upload_to='<function get_directory_path at 0x7f08f9aed550>/cover_images/%Y/%m/%d/'),
+            model_name="user",
+            name="cover_image",
+            field=models.ImageField(
+                blank=True,
+                upload_to="<function get_directory_path at 0x7f08f9aed550>/cover_images/%Y/%m/%d/",
+            ),
         ),
         migrations.AlterField(
-            model_name='user',
-            name='profile_image',
-            field=models.ImageField(blank=True, upload_to='<function get_directory_path at 0x7f08f9aed550>/profile_images/%Y/%m/%d/'),
+            model_name="user",
+            name="profile_image",
+            field=models.ImageField(
+                blank=True,
+                upload_to="<function get_directory_path at 0x7f08f9aed550>/profile_images/%Y/%m/%d/",
+            ),
         ),
     ]

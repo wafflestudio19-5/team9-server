@@ -7,18 +7,22 @@ import user.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('user', '0012_auto_20220105_1348'),
+        ("user", "0012_auto_20220105_1348"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='user',
-            name='cover_image',
-            field=models.ImageField(blank=True, upload_to=user.models.get_cover_image_path),
+            model_name="user",
+            name="cover_image",
+            field=models.ImageField(
+                blank=True, upload_to=user.models.get_cover_image_path
+            ),
         ),
         migrations.AlterField(
-            model_name='user',
-            name='profile_image',
-            field=models.ImageField(blank=True, upload_to=user.models.get_profile_image_path),
+            model_name="user",
+            name="profile_image",
+            field=models.ImageField(
+                blank=True, upload_to=user.models.get_profile_image_path
+            ),
         ),
     ]
