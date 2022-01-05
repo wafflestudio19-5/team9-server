@@ -337,7 +337,7 @@ class UserFriendListView(ListAPIView):
     )
     def get(self, request, user_id=None):
         user = get_object_or_404(User, pk=user_id)
-        self.queryset = User.objects.filter(friends=user)
+        self.queryset = user.friends.all()
         return super().list(request)
 
 
