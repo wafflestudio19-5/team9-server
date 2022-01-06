@@ -7,7 +7,7 @@ from typing import Type
 from django.db.models import Q
 from django.db import transaction
 
-from .pagination import NoticePagination, CommentPagination
+from .pagination import NoticePagination
 
 from .serializers import (
     NoticeSerializer,
