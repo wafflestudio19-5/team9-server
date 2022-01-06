@@ -62,6 +62,7 @@ class PostSerializer(serializers.ModelSerializer):
         return False
 
 
+
 def format_time(time):
     now = datetime.now()
     time_elapsed = now - time
