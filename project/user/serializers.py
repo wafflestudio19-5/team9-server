@@ -239,6 +239,11 @@ class UserPutSwaggerSerializer(serializers.Serializer):
     self_intro = serializers.CharField(required=False)
 
 
+class UserLoginSwaggerSerializer(serializers.Serializer):
+    user = UserSerializer()
+    token = serializers.CharField()
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
 
     company = CompanySerializer(many=True, read_only=True)

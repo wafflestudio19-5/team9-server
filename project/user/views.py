@@ -37,6 +37,7 @@ from user.serializers import (
     FriendRequestAcceptDeleteSerializer,
     UserMutualFriendsSerializer,
     UserPutSwaggerSerializer,
+    UserLoginSwaggerSerializer,
 )
 from newsfeed.serializers import MainPostSerializer
 from newsfeed.models import Post
@@ -46,6 +47,15 @@ import uuid
 from newsfeed.views import NoticeCreate
 
 User = get_user_model()
+
+
+jwt_header = openapi.Parameter(
+    "Authorization",
+    openapi.IN_HEADER,
+    type=openapi.TYPE_STRING,
+    default="JWT [put token here]",
+    required=True,
+)
 
 
 class UserSignUpView(APIView):
@@ -71,7 +81,9 @@ class UserSignUpView(APIView):
 class UserLoginView(APIView):
     permission_classes = (permissions.AllowAny,)
 
-    @swagger_auto_schema(request_body=UserLoginSerializer)
+    @swagger_auto_schema(
+        request_body=UserLoginSerializer, responses={200: UserLoginSwaggerSerializer()}
+    )
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -80,7 +92,6 @@ class UserLoginView(APIView):
 
         return Response(
             {
-                "success": True,
                 "user": UserSerializer(user).data,
                 "token": token,
             },
@@ -230,84 +241,106 @@ class UserSearchListView(ListAPIView):
         return super().list(request)
 
 
-KAKAO_APP_KEY = get_secret("KAKAO_APP_KEY")
-
-
-class KakaoView(APIView):
+class KakaoLoginView(APIView):
     permission_classes = (permissions.AllowAny,)
 
-    def get(self, request):
-        app_key = KAKAO_APP_KEY
-        redirect_uri = "http://13.125.113.114/api/v1/kakao/callback"
-        kakao_auth_api = "https://kauth.kakao.com/oauth/authorize?response_type=code"
-        return redirect(
-            f"{kakao_auth_api}&client_id={app_key}&redirect_uri={redirect_uri}"
-        )
+    @swagger_auto_schema(
+        operation_description="카카오 계정으로 로그인하기",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "access_token": openapi.Schema(type=openapi.TYPE_STRING),
+            },
+        ),
+        responses={200: UserLoginSwaggerSerializer()},
+    )
+    def post(self, request):
+        access_token = request.data.get("access_token")
+        if not access_token:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="access_token을 입력해주세요."
+            )
 
-
-class KakaoCallbackView(APIView):
-    permission_classes = (permissions.AllowAny,)
-
-    def get(self, request):
-        auth_code = request.GET.get("code")
-        kakao_token_api = "https://kauth.kakao.com/oauth/token"
-        data = {
-            "grant_type": "authorization_code",
-            "client_id": KAKAO_APP_KEY,
-            "redirection_uri": "http://13.125.113.114/api/v1/kakao/callback",
-            "code": auth_code,
-        }
-
-        token_response = requests.post(kakao_token_api, data=data)
-        access_token = token_response.json().get("access_token")
+        # 유저 정보 받아오기
         user_info_response = requests.get(
             "https://kapi.kakao.com/v2/user/me",
             headers={"Authorization": f"Bearer ${access_token}"},
         )
+
         kakao_id = user_info_response.json().get("id")
         if not kakao_id:
             return Response(
-                status=status.HTTP_400_BAD_REQUEST, data="카카오 계정식별번호가 전달되지 않았습니다"
+                status=status.HTTP_400_BAD_REQUEST, data="access_token이 유효하지 않습니다."
             )
 
-        # 유저가 로그인되어 있음 --> 카카오 계정 연결
-        if request.user.is_authenticated:
-            if hasattr(request.user, "kakao"):
-                return Response(
-                    status=status.HTTP_400_BAD_REQUEST, data="이미 연결된 카카오 계정이 있습니다."
-                )
+        kakao = KakaoId.objects.filter(identifier=kakao_id)
+        if not kakao.exists():
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="해당 카카오 계정과 연결된 계정이 없습니다."
+            )
 
-            try:
-                KakaoId.objects.create(user=request.user, identifier=kakao_id)
-                return Response(status=status.HTTP_200_OK, data="성공적으로 연결되었습니다.")
-            except IntegrityError:
-                return Response(
-                    status=status.HTTP_400_BAD_REQUEST,
-                    data="이 카카오 계정은 다른 계정과 이미 연결되어있습니다.",
-                )
+        user = kakao.first().user
+        token = jwt_token_of(user)
 
-        # 유저가 로그인되어있지 않음 --> 카카오 계정으로 로그인
-        else:
-            kakao = KakaoId.objects.filter(identifier=kakao_id).first()
-            if kakao:
-                user = kakao.user
-                return Response(
-                    status=status.HTTP_200_OK,
-                    data={"email": user.email, "token": jwt_token_of(user)},
-                )
-            else:
-                return Response(
-                    status=status.HTTP_400_BAD_REQUEST, data="해당 카카오 계정과 연결된 계정이 없습니다."
-                )
+        return Response(
+            {
+                "user": UserSerializer(user).data,
+                "token": token,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
-jwt_header = openapi.Parameter(
-    "Authorization",
-    openapi.IN_HEADER,
-    type=openapi.TYPE_STRING,
-    default="JWT [put token here]",
-    required=True,
-)
+class KakaoConnectView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    @swagger_auto_schema(
+        operation_description="카카오 계정 연결하기",
+        manual_parameters=[jwt_header],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "access_token": openapi.Schema(type=openapi.TYPE_STRING),
+            },
+        ),
+        responses={201: "성공적으로 연결되었습니다."},
+    )
+    def post(self, request):
+        if request.user.is_anonymous:
+            return Response(status=status.HTTP_401_UNAUTHORIZED, data="로그인이 필요합니다.")
+
+        access_token = request.data.get("access_token")
+        if not access_token:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="access_token을 입력해주세요."
+            )
+
+        # 유저 정보 받아오기
+        user_info_response = requests.get(
+            "https://kapi.kakao.com/v2/user/me",
+            headers={"Authorization": f"Bearer ${access_token}"},
+        )
+
+        kakao_id = user_info_response.json().get("id")
+        if not kakao_id:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="access_token이 유효하지 않습니다."
+            )
+
+        if hasattr(request.user, "kakao"):
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="이미 연결된 카카오 계정이 있습니다."
+            )
+
+        try:
+            KakaoId.objects.create(user=request.user, identifier=kakao_id)
+            return Response(status=status.HTTP_201_CREATED, data="성공적으로 연결되었습니다.")
+
+        except IntegrityError:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data="이 카카오 계정은 다른 계정과 이미 연결되어있습니다.",
+            )
 
 
 class UserNewsfeedView(ListAPIView):
