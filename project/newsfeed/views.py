@@ -188,6 +188,19 @@ class CommentListView(ListCreateAPIView):
     permission_classes = (permissions.IsAuthenticated,)
     parser_classes = (parsers.MultiPartParser, parsers.FileUploadParser)
 
+    # ListModelMixin의 list() 메소드 오버라이딩
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        # 하나의 페이지 안에서 댓글들의 순서 역전
+        page = reversed(self.paginate_queryset(queryset))
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     @swagger_auto_schema(
         operation_description="해당 post의 comment들 가져오기",
         responses={200: CommentListSerializer()},
@@ -195,7 +208,7 @@ class CommentListView(ListCreateAPIView):
     )
     def get(self, request, post_id=None):
         self.queryset = Comment.objects.filter(post=post_id, depth=0).order_by("-id")
-        return super().list(request)
+        return self.list(request)
 
     @swagger_auto_schema(
         operation_description="comment 생성하기",
