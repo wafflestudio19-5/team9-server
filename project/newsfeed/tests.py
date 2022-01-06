@@ -734,22 +734,23 @@ class CommentTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
 
-        # 모든 계층에서 시간 오름차순으로 배열 (먼저 생성된 게 앞에)
-        self.assertEqual(data["results"][0]["content"], "depth 0")
-        self.assertEqual(data["results"][0]["children"][0]["content"], "depth 1")
-        self.assertTrue(data["results"][0]["children"][0]["is_liked"])
+        # 최상위 계층에서는 생성 순서가 (21, ..., 41), (1, ..., 20)과 같이 페이지네이션됨
+        # 그 아래 계층들에서 시간 오름차순으로 배열 (먼저 생성된 게 앞에)
+        self.assertEqual(data["results"][-1]["content"], "depth 0")
+        self.assertEqual(data["results"][-1]["children"][0]["content"], "depth 1")
+        self.assertTrue(data["results"][-1]["children"][0]["is_liked"])
         self.assertEqual(
-            data["results"][0]["children"][0]["children"][0]["content"], "depth 2"
+            data["results"][-1]["children"][0]["children"][0]["content"], "depth 2"
         )
 
         # 부모자식 관계 확인
         self.assertEqual(
-            data["results"][0]["children"][0]["parent"], data["results"][0]["id"]
+            data["results"][-1]["children"][0]["parent"], data["results"][-1]["id"]
         )
 
         # child comment 개수 확인
-        self.assertEqual(data["results"][0]["children_count"], 6)
-        self.assertEqual(len(data["results"][0]["children"]), 6)
+        self.assertEqual(data["results"][-1]["children_count"], 6)
+        self.assertEqual(len(data["results"][-1]["children"]), 6)
 
         # 페이지네이션 확인
         self.assertEqual(len(data["results"]), 20)
