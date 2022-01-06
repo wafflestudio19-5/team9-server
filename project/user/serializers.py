@@ -240,7 +240,6 @@ class UserPutSwaggerSerializer(serializers.Serializer):
 
 
 class UserLoginSwaggerSerializer(serializers.Serializer):
-    success = serializers.BooleanField()
     user = UserSerializer()
     token = serializers.CharField()
 

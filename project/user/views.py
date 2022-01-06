@@ -92,7 +92,6 @@ class UserLoginView(APIView):
 
         return Response(
             {
-                "success": True,
                 "user": UserSerializer(user).data,
                 "token": token,
             },
@@ -285,7 +284,6 @@ class KakaoLoginView(APIView):
 
         return Response(
             {
-                "success": True,
                 "user": UserSerializer(user).data,
                 "token": token,
             },
