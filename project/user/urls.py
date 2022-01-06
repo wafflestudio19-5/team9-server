@@ -25,8 +25,12 @@ urlpatterns = [
     path("signup/", UserSignUpView.as_view(), name="signup"),  # /api/v1/signup/
     path("login/", UserLoginView.as_view(), name="login"),  # /api/v1/login/
     path("logout/", UserLogoutView.as_view(), name="logout"),  # /api/v1/logout/
-    path("kakao/login/", KakaoLoginView.as_view(), name="kakao_login"),  # /api/v1/kakao/login/
-    path("kakao/connect/", KakaoConnectView.as_view(), name="kakao_connect"),  # /api/v1/kakao/connect/
+    path(
+        "kakao/login/", KakaoLoginView.as_view(), name="kakao_login"
+    ),  # /api/v1/kakao/login/
+    path(
+        "kakao/connect/", KakaoConnectView.as_view(), name="kakao_connect"
+    ),  # /api/v1/kakao/connect/
     path(
         "user/<int:user_id>/newsfeed/", UserNewsfeedView.as_view(), name="user_newsfeed"
     ),  # /api/v1/user/{user_id}/newsfeed/

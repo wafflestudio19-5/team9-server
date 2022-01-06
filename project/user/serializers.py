@@ -238,6 +238,7 @@ class UserPutSwaggerSerializer(serializers.Serializer):
     gender = serializers.CharField(required=False)
     self_intro = serializers.CharField(required=False)
 
+
 class UserLoginSwaggerSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     user = UserSerializer()
