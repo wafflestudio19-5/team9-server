@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.test.client import encode_multipart
 from factory.django import DjangoModelFactory
 from faker import Faker
 from user.models import User
@@ -20,13 +21,14 @@ class UserFactory(DjangoModelFactory):
         model = User
 
     email = "test@test.com"
+    idx = 500
 
     @classmethod
     def create(cls, **kwargs):
 
         fake = Faker("ko_KR")
         user = User.objects.create(
-            email=kwargs.get("email", fake.email()),
+            email=kwargs.get("email", f"test{cls.idx}@test.com"),
             password=kwargs.get("password", fake.password()),
             first_name=kwargs.get("first_name", fake.first_name()),
             last_name=kwargs.get("last_name", fake.last_name()),
@@ -39,7 +41,7 @@ class UserFactory(DjangoModelFactory):
         user.username = user.first_name + user.last_name
         user.set_password(kwargs.get("password", ""))
         user.save()
-
+        cls.idx += 1
         return user
 
 
@@ -319,7 +321,9 @@ class NewsFeedTestCase(TestCase):
 
         PostFactory.create(author=cls.test_user, content="나의 테스트 게시물입니다.", likes=10)
 
-        cls.friend_post = PostFactory.create(author=cls.test_friend, content="친구의 테스트 게시물입니다.", likes=20)
+        cls.friend_post = PostFactory.create(
+            author=cls.test_friend, content="친구의 테스트 게시물입니다.", likes=20
+        )
         cls.friend_post.likeusers.add(cls.test_user)
         cls.friend_post.save()
 
@@ -503,6 +507,296 @@ class NewsFeedTestCase(TestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_post_update(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+
+        # 파일 없는 게시글 수정
+        data = {
+            "author": self.test_user.id,
+            "content": "메인 포스트입니다.",
+        }
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        mainpost_id = data["id"]
+
+        data = {
+            "author": self.test_user.id,
+            "content": "메인 포스트입니다. (수정됨)",
+        }
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+        content_type = "multipart/form-data; boundary=BoUnDaRyStRiNg"
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(data["id"], mainpost_id)
+        self.assertEqual(data["content"], "메인 포스트입니다. (수정됨)")
+
+        # 파일 없는데 content 빌 경우 400 에러
+        data = {"author": self.test_user.id, "content": ""}
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        test_image = SimpleUploadedFile(
+            name="testimage2.jpg",
+            content=open(os.path.join(BASE_DIR, "testimage2.jpg"), "rb").read(),
+            content_type="image/jpeg",
+        )
+        data = {
+            "author": self.test_user.id,
+            "content": "메인 포스트입니다.",
+            "subposts": ["첫번째 포스트입니다.", "두번째 포스트입니다.", "세번째 포스트입니다."],
+            "file": [test_image, test_image, test_image],
+        }
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        mainpost_id = data["id"]
+        subpost_1 = data["subposts"][0]["id"]
+        subpost_2 = data["subposts"][1]["id"]
+        subpost_3 = data["subposts"][2]["id"]
+
+        # 내용 수정
+        data = {
+            "author": self.test_user.id,
+            "content": "메인 포스트입니다. (수정됨)",
+            "subposts": ["첫번째 포스트입니다. (수정됨)", "두번째 포스트입니다. (수정됨)", "세번째 포스트입니다. (수정됨)"],
+            "file": [test_image, test_image, test_image],
+            "subposts_id": [subpost_1, subpost_2, subpost_3],
+        }
+
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(data["id"], mainpost_id)
+        self.assertEqual(data["content"], "메인 포스트입니다. (수정됨)")
+        self.assertEqual(data["subposts"][0]["content"], "첫번째 포스트입니다. (수정됨)")
+        self.assertEqual(data["subposts"][0]["id"], subpost_1)
+        self.assertEqual(data["subposts"][1]["content"], "두번째 포스트입니다. (수정됨)")
+        self.assertEqual(data["subposts"][1]["id"], subpost_2)
+        self.assertEqual(data["subposts"][2]["content"], "세번째 포스트입니다. (수정됨)")
+        self.assertEqual(data["subposts"][2]["id"], subpost_3)
+
+        # 파일 삭제
+        data = {
+            "author": self.test_user.id,
+            "content": "메인 포스트입니다. (수정됨)",
+            "subposts": ["첫번째 포스트입니다. (수정됨)", "두번째 포스트입니다. (수정됨)", "세번째 포스트입니다. (수정됨)"],
+            "file": [test_image, test_image, test_image],
+            "subposts_id": [subpost_1, subpost_2, subpost_3],
+            "removed_subposts": subpost_1,
+        }
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["id"], mainpost_id)
+        self.assertEqual(data["content"], "메인 포스트입니다. (수정됨)")
+        self.assertEqual(len(data["subposts"]), 2)
+        self.assertEqual(data["subposts"][0]["content"], "두번째 포스트입니다. (수정됨)")
+        self.assertEqual(data["subposts"][0]["id"], subpost_2)
+        self.assertEqual(data["subposts"][1]["content"], "세번째 포스트입니다. (수정됨)")
+        self.assertEqual(data["subposts"][1]["id"], subpost_3)
+
+        # 파일 추가
+        data = {
+            "author": self.test_user.id,
+            "content": "메인 포스트입니다. (수정됨)",
+            "subposts": ["두번째 포스트입니다. (수정됨)", "세번째 포스트입니다. (수정됨)", "네번째 포스트입니다."],
+            "file": [test_image, test_image, test_image],
+            "subposts_id": [subpost_2, subpost_3],
+        }
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["id"], mainpost_id)
+        self.assertEqual(data["content"], "메인 포스트입니다. (수정됨)")
+        self.assertEqual(len(data["subposts"]), 3)
+        self.assertEqual(data["subposts"][0]["content"], "두번째 포스트입니다. (수정됨)")
+        self.assertEqual(data["subposts"][0]["id"], subpost_2)
+        self.assertEqual(data["subposts"][1]["content"], "세번째 포스트입니다. (수정됨)")
+        self.assertEqual(data["subposts"][1]["id"], subpost_3)
+        subpost_4 = data["subposts"][2]["id"]
+        self.assertEqual(data["subposts"][2]["content"], "네번째 포스트입니다.")
+
+        # 파일 삭제와 추가 동시에 (2장 제거, 3장 추가)
+        data = {
+            "author": self.test_user.id,
+            "content": "메인 포스트입니다. (수정됨)",
+            "subposts": [
+                "두번째 포스트입니다. (수정됨)",
+                "세번째 포스트입니다. (수정됨)",
+                "네번째 포스트입니다.",
+                "다섯번째 포스트입니다.",
+                "여섯번째 포스트입니다.",
+                "일곱번째 포스트입니다.",
+            ],
+            "file": [
+                test_image,
+                test_image,
+                test_image,
+                test_image,
+                test_image,
+                test_image,
+            ],
+            "subposts_id": [subpost_2, subpost_3, subpost_4],
+            "removed_subposts": [subpost_2, subpost_3],
+        }
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+        response = self.client.put(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["id"], mainpost_id)
+        self.assertEqual(data["content"], "메인 포스트입니다. (수정됨)")
+        self.assertEqual(len(data["subposts"]), 4)
+        self.assertEqual(data["subposts"][0]["content"], "네번째 포스트입니다.")
+        self.assertEqual(data["subposts"][0]["id"], subpost_4)
+        self.assertEqual(data["subposts"][1]["content"], "다섯번째 포스트입니다.")
+        subpost_5 = data["subposts"][1]["id"]
+        self.assertEqual(data["subposts"][2]["content"], "여섯번째 포스트입니다.")
+        subpost_6 = data["subposts"][2]["id"]
+        self.assertEqual(data["subposts"][3]["content"], "일곱번째 포스트입니다.")
+        subpost_7 = data["subposts"][3]["id"]
+
+        # 파일 있으면 content 비워져 있어도 200
+        data = {
+            "author": self.test_user.id,
+            "content": "",
+            "subposts": ["", "", "", ""],
+            "file": [test_image, test_image, test_image, test_image],
+            "subposts_id": [subpost_4, subpost_5, subpost_6, subpost_7],
+        }
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+        response = self.client.put(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(data["content"], "")
+        self.assertEqual(data["subposts"][0]["content"], "")
+        self.assertEqual(data["subposts"][1]["content"], "")
+        self.assertEqual(data["subposts"][2]["content"], "")
+        self.assertEqual(data["subposts"][3]["content"], "")
+
+        # subposts와 files의 개수가 다르면 400
+        data = {
+            "author": self.test_user.id,
+            "content": "메인 포스트입니다. (수정됨)",
+            "subposts": ["네번째 포스트입니다.", "다섯번째 포스트입니다.", "여섯번째 포스트입니다.", "일곱번째 포스트입니다."],
+            "file": [test_image, test_image, test_image, test_image, test_image],
+            "subposts_id": [subpost_4, subpost_5, subpost_6, subpost_7],
+        }
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+        response = self.client.put(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # subposts_id 개수가 subposts들과 다르면 400
+        data = {
+            "author": self.test_user.id,
+            "content": "메인 포스트입니다. (수정됨)",
+            "subposts": ["네번째 포스트입니다.", "다섯번째 포스트입니다.", "여섯번째 포스트입니다.", "일곱번째 포스트입니다."],
+            "file": [test_image, test_image, test_image, test_image],
+            "subposts_id": [subpost_4, subpost_5, subpost_6],
+        }
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+        response = self.client.put(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # subposts_id 중 기존 subposts가 아닌 것이 있으면 404
+        data = {
+            "author": self.test_user.id,
+            "content": "메인 포스트입니다. (수정됨)",
+            "subposts": ["네번째 포스트입니다.", "다섯번째 포스트입니다.", "여섯번째 포스트입니다.", "일곱번째 포스트입니다."],
+            "file": [test_image, test_image, test_image, test_image],
+            "subposts_id": [subpost_4, subpost_5, subpost_6, 9999],
+        }
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+        response = self.client.put(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        # 파일 지우기
+        response = self.client.delete(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        response = self.client.get(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
 class LikeTestCase(TestCase):

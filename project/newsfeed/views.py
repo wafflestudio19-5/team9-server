@@ -28,8 +28,7 @@ from user.models import User
 from datetime import datetime
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema, no_body
-from config.settings import get_secret
-
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 jwt_header = openapi.Parameter(
     "Authorization",
@@ -130,6 +129,7 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
 
     @swagger_auto_schema(
         operation_description="게시글 수정하기",
@@ -178,7 +178,6 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
             post.save()
 
         removed = request.data.getlist("removed_subposts")
-        print(removed)
 
         for i in range(len(files)):
 
@@ -197,7 +196,7 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
                 subpost.file.save(files[i].name, files[i], save=True)
 
             else:
-                subpost = post.subposts.get(id=subposts[i])
+                subpost = get_object_or_404(post.subposts, id=subposts[i])
 
                 if str(subpost.id) in removed:
                     subpost.delete()

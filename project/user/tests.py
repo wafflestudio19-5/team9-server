@@ -21,12 +21,13 @@ class UserFactory(DjangoModelFactory):
         model = User
 
     email = "test@test.com"
+    idx = 100
 
     @classmethod
     def create(cls, **kwargs):
         fake = Faker("ko_KR")
         user = User.objects.create(
-            email=kwargs.get("email", fake.email()),
+            email=kwargs.get("email", f"test{cls.idx}@test.com"),
             password=kwargs.get("password", fake.password()),
             first_name=kwargs.get("first_name", fake.first_name()),
             last_name=kwargs.get("last_name", fake.last_name()),
@@ -39,7 +40,7 @@ class UserFactory(DjangoModelFactory):
         user.username = user.last_name + user.first_name
         user.set_password(kwargs.get("password", ""))
         user.save()
-
+        cls.idx += 1
         return user
 
 
