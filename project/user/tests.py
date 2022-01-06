@@ -307,6 +307,16 @@ class SignUpUserTestCase(TestCase):
         self.assertIn("email", data)
         self.assertIn("birth", data)
 
+        # common and short and numeric password
+        data = self.post_data.copy()
+        data["password"] = "12345"
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 1)
+        data = response.json()
+        self.assertIn("password", data)
+        self.assertEqual(len(data["password"]), 3)
+
 
 class LoginTestCase(TestCase):
     @classmethod
