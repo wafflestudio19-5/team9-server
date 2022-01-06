@@ -242,21 +242,6 @@ class UserSearchListView(ListAPIView):
         return super().list(request)
 
 
-KAKAO_APP_KEY = get_secret("KAKAO_APP_KEY")
-
-
-class KakaoView(APIView):
-    permission_classes = (permissions.AllowAny,)
-
-    def get(self, request):
-        app_key = KAKAO_APP_KEY
-        redirect_uri = "http://13.125.113.114/api/v1/kakao/callback"
-        kakao_auth_api = "https://kauth.kakao.com/oauth/authorize?response_type=code"
-        return redirect(
-            f"{kakao_auth_api}&client_id={app_key}&redirect_uri={redirect_uri}"
-        )
-
-
 class KakaoLoginView(APIView):
     permission_classes = (permissions.AllowAny,)
 
