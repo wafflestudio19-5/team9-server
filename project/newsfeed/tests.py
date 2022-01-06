@@ -722,7 +722,6 @@ class CommentTestCase(TestCase):
             parent=cls.depth_one,
         )
 
-
     def test_comment_list(self):
 
         # test_user의 피드
