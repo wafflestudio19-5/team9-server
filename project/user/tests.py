@@ -271,7 +271,6 @@ class SignUpUserTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
         data = response.json()
-        print(data)
         self.assertIn("email", data)
         self.assertIn("gender", data)
 
@@ -283,9 +282,30 @@ class SignUpUserTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
         data = response.json()
-        print(data)
         self.assertIn("email", data)
         self.assertIn("gender", data)
+
+        # short password and no email
+        data = self.post_data.copy()
+        data["password"] = "!nn?"
+        data.pop("email")
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 1)
+        data = response.json()
+        self.assertIn("email", data)
+        self.assertIn("password", data)
+
+        # invalid birth and no email
+        data = self.post_data.copy()
+        data["birth"] = "2100-12-23"
+        data.pop("email")
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 1)
+        data = response.json()
+        self.assertIn("email", data)
+        self.assertIn("birth", data)
 
 
 class LoginTestCase(TestCase):
