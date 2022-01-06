@@ -45,15 +45,15 @@ class UserCreateSerializer(serializers.Serializer):
         help_text="'Male' or 'Female'",
         validators=[validate_gender],
     )
-    password = serializers.CharField(max_length=128, required=True)
+    password = serializers.CharField(
+        max_length=128, required=True, validators=[validate_password]
+    )
 
     # validate 정의
     def validate(self, data):
         # if not first_name or not last_name:
         #    raise serializers.ValidationError("성이나 이름은 빈칸일 수 없습니다.")
         # 필드가 blank일 수 없게 되는 조건이 이미 존재
-        password = data.get("password")
-        validate_password(password)
         return data
 
     def create(self, validated_data):
