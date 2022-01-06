@@ -315,10 +315,7 @@ class CommentListSerializer(serializers.ModelSerializer):
         return comment.children.count()
 
     def get_children(self, comment):
-        children = comment.children.order_by("created")
-        # child comment 3개만 노출시키기
-        # if children.count() > 2:
-        #     children = children[children.count()-4:]
+        children = comment.children.order_by("-created")
         return CommentListSerializer(children, many=True, context=self.context).data
 
     def get_is_liked(self, comment):

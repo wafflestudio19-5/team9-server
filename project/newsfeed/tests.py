@@ -698,6 +698,9 @@ class CommentTestCase(TestCase):
         cls.depth_zero = CommentFactory.create(
             author=cls.test_friend, post=cls.my_post, depth=0, content="depth 0"
         )
+        CommentFactory.create_batch(
+            5, author=cls.test_friend, post=cls.my_post, depth=1, parent=cls.depth_zero
+        )
         cls.depth_one = CommentFactory.create(
             author=cls.test_friend,
             post=cls.my_post,
@@ -707,8 +710,9 @@ class CommentTestCase(TestCase):
         )
         cls.depth_one.likeusers.add(cls.test_user)
         cls.depth_one.save()
+
         CommentFactory.create_batch(
-            5, author=cls.test_friend, post=cls.my_post, depth=1, parent=cls.depth_zero
+            5, author=cls.test_friend, post=cls.my_post, depth=2, parent=cls.depth_one
         )
         cls.depth_two = CommentFactory.create(
             author=cls.test_friend,
@@ -717,9 +721,7 @@ class CommentTestCase(TestCase):
             content="depth 2",
             parent=cls.depth_one,
         )
-        CommentFactory.create_batch(
-            5, author=cls.test_friend, post=cls.my_post, depth=2, parent=cls.depth_one
-        )
+
 
     def test_comment_list(self):
 
