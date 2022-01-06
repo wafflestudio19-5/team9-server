@@ -251,6 +251,42 @@ class SignUpUserTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
 
+    def test_post_user_multiple_validation(self):
+        # first_name empty and no email
+        data = self.post_data.copy()
+        data["first_name"] = ""
+        data.pop("email")
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 1)
+        data = response.json()
+        self.assertIn("email", data)
+        self.assertIn("first_name", data)
+
+        # no gender and no email
+        data = self.post_data.copy()
+        data.pop("gender")
+        data.pop("email")
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 1)
+        data = response.json()
+        print(data)
+        self.assertIn("email", data)
+        self.assertIn("gender", data)
+
+        # invalid gender and no email
+        data = self.post_data.copy()
+        data["gender"] = "NoGender"
+        data.pop("email")
+        response = self.client.post("/api/v1/signup/", data=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 1)
+        data = response.json()
+        print(data)
+        self.assertIn("email", data)
+        self.assertIn("gender", data)
+
 
 class LoginTestCase(TestCase):
     @classmethod
