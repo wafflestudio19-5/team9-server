@@ -278,6 +278,46 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][1]["count"], 8)
         self.assertEqual(len(data["results"][1]["senders"]), 9)
 
+        # 친구요청
+        stranger = UserFactory.create()
+        stranger_token = "JWT " + jwt_token_of(stranger)
+
+        response = self.client.post(
+            "/api/v1/friend/request/",
+            data={"receiver": self.test_user.id},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=stranger_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "FriendRequest")
+        self.assertEqual(data["results"][0]["senders"][0]["id"], stranger.id)
+
+        # 친구수락
+        response = self.client.put(
+            "/api/v1/friend/request/",
+            data={"sender": stranger.id},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=stranger_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "FriendAccept")
+        self.assertEqual(data["results"][0]["senders"][0]["id"], self.test_user.id)
+
 
 class NewsFeedTestCase(TestCase):
     @classmethod

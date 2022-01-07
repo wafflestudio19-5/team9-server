@@ -125,7 +125,7 @@ class UserFriendRequestView(ListCreateAPIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        # NoticeCreate(user=request.user, content="FriendRequest", receiver=request.data['receiver'])
+        NoticeCreate(user=request.user, content="FriendRequest", receiver=request.data['receiver'])
 
         return Response(status=status.HTTP_201_CREATED, data=serializer.data)
 
@@ -146,7 +146,7 @@ class UserFriendRequestView(ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.accept(serializer.validated_data)
 
-        # NoticeCreate(user=request.user, content="FriendAccept", receiver=request.data['sender'])
+        NoticeCreate(user=request.user, content="FriendAccept", receiver=request.data['sender'])
 
         return Response(status=status.HTTP_200_OK, data="수락 완료되었습니다.")
 
