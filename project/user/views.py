@@ -356,6 +356,7 @@ class KakaoConnectView(APIView):
                 status=status.HTTP_400_BAD_REQUEST, data="연결된 카카오 계정이 없습니다."
             )
         kakao = request.user.kakao
+        kakao.delete()
 
         access_token = request.data.get("access_token")
         if not access_token:
@@ -363,19 +364,11 @@ class KakaoConnectView(APIView):
                 status=status.HTTP_400_BAD_REQUEST, data="access_token을 입력해주세요."
             )
 
-        response = requests.post(
+        requests.post(
             "https://kapi.kakao.com/v1/user/unlink",
             headers={"Authorization": f"Bearer ${access_token}"},
             data={"target_id_type": "user_id", "target_id": kakao.identifier},
         )
-
-        # 요청 처리되었는지 확인
-        if not response.data.get("id") == kakao.identifier:
-            return Response(
-                status=status.HTTP_400_BAD_REQUEST, data="access_token이 유효하지 않습니다."
-            )
-
-        kakao.delete()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
