@@ -9,6 +9,7 @@ from rest_framework_jwt.settings import api_settings
 from .models import User, Company, University, FriendRequest
 from datetime import datetime
 from django.contrib.auth.password_validation import validate_password
+from .utils import validate_gender, validate_birth
 
 
 # 토큰 사용을 위한 기본 세팅
@@ -36,28 +37,23 @@ class UserCreateSerializer(serializers.Serializer):
         ],
         required=True,
         help_text="Format: YYYY-MM-DD",
+        validators=[validate_birth],
     )
     gender = serializers.CharField(
-        max_length=10, required=True, help_text="'Male' or 'Female'"
+        max_length=10,
+        required=True,
+        help_text="'Male' or 'Female'",
+        validators=[validate_gender],
     )
-    password = serializers.CharField(max_length=128, required=True)
+    password = serializers.CharField(
+        max_length=128, required=True, validators=[validate_password]
+    )
 
     # validate 정의
     def validate(self, data):
-        gender = data.get("gender")
-        if not gender:
-            raise serializers.ValidationError("성별이 설정되지 않았습니다.")
-        if gender != "Male" and gender != "Female":
-            raise serializers.ValidationError("성별이 잘못되었습니다.")
-        first_name = data.get("first_name")
-        last_name = data.get("last_name")
-        if not first_name or not last_name:
-            raise serializers.ValidationError("성이나 이름은 빈칸일 수 없습니다.")
-        birth = data.get("birth")
-        if birth > datetime.now().date():
-            raise serializers.ValidationError("생일이 현재 시간보다 나중일 수는 없습니다.")
-        password = data.get("password")
-        validate_password(password)
+        # if not first_name or not last_name:
+        #    raise serializers.ValidationError("성이나 이름은 빈칸일 수 없습니다.")
+        # 필드가 blank일 수 없게 되는 조건이 이미 존재
         return data
 
     def create(self, validated_data):
