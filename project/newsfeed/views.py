@@ -126,6 +126,7 @@ class PostListView(ListCreateAPIView):
             status=status.HTTP_201_CREATED,
         )
 
+
 class PostUpdateView(RetrieveUpdateDestroyAPIView):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
