@@ -306,8 +306,6 @@ class KakaoConnectView(APIView):
         responses={201: "성공적으로 연결되었습니다."},
     )
     def post(self, request):
-        if request.user.is_anonymous:
-            return Response(status=status.HTTP_401_UNAUTHORIZED, data="로그인이 필요합니다.")
 
         access_token = request.data.get("access_token")
         if not access_token:
@@ -341,6 +339,19 @@ class KakaoConnectView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
                 data="이 카카오 계정은 다른 계정과 이미 연결되어있습니다.",
             )
+
+    @swagger_auto_schema(
+        operation_description="카카오 계정 연결 해제하기.",
+        manual_parameters=[jwt_header],
+    )
+    def delete(self, request):
+        if not hasattr(request.user, "kakao"):
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="연결된 카카오 계정이 없습니다."
+            )
+        kakao = request.user.kakao
+        kakao.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class UserNewsfeedView(ListAPIView):
