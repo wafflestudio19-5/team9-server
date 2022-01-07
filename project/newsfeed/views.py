@@ -422,6 +422,21 @@ def NoticeCreate(**context):
     if content == "CommentLike":
         target = comment.author
         notice = target.notices.filter(comment=comment.id, content__contains=content)
+
+    elif "Friend" in content:
+        target = context["receiver"]
+        data = {
+            "user": target,
+            "content": content,
+            "url": f"api/v1/user/{user.id}/newsfeed/",
+        }
+        serializer = NoticeSerializer(
+            data=data,
+            context={"sender": user},
+        )
+        serializer.is_valid(raise_exception=True)
+        return serializer.save()
+
     else:
         target = post.author
         notice = target.notices.filter(post=post.id, content__contains=content)
@@ -454,7 +469,7 @@ def NoticeCreate(**context):
             context={"sender": user},
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        return serializer.save()
 
 
 class NoticeView(GenericAPIView):
