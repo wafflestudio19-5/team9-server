@@ -47,16 +47,19 @@ class PostListView(ListCreateAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
-        operation_description="로그인된 유저의 friend들의 post들을 최신순으로 가져오기",
+        operation_description="로그인된 유저의 friend들의 post들을 최신순으로 가져오기(현재는 모든 유저 가져오도록 설정되어 있음)",
         manual_parameters=[jwt_header],
         responses={200: MainPostSerializer()},
     )
     def get(self, request):
 
         user = request.user
+        self.queryset = Post.objects.filter(mainpost=None)
+        """
         self.queryset = Post.objects.filter(
             (Q(author__in=user.friends.all()) | Q(author=user)), mainpost=None
         )
+        """
         return super().list(request)
 
     @swagger_auto_schema(
@@ -335,6 +338,7 @@ class CommentListView(ListCreateAPIView):
         post = get_object_or_404(self.queryset, pk=post_id)
         data["post"] = post.id
 
+        """
         if (
             not user.friends.filter(id=post.author.id).exists()
             and post.author.id != user.id
@@ -342,6 +346,7 @@ class CommentListView(ListCreateAPIView):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST, data="친구 혹은 자신의 게시글이 아닙니다."
             )
+        """  # 친구만 좋아요 할 수 있도록 하는 기능 해제
         serializer = CommentSerializer(data=data, context={"user": user, "post": post})
         serializer.is_valid(raise_exception=True)
         comment = serializer.save()
