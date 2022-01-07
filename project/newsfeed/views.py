@@ -1,14 +1,18 @@
 from drf_yasg import openapi
 from rest_framework import status, viewsets, permissions, parsers
 from rest_framework.decorators import action
-from rest_framework.generics import ListCreateAPIView, GenericAPIView, ListAPIView
+from rest_framework.generics import (
+    ListCreateAPIView,
+    GenericAPIView,
+    ListAPIView,
+    RetrieveUpdateDestroyAPIView,
+)
 from rest_framework.response import Response
 from typing import Type
 from django.db.models import Q
 from django.db import transaction
-
 from .pagination import NoticePagination
-
+import boto3
 from .serializers import (
     NoticeSerializer,
     NoticelistSerializer,
@@ -25,6 +29,7 @@ from user.models import User
 from datetime import datetime
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema, no_body
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 jwt_header = openapi.Parameter(
     "Authorization",
@@ -120,6 +125,103 @@ class PostListView(ListCreateAPIView):
             PostSerializer(mainpost, context={"request": request}).data,
             status=status.HTTP_201_CREATED,
         )
+
+
+class PostUpdateView(RetrieveUpdateDestroyAPIView):
+    serializer_class = PostSerializer
+    queryset = Post.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
+
+    @swagger_auto_schema(
+        operation_description="게시글 수정하기",
+        manual_parameters=[jwt_header],
+        responses={200: PostSerializer()},
+    )
+    def put(self, request, pk=None):
+
+        post = get_object_or_404(Post, pk=pk)
+        user = request.user
+
+        if post.mainpost:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="MainPost만 수정 가능합니다."
+            )
+
+        if user != post.author:
+            return Response(
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 게시글을 수정할 수 없습니다."
+            )
+
+        files = request.FILES.getlist("file")
+        contents = request.data.getlist("subposts", [])
+        subposts = request.data.getlist("subposts_id")
+        cnt = post.subposts.count()
+
+        if len(files) != len(contents):
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="file과 content의 개수를 맞춰주세요."
+            )
+
+        if cnt != len(subposts):
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data="subposts_id에 기존 subpost들의 id를 넣어주세요.",
+            )
+
+        if files:
+            post.content = request.data.get("content")
+            post.save()
+        else:
+            content = request.data.get("content")
+            if not content:
+                return Response(status=status.HTTP_400_BAD_REQUEST, data="내용을 입력해주세요.")
+            post.content = content
+            post.save()
+
+        removed = request.data.getlist("removed_subposts")
+
+        for i in range(len(files)):
+
+            if i + 1 > cnt:
+                # 파일 추가 업로드
+                serializer = PostSerializer(
+                    data={
+                        "author": user.id,
+                        "content": contents[i],
+                        "mainpost": post.id,
+                    },
+                    context={"isFile": True},
+                )
+                serializer.is_valid(raise_exception=True)
+                subpost = serializer.save()
+                subpost.file.save(files[i].name, files[i], save=True)
+
+            else:
+                subpost = get_object_or_404(post.subposts, id=subposts[i])
+
+                if str(subpost.id) in removed:
+                    subpost.delete()
+                else:
+                    subpost.content = contents[i]
+                    subpost.save()
+        return Response(
+            self.get_serializer(post).data,
+            status=status.HTTP_200_OK,
+        )
+
+    @swagger_auto_schema(
+        operation_description="게시글 삭제하기",
+        manual_parameters=[jwt_header],
+    )
+    def delete(self, request, pk=None):
+
+        post = get_object_or_404(Post, pk=pk)
+        if request.user != post.author:
+            return Response(
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 게시글을 삭제할 수 없습니다."
+            )
+        return super().destroy(request, pk=pk)
 
 
 class PostLikeView(GenericAPIView):

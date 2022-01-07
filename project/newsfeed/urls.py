@@ -1,6 +1,7 @@
 from django.urls import path, include
 from .views import (
     PostListView,
+    PostUpdateView,
     PostLikeView,
     CommentListView,
     CommentLikeView,
@@ -13,6 +14,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path("newsfeed/", PostListView.as_view()),
+    path("newsfeed/<int:pk>/", PostUpdateView.as_view()),
     path("newsfeed/<int:post_id>/comment/", CommentListView.as_view()),
     path("newsfeed/<int:post_id>/like/", PostLikeView.as_view()),
     path("newsfeed/<int:post_id>/<int:comment_id>/like/", CommentLikeView.as_view()),
