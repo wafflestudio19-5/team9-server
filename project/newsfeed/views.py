@@ -126,6 +126,7 @@ class PostListView(ListCreateAPIView):
             status=status.HTTP_201_CREATED,
         )
 
+
 class PostUpdateView(RetrieveUpdateDestroyAPIView):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
@@ -221,6 +222,7 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
                 status=status.HTTP_403_FORBIDDEN, data="다른 유저의 게시글을 삭제할 수 없습니다."
             )
         return super().destroy(request, pk=pk)
+
 
 class PostLikeView(GenericAPIView):
     serializer_class = PostSerializer
