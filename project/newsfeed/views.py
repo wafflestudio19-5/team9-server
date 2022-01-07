@@ -1,5 +1,5 @@
 from drf_yasg import openapi
-from rest_framework import status, viewsets, permissions
+from rest_framework import status, viewsets, permissions, parsers
 from rest_framework.decorators import action
 from rest_framework.generics import (
     ListCreateAPIView,
@@ -22,6 +22,7 @@ from .serializers import (
     CommentListSerializer,
     CommentSerializer,
     CommentLikeSerializer,
+    CommentSwaggerSerializer,
 )
 from .models import Notice, Post, Comment
 from user.models import User
@@ -35,6 +36,7 @@ jwt_header = openapi.Parameter(
     openapi.IN_HEADER,
     type=openapi.TYPE_STRING,
     default="JWT [put token here]",
+    required=True,
 )
 
 
@@ -123,7 +125,6 @@ class PostListView(ListCreateAPIView):
             PostSerializer(mainpost, context={"request": request}).data,
             status=status.HTTP_201_CREATED,
         )
-
 
 class PostUpdateView(RetrieveUpdateDestroyAPIView):
     serializer_class = PostSerializer
@@ -221,7 +222,6 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
             )
         return super().destroy(request, pk=pk)
 
-
 class PostLikeView(GenericAPIView):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
@@ -286,6 +286,20 @@ class CommentListView(ListCreateAPIView):
     serializer_class = CommentListSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
+    parser_classes = (parsers.MultiPartParser, parsers.FileUploadParser)
+
+    # ListModelMixin의 list() 메소드 오버라이딩
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        # 하나의 페이지 안에서 댓글들의 순서 역전
+        page = reversed(self.paginate_queryset(queryset))
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     @swagger_auto_schema(
         operation_description="해당 post의 comment들 가져오기",
@@ -294,24 +308,21 @@ class CommentListView(ListCreateAPIView):
     )
     def get(self, request, post_id=None):
         self.queryset = Comment.objects.filter(post=post_id, depth=0).order_by("-id")
-        return super().list(request)
+        return self.list(request)
 
     @swagger_auto_schema(
         operation_description="comment 생성하기",
         responses={201: CommentSerializer()},
-        manual_parameters=[jwt_header],
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                "content": openapi.Schema(type=openapi.TYPE_STRING),
-                "file": openapi.Schema(type=openapi.TYPE_STRING),
-                "parent": openapi.Schema(
-                    type=openapi.TYPE_NUMBER,
-                    description="parent comment ID",
-                    default=None,
-                ),
-            },
-        ),
+        manual_parameters=[
+            jwt_header,
+            openapi.Parameter(
+                name="file",
+                in_=openapi.IN_FORM,
+                type=openapi.TYPE_FILE,
+                required=False,
+            ),
+        ],
+        request_body=CommentSwaggerSerializer(),
     )
     @transaction.atomic
     def post(self, request, post_id=None):
