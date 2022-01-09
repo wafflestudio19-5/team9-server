@@ -31,13 +31,7 @@ from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema, no_body
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
-jwt_header = openapi.Parameter(
-    "Authorization",
-    openapi.IN_HEADER,
-    type=openapi.TYPE_STRING,
-    default="JWT [put token here]",
-    required=True,
-)
+
 
 
 class PostListView(ListCreateAPIView):
@@ -48,7 +42,6 @@ class PostListView(ListCreateAPIView):
 
     @swagger_auto_schema(
         operation_description="로그인된 유저의 friend들의 post들을 최신순으로 가져오기(현재는 모든 유저 가져오도록 설정되어 있음)",
-        manual_parameters=[jwt_header],
         responses={200: MainPostSerializer()},
     )
     def get(self, request):
@@ -64,7 +57,6 @@ class PostListView(ListCreateAPIView):
 
     @swagger_auto_schema(
         operation_description="Post 작성하기",
-        manual_parameters=[jwt_header],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -138,7 +130,6 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
 
     @swagger_auto_schema(
         operation_description="게시글 수정하기",
-        manual_parameters=[jwt_header],
         responses={200: PostSerializer()},
     )
     def put(self, request, pk=None):
@@ -215,7 +206,6 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
 
     @swagger_auto_schema(
         operation_description="게시글 삭제하기",
-        manual_parameters=[jwt_header],
     )
     def delete(self, request, pk=None):
 
@@ -235,7 +225,6 @@ class PostLikeView(GenericAPIView):
     @swagger_auto_schema(
         operation_description="게시물 좋아요하기",
         request_body=no_body,
-        manual_parameters=[jwt_header],
     )
     def put(self, request, post_id=None):
         user = request.user
@@ -281,7 +270,6 @@ class PostLikeView(GenericAPIView):
     @swagger_auto_schema(
         operation_description="해당 post의 좋아요 개수, 좋아요 한 유저 가져오기",
         responses={200: PostLikeSerializer()},
-        manual_parameters=[jwt_header],
     )
     def get(self, request, post_id=None):
         post = get_object_or_404(self.queryset, pk=post_id)
@@ -310,7 +298,6 @@ class CommentListView(ListCreateAPIView):
     @swagger_auto_schema(
         operation_description="해당 post의 comment들 가져오기",
         responses={200: CommentListSerializer()},
-        manual_parameters=[jwt_header],
     )
     def get(self, request, post_id=None):
         self.queryset = Comment.objects.filter(post=post_id, depth=0).order_by("-id")
@@ -320,7 +307,6 @@ class CommentListView(ListCreateAPIView):
         operation_description="comment 생성하기",
         responses={201: CommentSerializer()},
         manual_parameters=[
-            jwt_header,
             openapi.Parameter(
                 name="file",
                 in_=openapi.IN_FORM,
@@ -372,7 +358,6 @@ class CommentLikeView(GenericAPIView):
     @swagger_auto_schema(
         operation_description="comment 좋아요하기",
         request_body=no_body,
-        manual_parameters=[jwt_header],
     )
     def put(self, request, post_id=None, comment_id=None):
         user = request.user
@@ -412,7 +397,6 @@ class CommentLikeView(GenericAPIView):
     @swagger_auto_schema(
         operation_description="해당 comment의 좋아요 개수, 좋아요 한 유저 가져오기",
         responses={200: CommentLikeSerializer()},
-        manual_parameters=[jwt_header],
     )
     def get(self, request, post_id=None, comment_id=None):
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
@@ -484,7 +468,6 @@ class NoticeView(GenericAPIView):
     @swagger_auto_schema(
         operation_description="알림 읽기",
         responses={200: NoticelistSerializer()},
-        manual_parameters=[jwt_header],
     )
     def get(self, request, notice_id=None):
         notice = get_object_or_404(request.user.notices, id=notice_id)
@@ -497,7 +480,6 @@ class NoticeView(GenericAPIView):
 
     @swagger_auto_schema(
         operation_description="알림 삭제하기",
-        manual_parameters=[jwt_header],
     )
     def delete(self, request, notice_id=None):
 
@@ -515,7 +497,6 @@ class NoticeListView(ListAPIView):
     @swagger_auto_schema(
         operation_description="알림 목록 불러오기",
         responses={200: NoticelistSerializer(many=True)},
-        manual_parameters=[jwt_header],
     )
     def get(self, request):
         notices = request.user.notices.all()
