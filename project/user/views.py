@@ -219,7 +219,7 @@ class UserSearchListView(ListAPIView):
                 openapi.IN_QUERY,
                 description="search key",
                 type=openapi.TYPE_STRING,
-                required=True
+                required=True,
             ),
         ],
         responses={200: UserMutualFriendsSerializer(many=True)},
@@ -227,7 +227,9 @@ class UserSearchListView(ListAPIView):
     def get(self, request):
         search_key = request.GET.get("q")
         if not search_key:
-            return Response(status=status.HTTP_400_BAD_REQUEST, data="search key를 입력해주세요")
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="search key를 입력해주세요"
+            )
         self.queryset = User.objects.filter(username__icontains=search_key)
         return super().list(request)
 
