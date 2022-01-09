@@ -13,6 +13,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     subposts = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField()
+    author = serializers.SerializerMethodField()
 
     class Meta:
 
@@ -32,7 +33,7 @@ class PostSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
 
         mainpost = validated_data.get("mainpost", None)
-        author = validated_data["author"]
+        author = self.context["author"]
         content = validated_data.get("content", "")
 
         if mainpost:
@@ -68,6 +69,9 @@ class PostSerializer(serializers.ModelSerializer):
             return True
 
         return False
+
+    def get_author(self, post):
+        return UserSerializer(post.author).data
 
 
 def format_time(time):

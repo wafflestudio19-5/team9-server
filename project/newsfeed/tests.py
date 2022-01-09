@@ -482,7 +482,7 @@ class NewsFeedTestCase(TestCase):
         data = response.json()
 
         self.assertEqual(content, data["content"])
-        self.assertEqual(self.test_user.id, data["author"])
+        self.assertEqual(self.test_user.id, data["author"]["id"])
         self.assertEqual(1, len(data["subposts"]))
         post_id = data["id"]
         self.assertEqual(post_id, data["subposts"][0]["mainpost"])
@@ -677,7 +677,6 @@ class NewsFeedTestCase(TestCase):
 
         # 파일 추가
         data = {
-            "author": self.test_user.id,
             "content": "메인 포스트입니다. (수정됨)",
             "subposts": ["두번째 포스트입니다. (수정됨)", "세번째 포스트입니다. (수정됨)", "네번째 포스트입니다."],
             "file": [test_image, test_image, test_image],
@@ -705,7 +704,6 @@ class NewsFeedTestCase(TestCase):
 
         # 파일 삭제와 추가 동시에 (2장 제거, 3장 추가)
         data = {
-            "author": self.test_user.id,
             "content": "메인 포스트입니다. (수정됨)",
             "subposts": [
                 "두번째 포스트입니다. (수정됨)",
@@ -749,7 +747,6 @@ class NewsFeedTestCase(TestCase):
 
         # 파일 있으면 content 비워져 있어도 200
         data = {
-            "author": self.test_user.id,
             "content": "",
             "subposts": ["", "", "", ""],
             "file": [test_image, test_image, test_image, test_image],
@@ -773,7 +770,6 @@ class NewsFeedTestCase(TestCase):
 
         # subposts와 files의 개수가 다르면 400
         data = {
-            "author": self.test_user.id,
             "content": "메인 포스트입니다. (수정됨)",
             "subposts": ["네번째 포스트입니다.", "다섯번째 포스트입니다.", "여섯번째 포스트입니다.", "일곱번째 포스트입니다."],
             "file": [test_image, test_image, test_image, test_image, test_image],
@@ -790,7 +786,6 @@ class NewsFeedTestCase(TestCase):
 
         # subposts_id 개수가 subposts들과 다르면 400
         data = {
-            "author": self.test_user.id,
             "content": "메인 포스트입니다. (수정됨)",
             "subposts": ["네번째 포스트입니다.", "다섯번째 포스트입니다.", "여섯번째 포스트입니다.", "일곱번째 포스트입니다."],
             "file": [test_image, test_image, test_image, test_image],
@@ -807,7 +802,6 @@ class NewsFeedTestCase(TestCase):
 
         # subposts_id 중 기존 subposts가 아닌 것이 있으면 404
         data = {
-            "author": self.test_user.id,
             "content": "메인 포스트입니다. (수정됨)",
             "subposts": ["네번째 포스트입니다.", "다섯번째 포스트입니다.", "여섯번째 포스트입니다.", "일곱번째 포스트입니다."],
             "file": [test_image, test_image, test_image, test_image],
