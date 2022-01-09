@@ -939,6 +939,9 @@ class FriendTestCase(TestCase):
         for sender in cls.senders:
             FriendRequestFactory.create(sender=sender, receiver=cls.test_user)
 
+        cls.receiver = UserFactory.create()
+        FriendRequestFactory.create(sender=cls.test_user, receiver=cls.receiver)
+
         cls.test_stranger = UserFactory.create()
 
     def test_get_friend_request(self):
@@ -1006,6 +1009,16 @@ class FriendTestCase(TestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 자신이 이미 친구 요청을 보낸 대상에게 다시 친구 요청
+        response = self.client.post(
+            "/api/v1/friend/request/",
+            data={"receiver": self.receiver.id},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
         # 유효하지 않은 유저 id에 친구 요청
         response = self.client.post(
             "/api/v1/friend/request/",

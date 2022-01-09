@@ -297,9 +297,7 @@ class FriendRequestCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         sender = validated_data.get("sender")
         receiver = validated_data.get("receiver")
-        friend_request, is_created = FriendRequest.objects.update_or_create(
-            sender=sender, receiver=receiver, defaults={"created": datetime.now()}
-        )
+        friend_request = FriendRequest.objects.create(sender=sender, receiver=receiver)
         return friend_request
 
     def validate(self, data):
@@ -308,11 +306,11 @@ class FriendRequestCreateSerializer(serializers.ModelSerializer):
         if sender.friends.filter(pk=receiver.id).exists():
             raise serializers.ValidationError("이미 친구입니다.")
         if (
-            FriendRequest.objects.all()
-            .filter(sender=receiver, receiver=sender)
-            .exists()
+            sender.received_friend_request.filter(sender=receiver).exists()
         ):
             raise serializers.ValidationError("이 유저에게 이미 친구 요청을 받았습니다.")
+        if sender.sent_friend_request.filter(receiver=receiver).exists():
+            raise serializers.ValidationError("이미 이 유저에게 친구 요청을 보냈습니다.")
 
         if sender == receiver:
             raise serializers.ValidationError("자신에게 친구 요청을 보낼 수 없습니다.")
