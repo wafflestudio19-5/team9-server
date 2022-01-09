@@ -32,8 +32,6 @@ from drf_yasg.utils import swagger_auto_schema, no_body
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 
-
-
 class PostListView(ListCreateAPIView):
 
     serializer_class = MainPostSerializer

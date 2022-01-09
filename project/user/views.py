@@ -48,9 +48,6 @@ from newsfeed.views import NoticeCreate
 User = get_user_model()
 
 
-
-
-
 class UserSignUpView(APIView):
     permission_classes = (permissions.AllowAny,)
 

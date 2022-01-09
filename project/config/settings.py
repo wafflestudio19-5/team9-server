@@ -178,16 +178,17 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "user.User"
 
 # Swagger Configurations
-SWAGGER_SETTINGS = {"USE_SESSION_AUTH": False,
-                    'SECURITY_DEFINITIONS': {
-                          'Bearer': {
-                                'type': 'apiKey',
-                                'name': 'Authorization',
-                                'in': 'header',
-                                'description': "로그인하여 받은 token을 `JWT {token}` 형식으로 입력해주세요."
-                          }
-                       }
-                    }
+SWAGGER_SETTINGS = {
+    "USE_SESSION_AUTH": False,
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "로그인하여 받은 token을 `JWT {token}` 형식으로 입력해주세요.",
+        }
+    },
+}
 
 # S3 설정을 위한 변수
 # AWS_xxx 의 변수들은 aws-S3, boto3 모듈을 위한 변수들이다.
