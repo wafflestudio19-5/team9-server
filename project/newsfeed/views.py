@@ -81,10 +81,9 @@ class PostListView(ListCreateAPIView):
         if files:
             context["isFile"] = True
 
-        data = request.data.copy()
-        data["author"] = user.id
+        context["author"] = user
 
-        serializer = PostSerializer(data=data, context=context)
+        serializer = PostSerializer(data=request.data, context=context)
 
         serializer.is_valid(raise_exception=True)
         mainpost = serializer.save()
@@ -96,7 +95,6 @@ class PostListView(ListCreateAPIView):
                 if len(contents) > i:
                     serializer = PostSerializer(
                         data={
-                            "author": user.id,
                             "content": contents[i],
                             "mainpost": mainpost.id,
                         },
@@ -105,7 +103,6 @@ class PostListView(ListCreateAPIView):
                 else:
                     serializer = PostSerializer(
                         data={
-                            "author": user.id,
                             "mainpost": mainpost.id,
                         },
                         context=context,
@@ -179,11 +176,10 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
                 # 파일 추가 업로드
                 serializer = PostSerializer(
                     data={
-                        "author": user.id,
                         "content": contents[i],
                         "mainpost": post.id,
                     },
-                    context={"isFile": True},
+                    context={"isFile": True, "author": user},
                 )
                 serializer.is_valid(raise_exception=True)
                 subpost = serializer.save()
