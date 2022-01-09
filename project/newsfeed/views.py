@@ -216,6 +216,11 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
             )
         return super().destroy(request, pk=pk)
 
+    # 부모의 patch 메서드를 drf-yasg가 읽지 않게 오버리이딩
+    @swagger_auto_schema(auto_schema=None)
+    def patch(self, request, *args, **kwargs):
+        return Response(status.HTTP_204_NO_CONTENT)
+
 
 class PostLikeView(GenericAPIView):
     serializer_class = PostSerializer
