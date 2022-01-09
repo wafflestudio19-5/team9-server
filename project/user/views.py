@@ -22,7 +22,6 @@ from drf_yasg import openapi
 from config.settings import get_secret
 from user.models import KakaoId, Company, University, FriendRequest
 from rest_framework.viewsets import GenericViewSet
-from newsfeed.views import jwt_header
 from user.models import KakaoId, FriendRequest
 from user.pagination import UserPagination
 from user.serializers import (
@@ -47,15 +46,6 @@ import uuid
 from newsfeed.views import NoticeCreate
 
 User = get_user_model()
-
-
-jwt_header = openapi.Parameter(
-    "Authorization",
-    openapi.IN_HEADER,
-    type=openapi.TYPE_STRING,
-    default="JWT [put token here]",
-    required=True,
-)
 
 
 class UserSignUpView(APIView):
@@ -117,7 +107,6 @@ class UserFriendRequestView(ListCreateAPIView):
     @swagger_auto_schema(
         operation_description="친구 요청 목록 불러오기",
         responses={200: FriendRequestCreateSerializer(many=True)},
-        manual_parameters=[jwt_header],
     )
     def get(self, request):
         self.queryset = self.queryset.filter(receiver=request.user)
@@ -126,7 +115,6 @@ class UserFriendRequestView(ListCreateAPIView):
     @swagger_auto_schema(
         operation_description="친구 요청 보내기",
         responses={201: FriendRequestCreateSerializer()},
-        manual_parameters=[jwt_header],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={"receiver": openapi.Schema(type=openapi.TYPE_NUMBER)},
@@ -147,7 +135,6 @@ class UserFriendRequestView(ListCreateAPIView):
 
     @swagger_auto_schema(
         operation_description="친구 요청 수락하기",
-        manual_parameters=[jwt_header],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -170,7 +157,6 @@ class UserFriendRequestView(ListCreateAPIView):
 
     @swagger_auto_schema(
         operation_description="친구 요청 삭제하기",
-        manual_parameters=[jwt_header],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -199,7 +185,6 @@ class UserFriendDeleteView(APIView):
 
     @swagger_auto_schema(
         operation_description="친구 삭제하기",
-        manual_parameters=[jwt_header],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -229,7 +214,6 @@ class UserSearchListView(ListAPIView):
     @swagger_auto_schema(
         operation_description="유저 검색하기",
         manual_parameters=[
-            jwt_header,
             openapi.Parameter(
                 "q",
                 openapi.IN_QUERY,
@@ -302,7 +286,6 @@ class KakaoConnectView(APIView):
 
     @swagger_auto_schema(
         operation_description="카카오 계정 연결하기",
-        manual_parameters=[jwt_header],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -348,7 +331,6 @@ class KakaoConnectView(APIView):
 
     @swagger_auto_schema(
         operation_description="카카오 계정 연결 해제하기.",
-        manual_parameters=[jwt_header],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -386,7 +368,6 @@ class UserNewsfeedView(ListAPIView):
 
     @swagger_auto_schema(
         operation_description="선택된 유저가 작성한 게시글을 가져오기",
-        manual_parameters=[jwt_header],
         responses={200: MainPostSerializer()},
     )
     def get(self, request, user_id=None):
@@ -403,7 +384,6 @@ class UserFriendListView(ListAPIView):
 
     @swagger_auto_schema(
         operation_description="선택된 유저의 친구들을 가져오기",
-        manual_parameters=[jwt_header],
         responses={200: UserSerializer()},
     )
     def get(self, request, user_id=None):
@@ -420,7 +400,6 @@ class UserProfileView(RetrieveUpdateAPIView):
 
     @swagger_auto_schema(
         operation_description="유저의 프로필 정보 가져오기",
-        manual_parameters=[jwt_header],
         responses={200: UserProfileSerializer()},
     )
     def get(self, request, pk=None):
@@ -429,7 +408,6 @@ class UserProfileView(RetrieveUpdateAPIView):
     @swagger_auto_schema(
         operation_description="프로필 정보 편집하기",
         manual_parameters=[
-            jwt_header,
             openapi.Parameter(
                 name="profile_image",
                 in_=openapi.IN_FORM,
@@ -473,7 +451,6 @@ class CompanyCreateView(CreateAPIView):
 
     @swagger_auto_schema(
         operation_description="회사 정보 생성하기",
-        manual_parameters=[jwt_header],
         responses={200: CompanySerializer()},
     )
     def post(self, request):
@@ -494,7 +471,6 @@ class CompanyView(RetrieveUpdateDestroyAPIView):
 
     @swagger_auto_schema(
         operation_description="회사 정보 가져오기",
-        manual_parameters=[jwt_header],
         responses={200: CompanySerializer()},
     )
     def get(self, request, pk=None):
@@ -502,7 +478,6 @@ class CompanyView(RetrieveUpdateDestroyAPIView):
 
     @swagger_auto_schema(
         operation_description="회사 정보 수정하기",
-        manual_parameters=[jwt_header],
         responses={200: CompanySerializer()},
     )
     def put(self, request, pk=None):
@@ -515,7 +490,6 @@ class CompanyView(RetrieveUpdateDestroyAPIView):
 
     @swagger_auto_schema(
         operation_description="회사 정보 삭제하기",
-        manual_parameters=[jwt_header],
     )
     def delete(self, request, pk=None):
         company = get_object_or_404(Company, pk=pk)
@@ -538,7 +512,6 @@ class UniversityCreateView(CreateAPIView):
 
     @swagger_auto_schema(
         operation_description="대학 정보 수정하기",
-        manual_parameters=[jwt_header],
         responses={200: UniversitySerializer()},
     )
     def post(self, request):
@@ -559,7 +532,6 @@ class UniversityView(RetrieveUpdateDestroyAPIView):
 
     @swagger_auto_schema(
         operation_description="대학 정보 가져오기",
-        manual_parameters=[jwt_header],
         responses={200: UniversitySerializer()},
     )
     def get(self, request, pk=None):
@@ -567,7 +539,6 @@ class UniversityView(RetrieveUpdateDestroyAPIView):
 
     @swagger_auto_schema(
         operation_description="대학 정보 수정하기",
-        manual_parameters=[jwt_header],
         responses={200: UniversitySerializer()},
     )
     def put(self, request, pk=None):
@@ -580,7 +551,6 @@ class UniversityView(RetrieveUpdateDestroyAPIView):
 
     @swagger_auto_schema(
         operation_description="대학 정보 삭제하기",
-        manual_parameters=[jwt_header],
     )
     def delete(self, request, pk=None):
         university = get_object_or_404(University, pk=pk)
