@@ -21,6 +21,16 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+        
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r project/requirements.txt
+        
+    - name: Set Dummy secrets.json
+      run: |
+        cd project
+        python3 secret_gen.py
 
     - name: Set secret
       uses: microsoft/variable-substitution@v1 
@@ -32,12 +42,6 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       
-
-    - name: Install Dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r project/requirements.txt
-        
     - name: Setting up mysql
       run: |
         sudo /etc/init.d/mysql start
