@@ -447,7 +447,7 @@ class UserProfileView(RetrieveUpdateAPIView):
         return Response(status.HTTP_204_NO_CONTENT)
 
 
-class UserProfilePhotoView(APIView):
+class UserProfileImageView(APIView):
     serializer_class = UserProfileSerializer
     queryset = User.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
