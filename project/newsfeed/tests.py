@@ -280,8 +280,7 @@ class NoticeTestCase(TestCase):
         stranger_token = "JWT " + jwt_token_of(stranger)
 
         response = self.client.post(
-            "/api/v1/friend/request/",
-            data={"receiver": self.test_user.id},
+            f"/api/v1/friend/request/{self.test_user.id}/",
             content_type="application/json",
             HTTP_AUTHORIZATION=stranger_token,
         )
@@ -298,7 +297,7 @@ class NoticeTestCase(TestCase):
 
         # 친구수락
         response = self.client.put(
-            "/api/v1/friend/request/",
+            f"/api/v1/friend/request/{stranger.id}/",
             data={"sender": stranger.id},
             content_type="application/json",
             HTTP_AUTHORIZATION=self.user_token,
