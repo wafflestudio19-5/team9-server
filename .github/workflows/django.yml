@@ -30,7 +30,7 @@ jobs:
     - name: Set Dummy secrets.json
       run: |
         cd project
-        python3 secret_gen.pyet Dummy secrets.json
+        python3 secret_gen.py
 
     - name: Set secret
       uses: microsoft/variable-substitution@v1 
