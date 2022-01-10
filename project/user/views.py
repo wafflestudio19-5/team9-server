@@ -462,11 +462,11 @@ class UserProfileImageView(APIView):
             return Response(
                 status=status.HTTP_403_FORBIDDEN, data="다른 유저의 프로필을 고칠 수 없습니다."
             )
-        serializer = UserProfileImageSwaggerSerializer(request.data)
+        serializer = UserProfileImageSwaggerSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        if serializer.profile_image:
+        if serializer.data["profile_image"]:
             user.profile_image = None
-        if serializer.cover_image:
+        if serializer.data["cover_image"]:
             user.cover_image = None
         user.save()
         return Response(self.serializer_class(user).data, status.HTTP_200_OK)
