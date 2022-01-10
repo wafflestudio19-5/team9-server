@@ -412,19 +412,16 @@ class UserProfileView(RetrieveUpdateAPIView):
             openapi.Parameter(
                 name="profile_image",
                 in_=openapi.IN_FORM,
-                type=openapi.TYPE_STRING,
+                type=openapi.TYPE_FILE,
                 required=False,
-                description="아무 내용이나 넣기만 하면 프로필 이미지가 삭제됩니다.",
             ),
             openapi.Parameter(
                 name="cover_image",
                 in_=openapi.IN_FORM,
-                type=openapi.TYPE_STRING,
+                type=openapi.TYPE_FILE,
                 required=False,
-                description="아무 내용이나 넣기만 하면 커버 이미지가 삭제됩니다.",
             ),
         ],
-        request_body=UserPutSwaggerSerializer(),
         responses={200: UserProfileSerializer()},
     )
     def put(self, request, pk=None):
@@ -451,6 +448,7 @@ class UserProfileImageView(APIView):
     serializer_class = UserProfileSerializer
     queryset = User.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
+    parser_classes = parsers.MultiPartParser
 
     @swagger_auto_schema(
         operation_description="프로필/배경 사진 삭제하기",
@@ -458,16 +456,19 @@ class UserProfileImageView(APIView):
             openapi.Parameter(
                 name="profile_image",
                 in_=openapi.IN_FORM,
-                type=openapi.TYPE_FILE,
+                type=openapi.TYPE_STRING,
                 required=False,
+                description="아무 내용이나 넣기만 하면 프로필 이미지가 삭제됩니다.",
             ),
             openapi.Parameter(
                 name="cover_image",
                 in_=openapi.IN_FORM,
-                type=openapi.TYPE_FILE,
+                type=openapi.TYPE_STRING,
                 required=False,
+                description="아무 내용이나 넣기만 하면 커버 이미지가 삭제됩니다.",
             ),
         ],
+        request_body=UserPutSwaggerSerializer(),
         responses={200: UserProfileSerializer()},
     )
     def delete(self, request, pk=None):
