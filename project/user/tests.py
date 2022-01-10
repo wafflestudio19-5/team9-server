@@ -971,8 +971,7 @@ class FriendTestCase(TestCase):
         user = self.test_user
         user_token = "JWT " + jwt_token_of(user)
         response = self.client.post(
-            "/api/v1/friend/request/",
-            data={"receiver": self.test_stranger.id},
+            f"/api/v1/friend/request/{self.test_stranger.id}/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -985,8 +984,7 @@ class FriendTestCase(TestCase):
 
         # 자기 자신에게 친구 요청
         response = self.client.post(
-            "/api/v1/friend/request/",
-            data={"receiver": self.test_user.id},
+            f"/api/v1/friend/request/{self.test_user.id}/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -994,8 +992,7 @@ class FriendTestCase(TestCase):
 
         # 이미 친구인 유저에 친구 요청
         response = self.client.post(
-            "/api/v1/friend/request/",
-            data={"receiver": self.friends[0].id},
+            f"/api/v1/friend/request/{self.friends[0].id}/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -1003,8 +1000,7 @@ class FriendTestCase(TestCase):
 
         # 자신에게 이미 친구 요청을 보낸 유저에게 친구 요청
         response = self.client.post(
-            "/api/v1/friend/request/",
-            data={"receiver": self.senders[0].id},
+            f"/api/v1/friend/request/{self.senders[0].id}/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -1012,8 +1008,7 @@ class FriendTestCase(TestCase):
 
         # 자신이 이미 친구 요청을 보낸 대상에게 다시 친구 요청
         response = self.client.post(
-            "/api/v1/friend/request/",
-            data={"receiver": self.receiver.id},
+            f"/api/v1/friend/request/{self.receiver.id}/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -1021,20 +1016,18 @@ class FriendTestCase(TestCase):
 
         # 유효하지 않은 유저 id에 친구 요청
         response = self.client.post(
-            "/api/v1/friend/request/",
-            data={"receiver": -1},
+            f"/api/v1/friend/request/1000000/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_accept_friend_request(self):
         user = self.test_user
         user_token = "JWT " + jwt_token_of(user)
         sender = self.senders[0]
         response = self.client.put(
-            "/api/v1/friend/request/",
-            data={"sender": sender.id},
+            f"/api/v1/friend/request/{sender.id}/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -1042,10 +1035,9 @@ class FriendTestCase(TestCase):
         self.assertFalse((FriendRequest.objects.filter(sender=sender, receiver=user)))
         self.assertIn(sender, user.friends.all())
 
-        # sender에 해당하는 친구 요청이 없는 경우
+        # 해당 유저에게 받은 요청이 없는 경우
         response = self.client.put(
-            "/api/v1/friend/request/",
-            data={"sender": self.test_stranger.id},
+            f"/api/v1/friend/request/{self.test_stranger.id}/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -1056,30 +1048,20 @@ class FriendTestCase(TestCase):
         user_token = "JWT " + jwt_token_of(user)
         sender = self.senders[0]
         response = self.client.delete(
-            "/api/v1/friend/request/",
-            data={"sender": sender.id, "receiver": user.id},
+            f"/api/v1/friend/request/{sender.id}/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse((FriendRequest.objects.filter(sender=sender, receiver=user)))
 
-        # sender에 해당하는 친구 요청이 없는 경우
+        # 상대방과 주거나 받은 친구 요청이 없는 경우
         response = self.client.delete(
-            "/api/v1/friend/request/",
-            data={"sender": self.test_stranger.id, "receiver": user.id},
+            f"/api/v1/friend/request/{self.test_stranger.id}/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        # 자신이 sender 혹은 receiver가 아닌 경우
-        response = self.client.delete(
-            "/api/v1/friend/request/",
-            data={"sender": sender.id, "receiver": self.test_stranger.id},
-            content_type="application/json",
-            HTTP_AUTHORIZATION=user_token,
-        )
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_delete_friend(self):
         user = self.test_user

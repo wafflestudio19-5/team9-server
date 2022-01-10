@@ -99,7 +99,7 @@ class UserLogoutView(APIView):
         return Response("로그아웃 되었습니다.", status=status.HTTP_200_OK)
 
 
-class UserFriendRequestView(ListCreateAPIView):
+class UserFriendRequestListView(ListAPIView):
     serializer_class = FriendRequestCreateSerializer
     queryset = FriendRequest.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
@@ -112,67 +112,65 @@ class UserFriendRequestView(ListCreateAPIView):
         self.queryset = self.queryset.filter(receiver=request.user)
         return super().list(request)
 
+
+class UserFriendRequestView(APIView):
+    queryset = User.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+
     @swagger_auto_schema(
-        operation_description="친구 요청 보내기",
+        operation_description="해당 유저에게 친구 요청 보내기",
         responses={201: FriendRequestCreateSerializer()},
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={"receiver": openapi.Schema(type=openapi.TYPE_NUMBER)},
-        ),
     )
-    def post(self, request):
-        request.data["sender"] = request.user.id
-        serializer = self.serializer_class(data=request.data)
+    def post(self, request, pk=None):
+        sender = request.user
+        receiver = get_object_or_404(self.queryset, pk=pk)
+
+        data = {"sender": sender.id, "receiver": receiver.id}
+        serializer = FriendRequestCreateSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         NoticeCreate(
-            user=request.user,
+            user=sender,
             content="FriendRequest",
-            receiver=request.data["receiver"],
+            receiver=receiver.id,
         )
 
         return Response(status=status.HTTP_201_CREATED, data=serializer.data)
 
     @swagger_auto_schema(
-        operation_description="친구 요청 수락하기",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                "sender": openapi.Schema(type=openapi.TYPE_NUMBER),
-            },
-        ),
+        operation_description="해당 유저가 보낸 친구 요청 수락하기",
         responses={200: "수락 완료되었습니다."},
     )
-    def put(self, request):
-        request.data["receiver"] = request.user.id
-        serializer = FriendRequestAcceptDeleteSerializer(data=request.data)
+    def put(self, request, pk=None):
+        sender = get_object_or_404(self.queryset, pk=pk)
+        receiver = request.user
+
+        data = {"sender": sender.id, "receiver": receiver.id}
+        serializer = FriendRequestAcceptDeleteSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.accept(serializer.validated_data)
 
-        NoticeCreate(
-            user=request.user, content="FriendAccept", receiver=request.data["sender"]
-        )
+        NoticeCreate(user=receiver, content="FriendAccept", receiver=sender.id)
 
         return Response(status=status.HTTP_200_OK, data="수락 완료되었습니다.")
 
     @swagger_auto_schema(
-        operation_description="친구 요청 삭제하기",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                "sender": openapi.Schema(type=openapi.TYPE_NUMBER),
-                "receiver": openapi.Schema(type=openapi.TYPE_NUMBER),
-            },
-        ),
+        operation_description="해당 유저에게 자신이 보냈거나 받은 친구 요청 삭제하기",
         responses={204: "삭제 완료되었습니다."},
     )
-    def delete(self, request):
-        user = request.user
-        if (user.id != request.data.get("sender")) and (
-            user.id != request.data.get("receiver")
-        ):
-            return Response(status=status.HTTP_403_FORBIDDEN, data="권한이 없습니다.")
-        serializer = FriendRequestAcceptDeleteSerializer(data=request.data)
+    def delete(self, request, pk=None):
+        target_user = get_object_or_404(self.queryset, pk=pk)
+
+        if request.user.sent_friend_request.filter(receiver=target_user):
+            data = {"sender": request.user.id, "receiver": target_user.id}
+        elif request.user.received_friend_request.filter(sender=target_user):
+            data = {"sender": target_user.id, "receiver": request.user.id}
+        else:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="해당 유저에게 보내거나 받은 친구 요청이 없습니다."
+            )
+
+        serializer = FriendRequestAcceptDeleteSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.delete(serializer.validated_data)
 
