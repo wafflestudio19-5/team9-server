@@ -37,6 +37,7 @@ from user.serializers import (
     UserMutualFriendsSerializer,
     UserPutSwaggerSerializer,
     UserLoginSwaggerSerializer,
+    UserProfileImageSwaggerSerializer,
 )
 from newsfeed.serializers import MainPostSerializer
 from newsfeed.models import Post
@@ -422,6 +423,7 @@ class UserProfileView(RetrieveUpdateAPIView):
                 required=False,
             ),
         ],
+        request_body=UserPutSwaggerSerializer(),
         responses={200: UserProfileSerializer()},
     )
     def put(self, request, pk=None):
@@ -448,27 +450,10 @@ class UserProfileImageView(APIView):
     serializer_class = UserProfileSerializer
     queryset = User.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
-    parser_classes = parsers.MultiPartParser
 
     @swagger_auto_schema(
-        operation_description="프로필/배경 사진 삭제하기",
-        manual_parameters=[
-            openapi.Parameter(
-                name="profile_image",
-                in_=openapi.IN_FORM,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description="아무 내용이나 넣기만 하면 프로필 이미지가 삭제됩니다.",
-            ),
-            openapi.Parameter(
-                name="cover_image",
-                in_=openapi.IN_FORM,
-                type=openapi.TYPE_STRING,
-                required=False,
-                description="아무 내용이나 넣기만 하면 커버 이미지가 삭제됩니다.",
-            ),
-        ],
-        request_body=UserPutSwaggerSerializer(),
+        operation_description="True값으로 주어진 프로필/배경 사진 삭제하기",
+        request_body=UserProfileImageSwaggerSerializer(),
         responses={200: UserProfileSerializer()},
     )
     def delete(self, request, pk=None):
@@ -477,9 +462,11 @@ class UserProfileImageView(APIView):
             return Response(
                 status=status.HTTP_403_FORBIDDEN, data="다른 유저의 프로필을 고칠 수 없습니다."
             )
-        if "profile_image" in request.data:
+        profile_image = request.data.get("profile_image")
+        if profile_image:
             user.profile_image = None
-        if "cover_image" in request.data:
+        cover_image = request.data.get("cover_image")
+        if cover_image:
             user.cover_image = None
         user.save()
         return Response(self.serializer_class(user).data, status.HTTP_200_OK)
