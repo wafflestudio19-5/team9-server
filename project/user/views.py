@@ -150,9 +150,7 @@ class UserFriendRequestView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.accept(serializer.validated_data)
 
-        NoticeCreate(
-            user=receiver, content="FriendAccept", receiver=sender.id
-        )
+        NoticeCreate(user=receiver, content="FriendAccept", receiver=sender.id)
 
         return Response(status=status.HTTP_200_OK, data="수락 완료되었습니다.")
 
@@ -168,7 +166,9 @@ class UserFriendRequestView(APIView):
         elif request.user.received_friend_request.filter(sender=target_user):
             data = {"sender": target_user.id, "receiver": request.user.id}
         else:
-            return Response(status=status.HTTP_400_BAD_REQUEST, data="해당 유저에게 보내거나 받은 친구 요청이 없습니다.")
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST, data="해당 유저에게 보내거나 받은 친구 요청이 없습니다."
+            )
 
         serializer = FriendRequestAcceptDeleteSerializer(data=data)
         serializer.is_valid(raise_exception=True)

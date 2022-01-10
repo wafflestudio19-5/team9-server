@@ -305,9 +305,7 @@ class FriendRequestCreateSerializer(serializers.ModelSerializer):
         sender = data["sender"]
         if sender.friends.filter(pk=receiver.id).exists():
             raise serializers.ValidationError("이미 친구입니다.")
-        if (
-            sender.received_friend_request.filter(sender=receiver).exists()
-        ):
+        if sender.received_friend_request.filter(sender=receiver).exists():
             raise serializers.ValidationError("이 유저에게 이미 친구 요청을 받았습니다.")
         if sender.sent_friend_request.filter(receiver=receiver).exists():
             raise serializers.ValidationError("이미 이 유저에게 친구 요청을 보냈습니다.")
