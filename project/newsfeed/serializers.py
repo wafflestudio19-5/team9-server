@@ -14,6 +14,7 @@ class PostSerializer(serializers.ModelSerializer):
     subposts = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField()
     author = serializers.SerializerMethodField()
+    comments = serializers.SerializerMethodField()
 
     class Meta:
 
@@ -25,6 +26,7 @@ class PostSerializer(serializers.ModelSerializer):
             "content",
             "mainpost",
             "subposts",
+            "comments",
             "likes",
             "is_liked",
         )
@@ -72,6 +74,9 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_author(self, post):
         return UserSerializer(post.author).data
+
+    def get_comments(self, post):
+        return Comment.objects.filter(post=post).count()
 
 
 def format_time(time):
