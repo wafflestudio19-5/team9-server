@@ -412,14 +412,16 @@ class UserProfileView(RetrieveUpdateAPIView):
             openapi.Parameter(
                 name="profile_image",
                 in_=openapi.IN_FORM,
-                type=openapi.TYPE_FILE,
+                type=openapi.TYPE_STRING,
                 required=False,
+                description="아무 내용이나 넣기만 하면 프로필 이미지가 삭제됩니다.",
             ),
             openapi.Parameter(
                 name="cover_image",
                 in_=openapi.IN_FORM,
-                type=openapi.TYPE_FILE,
+                type=openapi.TYPE_STRING,
                 required=False,
+                description="아무 내용이나 넣기만 하면 커버 이미지가 삭제됩니다.",
             ),
         ],
         request_body=UserPutSwaggerSerializer(),
@@ -443,6 +445,43 @@ class UserProfileView(RetrieveUpdateAPIView):
     @swagger_auto_schema(auto_schema=None)
     def patch(self, request, *args, **kwargs):
         return Response(status.HTTP_204_NO_CONTENT)
+
+
+class UserProfilePhotoView(APIView):
+    serializer_class = UserProfileSerializer
+    queryset = User.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+
+    @swagger_auto_schema(
+        operation_description="프로필/배경 사진 삭제하기",
+        manual_parameters=[
+            openapi.Parameter(
+                name="profile_image",
+                in_=openapi.IN_FORM,
+                type=openapi.TYPE_FILE,
+                required=False,
+            ),
+            openapi.Parameter(
+                name="cover_image",
+                in_=openapi.IN_FORM,
+                type=openapi.TYPE_FILE,
+                required=False,
+            ),
+        ],
+        responses={200: UserProfileSerializer()},
+    )
+    def delete(self, request, pk=None):
+        user = get_object_or_404(User, pk=pk)
+        if user != request.user:
+            return Response(
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 프로필을 고칠 수 없습니다."
+            )
+        if "profile_image" in request.data:
+            user.profile_image = None
+        if "cover_image" in request.data:
+            user.cover_image = None
+        user.save()
+        return Response(self.serializer_class(user).data, status.HTTP_200_OK)
 
 
 class CompanyCreateView(CreateAPIView):
