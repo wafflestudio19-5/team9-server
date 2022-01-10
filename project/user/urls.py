@@ -16,7 +16,7 @@ from .views import (
     CompanyCreateView,
     CompanyView,
     UniversityCreateView,
-    UniversityView,
+    UniversityView, UserFriendRequestListView,
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -53,8 +53,11 @@ urlpatterns = [
         "user/university/<int:pk>/", UniversityView.as_view(), name="university"
     ),  # /api/v1/user/university/{university_id}/
     path(
-        "friend/request/", UserFriendRequestView.as_view(), name="friend_request"
+        "friend/request/", UserFriendRequestListView.as_view(), name="friend_request_list"
     ),  # /api/v1/friend/request/
+    path(
+        "friend/request/<int:pk>/", UserFriendRequestView.as_view(), name="friend_request"
+    ),
     path("friend/", UserFriendDeleteView.as_view(), name="friend"),  # /api/v1/friend/
     path("search/", UserSearchListView.as_view(), name="search"),  # /api/v1/search/
 ]
