@@ -240,6 +240,11 @@ class UserLoginSwaggerSerializer(serializers.Serializer):
     token = serializers.CharField()
 
 
+class UserProfileImageSwaggerSerializer(serializers.Serializer):
+    profile_image = serializers.BooleanField(required=False)
+    cover_image = serializers.BooleanField(required=False)
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
 
     company = CompanySerializer(many=True, read_only=True)

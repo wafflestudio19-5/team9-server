@@ -37,6 +37,7 @@ from user.serializers import (
     UserMutualFriendsSerializer,
     UserPutSwaggerSerializer,
     UserLoginSwaggerSerializer,
+    UserProfileImageSwaggerSerializer,
 )
 from newsfeed.serializers import MainPostSerializer
 from newsfeed.models import Post
@@ -443,6 +444,32 @@ class UserProfileView(RetrieveUpdateAPIView):
     @swagger_auto_schema(auto_schema=None)
     def patch(self, request, *args, **kwargs):
         return Response(status.HTTP_204_NO_CONTENT)
+
+
+class UserProfileImageView(APIView):
+    serializer_class = UserProfileSerializer
+    queryset = User.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
+
+    @swagger_auto_schema(
+        operation_description="True값으로 주어진 프로필/배경 사진 삭제하기",
+        request_body=UserProfileImageSwaggerSerializer(),
+        responses={200: UserProfileSerializer()},
+    )
+    def delete(self, request, pk=None):
+        user = get_object_or_404(User, pk=pk)
+        if user != request.user:
+            return Response(
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 프로필을 고칠 수 없습니다."
+            )
+        serializer = UserProfileImageSwaggerSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if serializer.data["profile_image"]:
+            user.profile_image = None
+        if serializer.data["cover_image"]:
+            user.cover_image = None
+        user.save()
+        return Response(self.serializer_class(user).data, status.HTTP_200_OK)
 
 
 class CompanyCreateView(CreateAPIView):

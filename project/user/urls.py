@@ -13,6 +13,7 @@ from .views import (
     UserFriendListView,
     UserSearchListView,
     UserProfileView,
+    UserProfileImageView,
     CompanyCreateView,
     CompanyView,
     UniversityCreateView,
@@ -41,6 +42,11 @@ urlpatterns = [
     path(
         "user/<int:pk>/profile/", UserProfileView.as_view(), name="user_profile"
     ),  # /api/v1/user/{user_id}/profile/
+    path(
+        "user/<int:pk>/image/",
+        UserProfileImageView.as_view(),
+        name="user_profile_image",
+    ),  # /api/v1/user/{user_id}/image/
     path(
         "user/company/", CompanyCreateView.as_view(), name="company_create"
     ),  # /api/v1/user/company/

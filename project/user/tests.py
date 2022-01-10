@@ -922,6 +922,54 @@ class UserProfileTestCase(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+    def test_delete_profile_image(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.delete(
+            f"/api/v1/user/{self.test_user.id}/image/",
+            data={"profile_image": "True", "cover_image": "True"},
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["profile_image"], None)
+        self.assertEqual(data["cover_image"], None)
+
+    def test_delete_profile_image_false(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.delete(
+            f"/api/v1/user/{self.test_user.id}/image/",
+            data={"profile_image": "True", "cover_image": "False"},
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["profile_image"], None)
+        self.assertNotEqual(data["cover_image"], None)
+
+    def test_delete_profile_image_partial(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.delete(
+            f"/api/v1/user/{self.test_user.id}/image/",
+            data={"profile_image": "True"},
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["profile_image"], None)
+        self.assertNotEqual(data["cover_image"], None)
+
+    def test_delete_image(self):
+        response = self.client.delete(
+            f"/api/v1/user/{self.test_user.id}/image/",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        friend_token = "JWT " + jwt_token_of(self.test_friend)
+        response = self.client.delete(
+            f"/api/v1/user/{self.test_user.id}/image/",
+            HTTP_AUTHORIZATION=friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
 
 class FriendRequestFactory(DjangoModelFactory):
     class Meta:
