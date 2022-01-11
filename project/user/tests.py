@@ -765,7 +765,8 @@ class UserProfileTestCase(APITestCase):
         post_data["leave_date"] = ""
         response = self.client.put(
             f"/api/v1/user/company/{self.test_user.company.last().id}/",
-            data=post_data,
+            data=json.dumps(post_data),
+            content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -881,8 +882,8 @@ class UserProfileTestCase(APITestCase):
         user_token = "JWT " + jwt_token_of(self.test_user)
         self.university_data.pop("major")  # to check partial update
         major = self.test_user.university.last().major
-        response = self.client.post(
-            f"/api/v1/user/university/{self.test_user.university.last()}/",
+        response = self.client.put(
+            f"/api/v1/user/university/{self.test_user.university.last().id}/",
             data=self.university_data,
             HTTP_AUTHORIZATION=user_token,
         )
@@ -894,6 +895,31 @@ class UserProfileTestCase(APITestCase):
         self.assertEqual(data["join_date"], self.university_data["join_date"])
         self.assertEqual(data["graduate_date"], self.university_data["graduate_date"])
         self.assertEqual(data["is_active"], False)
+
+    def test_put_university_profile_delete_graduate_date(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        self.university_data.pop("major")  # to check partial update
+        major = self.test_user.university.last().major
+        university = self.test_user.university.last()
+        university.graduate_date = datetime.date(2021, 1, 1)
+        university.is_active = False
+        university.save()
+        post_data = self.university_data.copy()
+        post_data["graduate_date"] = ""
+        response = self.client.put(
+            f"/api/v1/user/university/{self.test_user.university.last().id}/",
+            data=json.dumps(post_data),
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["user"], self.test_user.id)
+        self.assertEqual(data["name"], post_data["name"])
+        self.assertEqual(data["major"], major)
+        self.assertEqual(data["join_date"], post_data["join_date"])
+        self.assertEqual(data["graduate_date"], None)
+        self.assertEqual(data["is_active"], True)
 
     def test_put_university_profile_unauthorized(self):
         response = self.client.put(
