@@ -184,6 +184,11 @@ class CompanySerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+    def to_internal_value(self, data):
+        if data.get("leave_date") == "":
+            data["leave_date"] = None
+        return super().to_internal_value(data)
+
 
 class UniversitySerializer(serializers.ModelSerializer):
     class Meta:
@@ -225,6 +230,11 @@ class UniversitySerializer(serializers.ModelSerializer):
         )
         instance.save()
         return instance
+
+    def to_internal_value(self, data):
+        if data.get("graduate_date") == "":
+            data["graduate_date"] = None
+        return super().to_internal_value(data)
 
 
 class UserPutSwaggerSerializer(serializers.Serializer):
