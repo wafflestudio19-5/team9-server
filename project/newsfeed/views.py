@@ -45,12 +45,11 @@ class PostListView(ListCreateAPIView):
     def get(self, request):
 
         user = request.user
-        self.queryset = Post.objects.filter(mainpost=None)
-        """
+
         self.queryset = Post.objects.filter(
             (Q(author__in=user.friends.all()) | Q(author=user)), mainpost=None
         )
-        """
+
         return super().list(request)
 
     @swagger_auto_schema(
@@ -236,7 +235,8 @@ class PostLikeView(GenericAPIView):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST, data="친구 혹은 자신의 게시글이 아닙니다."
             )
-        """  # 친구만 좋아요 할 수 있도록 하는 기능 해제
+        """
+        # 친구만 좋아요 할 수 있도록 하는 기능 해제
         # 이미 좋아요 한 게시물 -> 좋아요 취소, 관련 알림 삭제
         if post.likeusers.filter(id=user.id).exists():
             post.likeusers.remove(user)
@@ -332,7 +332,8 @@ class CommentListView(ListCreateAPIView):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST, data="친구 혹은 자신의 게시글이 아닙니다."
             )
-        """  # 친구만 댓글 달 수 있도록 하는 기능 해제
+        """
+        # 친구만 댓글 달 수 있도록 하는 기능 해제
         serializer = CommentSerializer(data=data, context={"user": user, "post": post})
         serializer.is_valid(raise_exception=True)
         comment = serializer.save()

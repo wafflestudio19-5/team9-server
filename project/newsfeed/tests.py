@@ -380,7 +380,6 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
 
-        """
         # 포스트의 개수
         self.assertEqual(len(data["results"]), 2)
 
@@ -422,7 +421,6 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(
             data["results"][0]["likes"], self.test_stranger.posts.last().likes
         )
-        """
 
         # 친구가 9명일 때 피드 게시글 개수
         user = self.users[0]
