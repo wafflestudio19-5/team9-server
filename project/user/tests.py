@@ -733,7 +733,7 @@ class UserProfileTestCase(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_put_company_profile_request(self):
+    def test_put_company_profile(self):
         user_token = "JWT " + jwt_token_of(self.test_user)
         self.company_data.pop("role")  # to check partial update
         role = self.test_user.company.last().role
@@ -752,6 +752,32 @@ class UserProfileTestCase(APITestCase):
         self.assertEqual(data["leave_date"], self.company_data["leave_date"])
         self.assertEqual(data["detail"], self.company_data["detail"])
         self.assertEqual(data["is_active"], False)
+
+    def test_put_company_profile_delete_leave_date(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        self.company_data.pop("role")  # to check partial update
+        role = self.test_user.company.last().role
+        company = self.test_user.company.last()
+        company.leave_date = datetime.date(2021, 1, 1)
+        company.is_active = False
+        company.save()
+        post_data = self.company_data.copy()
+        post_data["leave_date"] = ""
+        response = self.client.put(
+            f"/api/v1/user/company/{self.test_user.company.last().id}/",
+            data=post_data,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["user"], self.test_user.id)
+        self.assertEqual(data["name"], post_data["name"])
+        self.assertEqual(data["role"], role)
+        self.assertEqual(data["location"], post_data["location"])
+        self.assertEqual(data["join_date"], post_data["join_date"])
+        self.assertEqual(data["leave_date"], None)
+        self.assertEqual(data["detail"], post_data["detail"])
+        self.assertEqual(data["is_active"], True)
 
     def test_put_company_profile_bad_request(self):
         user_token = "JWT " + jwt_token_of(self.test_user)
