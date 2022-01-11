@@ -101,6 +101,10 @@ DATABASES = {
         "NAME": "toy_project",  # database name 변경
         "USER": "admin",
         "PASSWORD": "waffleteam9",
+        "OPTIONS": {
+            "charset": "utf8mb4",
+            "use_unicode": True,
+        },
     }
 }
 
