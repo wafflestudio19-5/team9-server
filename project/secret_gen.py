@@ -6,6 +6,6 @@ data = {
     "KAKAO_APP_KEY": "",
     "AWS_SECRET_ACCESS_KEY": "",
     "AWS_ACCESS_KEY_ID": "",
-    "DATABASE_HOST": "localhost"
+    "DATABASE_HOST": "localhost",
 }
 f.write(json.dumps(data))
