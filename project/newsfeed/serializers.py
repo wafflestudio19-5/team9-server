@@ -29,6 +29,7 @@ class PostSerializer(serializers.ModelSerializer):
             "comments",
             "likes",
             "is_liked",
+            "scope",
         )
         extra_kwargs = {"content": {"help_text": "무슨 생각을 하고 계신가요?"}}
 
@@ -37,13 +38,14 @@ class PostSerializer(serializers.ModelSerializer):
         mainpost = validated_data.get("mainpost", None)
         author = self.context["author"]
         content = validated_data.get("content", "")
+        scope = validated_data["scope"]
 
         if mainpost:
             post = Post.objects.create(
-                author=author, content=content, mainpost=mainpost
+                author=author, content=content, mainpost=mainpost, scope=scope
             )
         else:
-            post = Post.objects.create(author=author, content=content)
+            post = Post.objects.create(author=author, content=content, scope=scope)
 
         return post
 
@@ -51,10 +53,14 @@ class PostSerializer(serializers.ModelSerializer):
 
         content = data.get("content", None)
         isFile = self.context["isFile"]
+        scope = data["scope"]
 
         if not isFile:
             if not content:
                 raise serializers.ValidationError("내용을 입력해주세요.")
+
+        if scope > 3 or scope < 1:
+            raise serializers.ValidationError("공개범위는 1, 2, 3 중에 선택해주세요.")
 
         return data
 
@@ -133,6 +139,7 @@ class MainPostSerializer(serializers.ModelSerializer):
             "posted_at",
             "comments",
             "is_liked",
+            "scope",
         )
 
     def get_posted_at(self, post):
@@ -176,6 +183,7 @@ class SubPostSerializer(serializers.ModelSerializer):
             "posted_at",
             "comments",
             "is_liked",
+            "scope",
         )
 
     def get_posted_at(self, post):

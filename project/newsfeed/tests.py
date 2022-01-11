@@ -464,7 +464,6 @@ class NewsFeedTestCase(TestCase):
             content_type="image/jpeg",
         )
         data = {
-            "author": self.test_user.id,
             "content": content,
             "subposts": ["첫번째 사진입니다."],
             "file": test_image,
@@ -499,7 +498,6 @@ class NewsFeedTestCase(TestCase):
 
         # File이 없는데 Content 내용이 없을 경우 오류, File이 하나라도 있으면 content 없어도 댐
         data = {
-            "author": self.test_user.id,
             "subposts": ["첫번째 사진입니다."],
             "file": test_image,
         }
@@ -511,7 +509,6 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         data = {
-            "author": self.test_user.id,
             "file": test_image,
         }
         response = self.client.post(
@@ -522,7 +519,6 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         data = {
-            "author": self.test_user.id,
             "content": "FOR TEST !!",
             "file": test_image,
         }
@@ -533,9 +529,7 @@ class NewsFeedTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        data = {
-            "author": self.test_user.id,
-        }
+        data = {}
         response = self.client.post(
             "/api/v1/newsfeed/",
             data=data,
@@ -549,7 +543,6 @@ class NewsFeedTestCase(TestCase):
 
         # 파일 없는 게시글 수정
         data = {
-            "author": self.test_user.id,
             "content": "메인 포스트입니다.",
         }
         response = self.client.post(
@@ -562,7 +555,6 @@ class NewsFeedTestCase(TestCase):
         mainpost_id = data["id"]
 
         data = {
-            "author": self.test_user.id,
             "content": "메인 포스트입니다. (수정됨)",
         }
         content = encode_multipart("BoUnDaRyStRiNg", data)
@@ -581,7 +573,7 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(data["content"], "메인 포스트입니다. (수정됨)")
 
         # 파일 없는데 content 빌 경우 400 에러
-        data = {"author": self.test_user.id, "content": ""}
+        data = {"content": ""}
         content = encode_multipart("BoUnDaRyStRiNg", data)
 
         response = self.client.put(
@@ -598,7 +590,6 @@ class NewsFeedTestCase(TestCase):
             content_type="image/jpeg",
         )
         data = {
-            "author": self.test_user.id,
             "content": "메인 포스트입니다.",
             "subposts": ["첫번째 포스트입니다.", "두번째 포스트입니다.", "세번째 포스트입니다."],
             "file": [test_image, test_image, test_image],
@@ -618,10 +609,8 @@ class NewsFeedTestCase(TestCase):
 
         # 내용 수정
         data = {
-            "author": self.test_user.id,
             "content": "메인 포스트입니다. (수정됨)",
             "subposts": ["첫번째 포스트입니다. (수정됨)", "두번째 포스트입니다. (수정됨)", "세번째 포스트입니다. (수정됨)"],
-            "file": [test_image, test_image, test_image],
             "subposts_id": [subpost_1, subpost_2, subpost_3],
         }
 
@@ -647,10 +636,8 @@ class NewsFeedTestCase(TestCase):
 
         # 파일 삭제
         data = {
-            "author": self.test_user.id,
             "content": "메인 포스트입니다. (수정됨)",
             "subposts": ["첫번째 포스트입니다. (수정됨)", "두번째 포스트입니다. (수정됨)", "세번째 포스트입니다. (수정됨)"],
-            "file": [test_image, test_image, test_image],
             "subposts_id": [subpost_1, subpost_2, subpost_3],
             "removed_subposts": subpost_1,
         }
@@ -676,7 +663,7 @@ class NewsFeedTestCase(TestCase):
         data = {
             "content": "메인 포스트입니다. (수정됨)",
             "subposts": ["두번째 포스트입니다. (수정됨)", "세번째 포스트입니다. (수정됨)", "네번째 포스트입니다."],
-            "file": [test_image, test_image, test_image],
+            "file": [test_image],
             "subposts_id": [subpost_2, subpost_3],
         }
         content = encode_multipart("BoUnDaRyStRiNg", data)
@@ -714,9 +701,6 @@ class NewsFeedTestCase(TestCase):
                 test_image,
                 test_image,
                 test_image,
-                test_image,
-                test_image,
-                test_image,
             ],
             "subposts_id": [subpost_2, subpost_3, subpost_4],
             "removed_subposts": [subpost_2, subpost_3],
@@ -742,11 +726,25 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(data["subposts"][3]["content"], "일곱번째 포스트입니다.")
         subpost_7 = data["subposts"][3]["id"]
 
+        # mainpost 단위에 한해서만 수정 가능
+        data = {
+            "content": "메인 포스트아니면 수정 불가합니다.",
+            "subposts": ["네번째 포스트입니다.", "다섯번째 포스트입니다.", "여섯번째 포스트입니다."],
+            "subposts_id": [subpost_4, subpost_5, subpost_6],
+        }
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+        response = self.client.put(
+            f"/api/v1/newsfeed/{subpost_4}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
         # 파일 있으면 content 비워져 있어도 200
         data = {
             "content": "",
             "subposts": ["", "", "", ""],
-            "file": [test_image, test_image, test_image, test_image],
             "subposts_id": [subpost_4, subpost_5, subpost_6, subpost_7],
         }
         content = encode_multipart("BoUnDaRyStRiNg", data)
@@ -765,27 +763,10 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(data["subposts"][2]["content"], "")
         self.assertEqual(data["subposts"][3]["content"], "")
 
-        # subposts와 files의 개수가 다르면 400
-        data = {
-            "content": "메인 포스트입니다. (수정됨)",
-            "subposts": ["네번째 포스트입니다.", "다섯번째 포스트입니다.", "여섯번째 포스트입니다.", "일곱번째 포스트입니다."],
-            "file": [test_image, test_image, test_image, test_image, test_image],
-            "subposts_id": [subpost_4, subpost_5, subpost_6, subpost_7],
-        }
-        content = encode_multipart("BoUnDaRyStRiNg", data)
-        response = self.client.put(
-            f"/api/v1/newsfeed/{mainpost_id}/",
-            data=content,
-            content_type=content_type,
-            HTTP_AUTHORIZATION=user_token,
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
         # subposts_id 개수가 subposts들과 다르면 400
         data = {
             "content": "메인 포스트입니다. (수정됨)",
             "subposts": ["네번째 포스트입니다.", "다섯번째 포스트입니다.", "여섯번째 포스트입니다.", "일곱번째 포스트입니다."],
-            "file": [test_image, test_image, test_image, test_image],
             "subposts_id": [subpost_4, subpost_5, subpost_6],
         }
         content = encode_multipart("BoUnDaRyStRiNg", data)
@@ -801,7 +782,6 @@ class NewsFeedTestCase(TestCase):
         data = {
             "content": "메인 포스트입니다. (수정됨)",
             "subposts": ["네번째 포스트입니다.", "다섯번째 포스트입니다.", "여섯번째 포스트입니다.", "일곱번째 포스트입니다."],
-            "file": [test_image, test_image, test_image, test_image],
             "subposts_id": [subpost_4, subpost_5, subpost_6, 9999],
         }
         content = encode_multipart("BoUnDaRyStRiNg", data)
@@ -827,6 +807,476 @@ class NewsFeedTestCase(TestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class ScopeTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+
+        cls.test_user = UserFactory.create(
+            email="test0@test.com",
+            password="password",
+            first_name="test",
+            last_name="user",
+            birth="1997-02-03",
+            gender="M",
+            phone_number="01000000000",
+        )
+
+        cls.test_friend = UserFactory.create(
+            email="test1@test.com",
+            password="password",
+            first_name="test",
+            last_name="friend",
+            birth="1997-02-03",
+            gender="M",
+            phone_number="01011111111",
+        )
+
+        cls.test_user.friends.add(cls.test_friend)
+        cls.test_user.save()
+
+        cls.test_stranger = UserFactory.create(
+            email="test2@test.com",
+            password="password",
+            first_name="test",
+            last_name="stranger",
+            birth="1997-02-03",
+            gender="M",
+            phone_number="01022222222",
+        )
+
+        cls.test_image = SimpleUploadedFile(
+            name="testimage2.jpg",
+            content=open(os.path.join(BASE_DIR, "testimage2.jpg"), "rb").read(),
+            content_type="image/jpeg",
+        )
+        cls.user_token = "JWT " + jwt_token_of(cls.test_user)
+        cls.friend_token = "JWT " + jwt_token_of(cls.test_friend)
+        cls.stranger_token = "JWT " + jwt_token_of(cls.test_stranger)
+
+    def test_scope_list(self):
+
+        # 전체공개 게시글
+        data = {
+            "content": "전체 공개 게시글입니다.",
+        }
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/",
+            HTTP_AUTHORIZATION=self.friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(data["results"][0]["content"], "전체 공개 게시글입니다.")
+        self.assertEqual(data["results"][0]["scope"], 3)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(data["results"][0]["content"], "전체 공개 게시글입니다.")
+        self.assertEqual(data["results"][0]["scope"], 3)
+
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            HTTP_AUTHORIZATION=self.stranger_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(data["results"][0]["content"], "전체 공개 게시글입니다.")
+        self.assertEqual(data["results"][0]["scope"], 3)
+
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            HTTP_AUTHORIZATION=self.friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(data["results"][0]["content"], "전체 공개 게시글입니다.")
+        self.assertEqual(data["results"][0]["scope"], 3)
+
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(data["results"][0]["content"], "전체 공개 게시글입니다.")
+        self.assertEqual(data["results"][0]["scope"], 3)
+
+        # 친구공개 게시글
+        data = {"content": "친구 공개 게시글입니다.", "scope": 2}
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/",
+            HTTP_AUTHORIZATION=self.friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(data["results"][0]["content"], "친구 공개 게시글입니다.")
+        self.assertEqual(data["results"][0]["scope"], 2)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(data["results"][0]["content"], "친구 공개 게시글입니다.")
+        self.assertEqual(data["results"][0]["scope"], 2)
+
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            HTTP_AUTHORIZATION=self.stranger_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertNotEqual(data["results"][0]["content"], "친구 공개 게시글입니다.")
+        self.assertNotEqual(data["results"][0]["scope"], 2)
+
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            HTTP_AUTHORIZATION=self.friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(data["results"][0]["content"], "친구 공개 게시글입니다.")
+        self.assertEqual(data["results"][0]["scope"], 2)
+
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(data["results"][0]["content"], "친구 공개 게시글입니다.")
+        self.assertEqual(data["results"][0]["scope"], 2)
+
+        # 나만보기 게시글
+        data = {"content": "나만 보기 게시글입니다.", "scope": 1}
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/",
+            HTTP_AUTHORIZATION=self.friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertNotEqual(data["results"][0]["content"], "나만 보기 게시글입니다.")
+        self.assertNotEqual(data["results"][0]["scope"], 1)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertNotEqual(data["results"][0]["content"], "나만 보기 게시글입니다.")
+        self.assertNotEqual(data["results"][0]["scope"], 1)
+
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            HTTP_AUTHORIZATION=self.stranger_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertNotEqual(data["results"][0]["content"], "나만 보기 게시글입니다.")
+        self.assertNotEqual(data["results"][0]["scope"], 1)
+
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            HTTP_AUTHORIZATION=self.friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertNotEqual(data["results"][0]["content"], "나만 보기 게시글입니다.")
+        self.assertNotEqual(data["results"][0]["scope"], 1)
+
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(data["results"][0]["content"], "나만 보기 게시글입니다.")
+        self.assertEqual(data["results"][0]["scope"], 1)
+
+    def test_scope_create(self):
+
+        # 파일을 여러 장 업로드 하는 경우, scope가 subposts에 일관되게 적용 되는지
+
+        data = {
+            "content": "친구 공개 게시글 입니다",
+            "subposts": ["첫번째 사진입니다.", "두번째 사진입니다."],
+            "file": [self.test_image, self.test_image],
+            "scope": 2,
+        }
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+
+        self.assertEqual(data["scope"], 2)
+        self.assertEqual(data["subposts"][0]["scope"], 2)
+        self.assertEqual(data["subposts"][1]["scope"], 2)
+
+        # 디폴트 값은 3 (전체공개)
+        data = {
+            "content": "친구 공개 게시글 입니다",
+            "subposts": ["첫번째 사진입니다.", "두번째 사진입니다."],
+            "file": [self.test_image, self.test_image],
+        }
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+
+        self.assertEqual(data["scope"], 3)
+        self.assertEqual(data["subposts"][0]["scope"], 3)
+        self.assertEqual(data["subposts"][1]["scope"], 3)
+
+        # scope를 1, 2, 3이 아닌 다른 것을 했을 때 오류
+        data = {
+            "content": "친구 공개 게시글 입니다",
+            "subposts": ["첫번째 사진입니다.", "두번째 사진입니다."],
+            "file": [self.test_image, self.test_image],
+            "scope": 4,
+        }
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        data = {
+            "content": "친구 공개 게시글 입니다",
+            "subposts": ["첫번째 사진입니다.", "두번째 사진입니다."],
+            "file": [self.test_image, self.test_image],
+            "scope": 0,
+        }
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        data = {
+            "content": "친구 공개 게시글 입니다",
+            "subposts": ["첫번째 사진입니다.", "두번째 사진입니다."],
+            "file": [self.test_image, self.test_image],
+            "scope": "친구공개",
+        }
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_scope_update(self):
+
+        data = {
+            "content": "친구 공개 게시글 입니다",
+            "subposts": ["첫번째 사진입니다.", "두번째 사진입니다."],
+            "file": [self.test_image, self.test_image],
+            "scope": 2,
+        }
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        mainpost_id = data["id"]
+        subpost_1 = data["subposts"][0]["id"]
+        subpost_2 = data["subposts"][1]["id"]
+
+        data = {
+            "content": "전체 공개 게시글입니다.",
+            "subposts": ["첫번째 사진입니다. (수정됨)", "두번째 사진입니다. (수정됨)"],
+            "subposts_id": [subpost_1, subpost_2],
+            "scope": 3,
+        }
+
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+        content_type = "multipart/form-data; boundary=BoUnDaRyStRiNg"
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(data["content"], "전체 공개 게시글입니다.")
+        self.assertEqual(data["scope"], 3)
+        self.assertEqual(data["subposts"][0]["scope"], 3)
+        self.assertEqual(data["subposts"][1]["scope"], 3)
+
+        # scope를 1, 2, 3이 아닌 다른 것을 했을 때 오류
+        data = {
+            "content": "전체 공개 게시글입니다.",
+            "subposts": ["첫번째 사진입니다. (수정됨)", "두번째 사진입니다. (수정됨)"],
+            "subposts_id": [subpost_1, subpost_2],
+            "scope": "나만 보기",
+        }
+
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        data = {
+            "content": "전체 공개 게시글입니다.",
+            "subposts": ["첫번째 사진입니다. (수정됨)", "두번째 사진입니다. (수정됨)"],
+            "subposts_id": [subpost_1, subpost_2],
+            "scope": 4,
+        }
+
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        data = {
+            "content": "전체 공개 게시글입니다.",
+            "subposts": ["첫번째 사진입니다. (수정됨)", "두번째 사진입니다. (수정됨)"],
+            "subposts_id": [subpost_1, subpost_2],
+            "scope": 0,
+        }
+
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 알림을 눌러서 해당 게시글 링크로 갔는데, 공개범위가 그 전에 수정된 경우 404
+        response = self.client.get(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            HTTP_AUTHORIZATION=self.stranger_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        data = {
+            "content": "친구 공개 게시글입니다.",
+            "subposts": ["첫번째 사진입니다. (수정됨)", "두번째 사진입니다. (수정됨)"],
+            "subposts_id": [subpost_1, subpost_2],
+            "scope": 2,
+        }
+
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.get(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            HTTP_AUTHORIZATION=self.stranger_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        response = self.client.get(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            HTTP_AUTHORIZATION=self.friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        data = {
+            "content": "나만 보기 게시글입니다.",
+            "subposts": ["첫번째 사진입니다. (수정됨)", "두번째 사진입니다. (수정됨)"],
+            "subposts_id": [subpost_1, subpost_2],
+            "scope": 1,
+        }
+
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.get(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            HTTP_AUTHORIZATION=self.friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        # 알림을 눌러서 해당 댓글 링크로 갔는데, 공개범위가 그 전에 수정된 경우
 
 
 class LikeTestCase(TestCase):
@@ -909,19 +1359,17 @@ class LikeTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    """
-    def test_like_not_friend(self):  # 친구 아닌데 게시글 좋아요
-        user = self.test_user
-        post = self.test_stranger.posts.last()
-        user_token = "JWT " + jwt_token_of(user)
-        response = self.client.put(
-            "/api/v1/newsfeed/" + str(post.id) + "/like/",
-            content_type="application/json",
-            HTTP_AUTHORIZATION=user_token,
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        post.refresh_from_db()
-    """
+    # def test_like_not_friend(self):  # 친구 아닌데 게시글 좋아요
+    #     user = self.test_user
+    #     post = self.test_stranger.posts.last()
+    #     user_token = "JWT " + jwt_token_of(user)
+    #     response = self.client.put(
+    #         "/api/v1/newsfeed/" + str(post.id) + "/like/",
+    #         content_type="application/json",
+    #         HTTP_AUTHORIZATION=user_token,
+    #     )
+    #     self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    #     post.refresh_from_db()
 
     def test_like_or_dislike_myself(self):  # 자기 추천 / 비추천
         user = self.test_friend

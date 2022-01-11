@@ -374,7 +374,16 @@ class UserNewsfeedView(ListAPIView):
     )
     def get(self, request, user_id=None):
         user = get_object_or_404(User, pk=user_id)
-        self.queryset = Post.objects.filter(author=user, mainpost=None)
+
+        if request.user == user:
+            self.queryset = Post.objects.filter(author=user, mainpost=None)
+
+        elif request.user in user.friends.all():
+            self.queryset = Post.objects.filter(author=user, mainpost=None, scope__gt=1)
+
+        else:
+            self.queryset = Post.objects.filter(author=user, mainpost=None, scope__gt=2)
+
         return super().list(request)
 
 
