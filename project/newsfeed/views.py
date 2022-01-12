@@ -11,6 +11,8 @@ from rest_framework.response import Response
 from typing import Type
 from django.db.models import Q
 from django.db import transaction
+from rest_framework.views import APIView
+
 from .pagination import NoticePagination
 import boto3
 from .serializers import (
@@ -22,7 +24,7 @@ from .serializers import (
     CommentListSerializer,
     CommentSerializer,
     CommentLikeSerializer,
-    CommentSwaggerSerializer,
+    CommentPostSwaggerSerializer, CommentUpdateSwaggerSerializer,
 )
 from .models import Notice, Post, Comment
 from user.models import User
@@ -359,7 +361,7 @@ class CommentListView(ListCreateAPIView):
                 required=False,
             ),
         ],
-        request_body=CommentSwaggerSerializer(),
+        request_body=CommentPostSwaggerSerializer(),
     )
     @transaction.atomic
     def post(self, request, post_id=None):
@@ -394,6 +396,53 @@ class CommentListView(ListCreateAPIView):
         return Response(
             self.get_serializer(comment).data, status=status.HTTP_201_CREATED
         )
+
+
+class CommentUpdateDeleteView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    queryset = Comment.objects.all()
+    parser_classes = (parsers.MultiPartParser, parsers.FileUploadParser)
+
+    @swagger_auto_schema(
+        operation_description="comment 수정하기",
+        responses={200: CommentSerializer()},
+        manual_parameters=[
+            openapi.Parameter(
+                name="file",
+                in_=openapi.IN_FORM,
+                type=openapi.TYPE_FILE,
+                required=False,
+            ),
+        ],
+        request_body=CommentUpdateSwaggerSerializer(),
+    )
+    def put(self, request, post_id=None, comment_id=None):
+        comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
+        if comment.author != request.user:
+            return Response(status=status.HTTP_403_FORBIDDEN, data="다른 유저의 댓글을 수정 수 없습니다.")
+
+        file = request.FILES.get("file")
+        if file:
+            comment.file.save(file.name, file, save=True)
+
+        content = request.data.get("content")
+        if content:
+            comment.content = content
+
+        comment.save()
+        return Response(status=status.HTTP_200_OK, data=CommentSerializer(comment).data)
+
+    @swagger_auto_schema(
+        operation_description="comment 삭제하기",
+    )
+    def delete(self, request, post_id=None, comment_id=None):
+        comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
+
+        if comment.author != request.user:
+            return Response(status=status.HTTP_403_FORBIDDEN, data="다른 유저의 댓글을 삭제할 수 없습니다.")
+        comment.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CommentLikeView(GenericAPIView):
