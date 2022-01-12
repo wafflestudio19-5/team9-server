@@ -227,7 +227,7 @@ class CommentLikeSerializer(serializers.ModelSerializer):
         return UserSerializer(comment.likeusers, many=True).data
 
 
-class CommentSwaggerSerializer(serializers.Serializer):
+class CommentPostSwaggerSerializer(serializers.Serializer):
     content = serializers.CharField(required=True)
     parent = serializers.IntegerField(
         required=False, help_text="부모 댓글의 id. Depth가 0인 경우 해당 필드를 비워두세요."

@@ -11,6 +11,8 @@ from rest_framework.response import Response
 from typing import Type
 from django.db.models import Q
 from django.db import transaction
+from rest_framework.views import APIView
+
 from .pagination import NoticePagination
 import boto3
 from .serializers import (
@@ -22,7 +24,7 @@ from .serializers import (
     CommentListSerializer,
     CommentSerializer,
     CommentLikeSerializer,
-    CommentSwaggerSerializer,
+    CommentPostSwaggerSerializer,
 )
 from .models import Notice, Post, Comment
 from user.models import User
@@ -62,11 +64,10 @@ class PostListView(ListCreateAPIView):
                 "content": openapi.Schema(
                     type=openapi.TYPE_STRING, description="Post Content"
                 ),
-                "files": openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    description='"content", "file"을 key로 가지는 Dictionary들의 Array',
-                    default=[],
-                    items=openapi.TYPE_OBJECT,
+                "scope": openapi.Schema(
+                    type=openapi.TYPE_NUMBER,
+                    description="공개범위 설정: 1(자기 자신), 2(친구), 3(전체 공개)",
+                    default=3,
                 ),
             },
         ),
@@ -126,6 +127,9 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
     permission_classes = (permissions.IsAuthenticated,)
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
+    @swagger_auto_schema(
+        operation_description="Post 조회하기", responses={200: PostSerializer()}
+    )
     def get(self, request, pk=None):
 
         post = get_object_or_404(Post, pk=pk)
@@ -152,6 +156,35 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
 
     @swagger_auto_schema(
         operation_description="게시글 수정하기",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "content": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="main post의 content",
+                ),
+                "subposts": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    description="subpost들의 content의 array",
+                    items=openapi.TYPE_STRING,
+                ),
+                "subposts_id": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    description="기존 subpost들의 id의 array",
+                    items=openapi.TYPE_NUMBER,
+                ),
+                "removed_subposts_id": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    description="삭제될 subpost들의 id의 array",
+                    items=openapi.TYPE_NUMBER,
+                ),
+                "scope": openapi.Schema(
+                    type=openapi.TYPE_NUMBER,
+                    description="공개범위 설정: 1(자기 자신), 2(친구), 3(전체 공개)",
+                    default=3,
+                ),
+            },
+        ),
         responses={200: PostSerializer()},
     )
     def put(self, request, pk=None):
@@ -174,7 +207,7 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
         subposts = request.data.getlist("subposts_id")
         cnt = post.subposts.count()
         scope = request.data.get("scope")
-        removed = request.data.getlist("removed_subposts")
+        removed = request.data.getlist("removed_subposts_id")
 
         if cnt != len(set(subposts)):
             return Response(
@@ -352,7 +385,7 @@ class CommentListView(ListCreateAPIView):
                 required=False,
             ),
         ],
-        request_body=CommentSwaggerSerializer(),
+        request_body=CommentPostSwaggerSerializer(),
     )
     @transaction.atomic
     def post(self, request, post_id=None):
@@ -387,6 +420,53 @@ class CommentListView(ListCreateAPIView):
         return Response(
             self.get_serializer(comment).data, status=status.HTTP_201_CREATED
         )
+
+
+class CommentUpdateDeleteView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+    queryset = Comment.objects.all()
+
+    @swagger_auto_schema(
+        operation_description="comment 수정하기",
+        responses={200: CommentSerializer()},
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "content": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="Comment Content"
+                ),
+            },
+        ),
+    )
+    def put(self, request, post_id=None, comment_id=None):
+        comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
+        if comment.author != request.user:
+            return Response(
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 댓글을 수정할 수 없습니다."
+            )
+
+        content = request.data.get("content")
+
+        if not content:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data="content를 입력해주세요")
+
+        comment.content = content
+        comment.save()
+        return Response(status=status.HTTP_200_OK, data=CommentSerializer(comment).data)
+
+    @swagger_auto_schema(
+        operation_description="comment 삭제하기",
+    )
+    def delete(self, request, post_id=None, comment_id=None):
+        comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
+
+        if comment.author != request.user:
+            return Response(
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 댓글을 삭제할 수 없습니다."
+            )
+        comment.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CommentLikeView(GenericAPIView):

@@ -639,7 +639,7 @@ class NewsFeedTestCase(TestCase):
             "content": "메인 포스트입니다. (수정됨)",
             "subposts": ["첫번째 포스트입니다. (수정됨)", "두번째 포스트입니다. (수정됨)", "세번째 포스트입니다. (수정됨)"],
             "subposts_id": [subpost_1, subpost_2, subpost_3],
-            "removed_subposts": subpost_1,
+            "removed_subposts_id": subpost_1,
         }
         content = encode_multipart("BoUnDaRyStRiNg", data)
 
@@ -703,7 +703,7 @@ class NewsFeedTestCase(TestCase):
                 test_image,
             ],
             "subposts_id": [subpost_2, subpost_3, subpost_4],
-            "removed_subposts": [subpost_2, subpost_3],
+            "removed_subposts_id": [subpost_2, subpost_3],
         }
         content = encode_multipart("BoUnDaRyStRiNg", data)
         response = self.client.put(
@@ -1668,3 +1668,70 @@ class CommentTestCase(TestCase):
         # DELETE, 좋아요 취소 반영됐는지 확인
         self.assertEqual(data["likes"], 0)
         self.assertEqual(self.depth_zero.likes, 0)
+
+    def test_comment_edit(self):
+        friend_token = "JWT " + jwt_token_of(self.test_friend)
+
+        data = {"content": "edited"}
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.my_post.id}/{self.depth_zero.id}/",
+            data=data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["content"], "edited")
+
+        # content가 비어있는 경우
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.my_post.id}/{self.depth_zero.id}/",
+            data={"content": ""},
+            content_type="application/json",
+            HTTP_AUTHORIZATION=friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 자신의 댓글이 아닌 경우
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.my_post.id}/{self.depth_zero.id}/",
+            data=data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION="JWT " + jwt_token_of(self.test_user),
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        # 존재하지 않는 댓글일 경우
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.my_post.id}/10000000/",
+            data=data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_comment_delete(self):
+        friend_token = "JWT " + jwt_token_of(self.test_friend)
+
+        # 자신의 댓글이 아닌 경우
+        response = self.client.delete(
+            f"/api/v1/newsfeed/{self.my_post.id}/{self.depth_zero.id}/",
+            HTTP_AUTHORIZATION="JWT " + jwt_token_of(self.test_user),
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        # 존재하지 않는 댓글일 경우
+        response = self.client.delete(
+            f"/api/v1/newsfeed/{self.my_post.id}/10000000/",
+            HTTP_AUTHORIZATION=friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        # 댓글 삭제
+        response = self.client.delete(
+            f"/api/v1/newsfeed/{self.my_post.id}/{self.depth_zero.id}/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=friend_token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
