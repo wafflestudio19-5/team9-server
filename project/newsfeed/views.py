@@ -65,8 +65,10 @@ class PostListView(ListCreateAPIView):
                     type=openapi.TYPE_STRING, description="Post Content"
                 ),
                 "scope": openapi.Schema(
-                    type=openapi.TYPE_NUMBER, description="공개범위 설정: 1(자기 자신), 2(친구), 3(전체 공개)", default=3
-                )
+                    type=openapi.TYPE_NUMBER,
+                    description="공개범위 설정: 1(자기 자신), 2(친구), 3(전체 공개)",
+                    default=3,
+                ),
             },
         ),
         responses={201: PostSerializer()},
@@ -126,8 +128,7 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
     @swagger_auto_schema(
-        operation_description="Post 조회하기",
-        responses={200: PostSerializer()}
+        operation_description="Post 조회하기", responses={200: PostSerializer()}
     )
     def get(self, request, pk=None):
 
@@ -159,21 +160,29 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
             type=openapi.TYPE_OBJECT,
             properties={
                 "content": openapi.Schema(
-                    type=openapi.TYPE_STRING, description="main post의 content",
+                    type=openapi.TYPE_STRING,
+                    description="main post의 content",
                 ),
                 "subposts": openapi.Schema(
-                    type=openapi.TYPE_ARRAY, description="subpost들의 content의 array", items=openapi.TYPE_STRING
+                    type=openapi.TYPE_ARRAY,
+                    description="subpost들의 content의 array",
+                    items=openapi.TYPE_STRING,
                 ),
                 "subposts_id": openapi.Schema(
-                    type=openapi.TYPE_ARRAY, description="기존 subpost들의 id의 array", items=openapi.TYPE_NUMBER
+                    type=openapi.TYPE_ARRAY,
+                    description="기존 subpost들의 id의 array",
+                    items=openapi.TYPE_NUMBER,
                 ),
                 "removed_subposts_id": openapi.Schema(
-                    type=openapi.TYPE_ARRAY, description="삭제될 subpost들의 id의 array", items=openapi.TYPE_NUMBER
+                    type=openapi.TYPE_ARRAY,
+                    description="삭제될 subpost들의 id의 array",
+                    items=openapi.TYPE_NUMBER,
                 ),
                 "scope": openapi.Schema(
-                    type=openapi.TYPE_NUMBER, description="공개범위 설정: 1(자기 자신), 2(친구), 3(전체 공개)", default=3
+                    type=openapi.TYPE_NUMBER,
+                    description="공개범위 설정: 1(자기 자신), 2(친구), 3(전체 공개)",
+                    default=3,
                 ),
-
             },
         ),
         responses={200: PostSerializer()},
@@ -426,13 +435,15 @@ class CommentUpdateDeleteView(APIView):
                 "content": openapi.Schema(
                     type=openapi.TYPE_STRING, description="Comment Content"
                 ),
-            }
-        )
+            },
+        ),
     )
     def put(self, request, post_id=None, comment_id=None):
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
         if comment.author != request.user:
-            return Response(status=status.HTTP_403_FORBIDDEN, data="다른 유저의 댓글을 수정할 수 없습니다.")
+            return Response(
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 댓글을 수정할 수 없습니다."
+            )
 
         content = request.data.get("content")
 
@@ -450,7 +461,9 @@ class CommentUpdateDeleteView(APIView):
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
 
         if comment.author != request.user:
-            return Response(status=status.HTTP_403_FORBIDDEN, data="다른 유저의 댓글을 삭제할 수 없습니다.")
+            return Response(
+                status=status.HTTP_403_FORBIDDEN, data="다른 유저의 댓글을 삭제할 수 없습니다."
+            )
         comment.delete()
 
         return Response(status=status.HTTP_204_NO_CONTENT)

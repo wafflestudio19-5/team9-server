@@ -6,7 +6,8 @@ from .views import (
     CommentListView,
     CommentLikeView,
     NoticeView,
-    NoticeListView, CommentUpdateDeleteView,
+    NoticeListView,
+    CommentUpdateDeleteView,
 )
 from rest_framework.routers import SimpleRouter
 from django.conf import settings
