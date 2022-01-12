@@ -24,7 +24,7 @@ from .serializers import (
     CommentListSerializer,
     CommentSerializer,
     CommentLikeSerializer,
-    CommentPostSwaggerSerializer, CommentUpdateSwaggerSerializer,
+    CommentPostSwaggerSerializer,
 )
 from .models import Notice, Post, Comment
 from user.models import User
@@ -401,34 +401,30 @@ class CommentListView(ListCreateAPIView):
 class CommentUpdateDeleteView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
     queryset = Comment.objects.all()
-    parser_classes = (parsers.MultiPartParser, parsers.FileUploadParser)
 
     @swagger_auto_schema(
         operation_description="comment 수정하기",
         responses={200: CommentSerializer()},
-        manual_parameters=[
-            openapi.Parameter(
-                name="file",
-                in_=openapi.IN_FORM,
-                type=openapi.TYPE_FILE,
-                required=False,
-            ),
-        ],
-        request_body=CommentUpdateSwaggerSerializer(),
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "content": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="Comment Content"
+                ),
+            }
+        )
     )
     def put(self, request, post_id=None, comment_id=None):
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
         if comment.author != request.user:
-            return Response(status=status.HTTP_403_FORBIDDEN, data="다른 유저의 댓글을 수정 수 없습니다.")
-
-        file = request.FILES.get("file")
-        if file:
-            comment.file.save(file.name, file, save=True)
+            return Response(status=status.HTTP_403_FORBIDDEN, data="다른 유저의 댓글을 수정할 수 없습니다.")
 
         content = request.data.get("content")
-        if content:
-            comment.content = content
 
+        if not content:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data="content를 입력해주세요")
+
+        comment.content = content
         comment.save()
         return Response(status=status.HTTP_200_OK, data=CommentSerializer(comment).data)
 

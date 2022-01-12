@@ -234,10 +234,6 @@ class CommentPostSwaggerSerializer(serializers.Serializer):
     )
 
 
-class CommentUpdateSwaggerSerializer(serializers.Serializer):
-    content = serializers.CharField(required=False)
-
-
 class CommentSerializer(serializers.ModelSerializer):
     is_liked = serializers.SerializerMethodField()
 
