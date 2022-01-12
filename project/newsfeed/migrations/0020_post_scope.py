@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('newsfeed', '0019_rename_ischecked_notice_is_checked'),
+        ("newsfeed", "0019_rename_ischecked_notice_is_checked"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='post',
-            name='scope',
+            model_name="post",
+            name="scope",
             field=models.PositiveSmallIntegerField(default=0),
         ),
     ]
