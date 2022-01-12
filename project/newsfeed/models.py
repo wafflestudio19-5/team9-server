@@ -29,6 +29,7 @@ def comment_directory_path(instance, filename):
 class Post(NewsfeedObject):
     id = models.AutoField(primary_key=True)
     author = models.ForeignKey(User, on_delete=CASCADE, related_name="posts")
+    scope = models.PositiveSmallIntegerField(default=3)
 
     mainpost = models.ForeignKey(
         "self",

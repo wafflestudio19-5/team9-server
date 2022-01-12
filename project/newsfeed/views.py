@@ -29,7 +29,7 @@ from user.models import User
 from datetime import datetime
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema, no_body
-from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.parsers import DataAndFiles, MultiPartParser, FormParser, JSONParser
 
 
 class PostListView(ListCreateAPIView):
@@ -45,12 +45,13 @@ class PostListView(ListCreateAPIView):
     def get(self, request):
 
         user = request.user
-        self.queryset = Post.objects.filter(mainpost=None)
-        """
+
         self.queryset = Post.objects.filter(
-            (Q(author__in=user.friends.all()) | Q(author=user)), mainpost=None
+            (Q(author__in=user.friends.all()) | Q(author=user)),
+            mainpost=None,
+            scope__gt=1,
         )
-        """
+
         return super().list(request)
 
     @swagger_auto_schema(
@@ -82,8 +83,11 @@ class PostListView(ListCreateAPIView):
             context["isFile"] = True
 
         context["author"] = user
+        scope = request.data.get("scope", 3)
+        data = request.data.copy()
+        data["scope"] = scope
 
-        serializer = PostSerializer(data=request.data, context=context)
+        serializer = PostSerializer(data=data, context=context)
 
         serializer.is_valid(raise_exception=True)
         mainpost = serializer.save()
@@ -97,14 +101,13 @@ class PostListView(ListCreateAPIView):
                         data={
                             "content": contents[i],
                             "mainpost": mainpost.id,
+                            "scope": scope,
                         },
                         context=context,
                     )
                 else:
                     serializer = PostSerializer(
-                        data={
-                            "mainpost": mainpost.id,
-                        },
+                        data={"mainpost": mainpost.id, "scope": scope},
                         context=context,
                     )
                 serializer.is_valid(raise_exception=True)
@@ -122,6 +125,30 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
     parser_classes = (MultiPartParser, FormParser, JSONParser)
+
+    def get(self, request, pk=None):
+
+        post = get_object_or_404(Post, pk=pk)
+        user = request.user
+
+        if post.author == user:
+            pass
+
+        elif user in post.author.friends.all():
+            if post.scope == 1:
+                return Response(
+                    status=status.HTTP_404_NOT_FOUND, data="해당 게시글이 존재하지 않습니다."
+                )
+
+        else:
+            if post.scope < 3:
+                return Response(
+                    status=status.HTTP_404_NOT_FOUND, data="해당 게시글이 존재하지 않습니다."
+                )
+        return Response(
+            self.get_serializer(post).data,
+            status=status.HTTP_200_OK,
+        )
 
     @swagger_auto_schema(
         operation_description="게시글 수정하기",
@@ -146,38 +173,57 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
         contents = request.data.getlist("subposts", [])
         subposts = request.data.getlist("subposts_id")
         cnt = post.subposts.count()
+        scope = request.data.get("scope")
+        removed = request.data.getlist("removed_subposts")
 
-        if len(files) != len(contents):
-            return Response(
-                status=status.HTTP_400_BAD_REQUEST, data="file과 content의 개수를 맞춰주세요."
-            )
-
-        if cnt != len(subposts):
+        if cnt != len(set(subposts)):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
                 data="subposts_id에 기존 subpost들의 id를 넣어주세요.",
             )
 
-        if files:
-            post.content = request.data.get("content")
-            post.save()
-        else:
+        if scope:
+
+            if (not scope.isdigit()) or int(scope) > 3 or int(scope) < 1:
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST, data="공개범위는 1, 2, 3 중에 선택해주세요."
+                )
+
+            scope = int(scope)
+
+        if (set(subposts) == set(removed)) and not files:
             content = request.data.get("content")
             if not content:
                 return Response(status=status.HTTP_400_BAD_REQUEST, data="내용을 입력해주세요.")
             post.content = content
+            if scope:
+                post.scope = scope
+            post.save()
+        else:
+            post.content = request.data.get("content")
+            if scope:
+                post.scope = scope
             post.save()
 
-        removed = request.data.getlist("removed_subposts")
+        for i in range(len(subposts)):
+            subpost = get_object_or_404(post.subposts, id=subposts[i])
 
-        for i in range(len(files)):
+            if str(subpost.id) in removed:
+                subpost.delete()
+            else:
+                subpost.content = contents[i]
+                if scope:
+                    subpost.scope = scope
+                subpost.save()
 
-            if i + 1 > cnt:
-                # 파일 추가 업로드
+        if files:
+            for i in range(len(files)):
+                idx = i + len(subposts)
                 serializer = PostSerializer(
                     data={
-                        "content": contents[i],
+                        "content": contents[idx],
                         "mainpost": post.id,
+                        "scope": post.scope,
                     },
                     context={"isFile": True, "author": user},
                 )
@@ -185,14 +231,6 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
                 subpost = serializer.save()
                 subpost.file.save(files[i].name, files[i], save=True)
 
-            else:
-                subpost = get_object_or_404(post.subposts, id=subposts[i])
-
-                if str(subpost.id) in removed:
-                    subpost.delete()
-                else:
-                    subpost.content = contents[i]
-                    subpost.save()
         return Response(
             self.get_serializer(post).data,
             status=status.HTTP_200_OK,
@@ -236,7 +274,8 @@ class PostLikeView(GenericAPIView):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST, data="친구 혹은 자신의 게시글이 아닙니다."
             )
-        """  # 친구만 좋아요 할 수 있도록 하는 기능 해제
+        """
+        # 친구만 좋아요 할 수 있도록 하는 기능 해제
         # 이미 좋아요 한 게시물 -> 좋아요 취소, 관련 알림 삭제
         if post.likeusers.filter(id=user.id).exists():
             post.likeusers.remove(user)
@@ -332,7 +371,8 @@ class CommentListView(ListCreateAPIView):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST, data="친구 혹은 자신의 게시글이 아닙니다."
             )
-        """  # 친구만 댓글 달 수 있도록 하는 기능 해제
+        """
+        # 친구만 댓글 달 수 있도록 하는 기능 해제
         serializer = CommentSerializer(data=data, context={"user": user, "post": post})
         serializer.is_valid(raise_exception=True)
         comment = serializer.save()
