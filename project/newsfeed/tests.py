@@ -483,6 +483,7 @@ class NewsFeedTestCase(TestCase):
         post_id = data["id"]
         self.assertEqual(post_id, data["subposts"][0]["mainpost"])
         self.assertEqual("첫번째 사진입니다.", data["subposts"][0]["content"])
+        self.assertEqual(False, data["subposts"][0]["is_liked"])
         self.assertIn("testimage.jpg", data["subposts"][0]["file"])
 
         # 뉴스피드에 추가됐는지 여부
