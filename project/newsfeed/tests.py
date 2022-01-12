@@ -639,7 +639,7 @@ class NewsFeedTestCase(TestCase):
             "content": "메인 포스트입니다. (수정됨)",
             "subposts": ["첫번째 포스트입니다. (수정됨)", "두번째 포스트입니다. (수정됨)", "세번째 포스트입니다. (수정됨)"],
             "subposts_id": [subpost_1, subpost_2, subpost_3],
-            "removed_subposts": subpost_1,
+            "removed_subposts_id": subpost_1,
         }
         content = encode_multipart("BoUnDaRyStRiNg", data)
 
@@ -703,7 +703,7 @@ class NewsFeedTestCase(TestCase):
                 test_image,
             ],
             "subposts_id": [subpost_2, subpost_3, subpost_4],
-            "removed_subposts": [subpost_2, subpost_3],
+            "removed_subposts_id": [subpost_2, subpost_3],
         }
         content = encode_multipart("BoUnDaRyStRiNg", data)
         response = self.client.put(
