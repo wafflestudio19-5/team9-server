@@ -64,12 +64,6 @@ class PostListView(ListCreateAPIView):
                 "content": openapi.Schema(
                     type=openapi.TYPE_STRING, description="Post Content"
                 ),
-                "files": openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    description='"content", "file"을 key로 가지는 Dictionary들의 Array',
-                    default=[],
-                    items=openapi.TYPE_OBJECT,
-                ),
                 "scope": openapi.Schema(
                     type=openapi.TYPE_NUMBER, description="공개범위 설정: 1(자기 자신), 2(친구), 3(전체 공개)", default=3
                 )
@@ -161,6 +155,27 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
 
     @swagger_auto_schema(
         operation_description="게시글 수정하기",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "content": openapi.Schema(
+                    type=openapi.TYPE_STRING, description="main post의 content",
+                ),
+                "subposts": openapi.Schema(
+                    type=openapi.TYPE_ARRAY, description="subpost들의 content의 array", items=openapi.TYPE_STRING
+                ),
+                "subposts_id": openapi.Schema(
+                    type=openapi.TYPE_ARRAY, description="기존 subpost들의 id의 array", items=openapi.TYPE_NUMBER
+                ),
+                "removed_subposts_id": openapi.Schema(
+                    type=openapi.TYPE_ARRAY, description="삭제될 subpost들의 id의 array", items=openapi.TYPE_NUMBER
+                ),
+                "scope": openapi.Schema(
+                    type=openapi.TYPE_NUMBER, description="공개범위 설정: 1(자기 자신), 2(친구), 3(전체 공개)", default=3
+                ),
+
+            },
+        ),
         responses={200: PostSerializer()},
     )
     def put(self, request, pk=None):
@@ -183,7 +198,7 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
         subposts = request.data.getlist("subposts_id")
         cnt = post.subposts.count()
         scope = request.data.get("scope")
-        removed = request.data.getlist("removed_subposts")
+        removed = request.data.getlist("removed_subposts_id")
 
         if cnt != len(set(subposts)):
             return Response(
