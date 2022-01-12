@@ -66,7 +66,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_subposts(self, post):
 
-        return SubPostSerializer(post.subposts, many=True).data
+        return SubPostSerializer(post.subposts, many=True, context=self.context).data
 
     def get_is_liked(self, post):
         request = self.context.get("request")
