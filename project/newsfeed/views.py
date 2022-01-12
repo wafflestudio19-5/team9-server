@@ -68,6 +68,9 @@ class PostListView(ListCreateAPIView):
                     default=[],
                     items=openapi.TYPE_OBJECT,
                 ),
+                "scope": openapi.Schema(
+                    type=openapi.TYPE_NUMBER, description="공개범위 설정: 1(자기 자신), 2(친구), 3(전체 공개)", default=3
+                )
             },
         ),
         responses={201: PostSerializer()},
@@ -126,6 +129,10 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
     permission_classes = (permissions.IsAuthenticated,)
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
+    @swagger_auto_schema(
+        operation_description="Post 조회하기",
+        responses={200: PostSerializer()}
+    )
     def get(self, request, pk=None):
 
         post = get_object_or_404(Post, pk=pk)
