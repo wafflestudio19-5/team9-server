@@ -35,6 +35,7 @@ class PostSerializer(serializers.ModelSerializer):
             "is_liked",
             "scope",
             "shared_post",
+            "is_sharing",
             "shared_counts",
         )
         extra_kwargs = {"content": {"help_text": "무슨 생각을 하고 계신가요?"}}
@@ -52,8 +53,13 @@ class PostSerializer(serializers.ModelSerializer):
             content=content,
             mainpost=mainpost,
             scope=scope,
-            shared_post=shared_post,
         )
+
+        if shared_post:
+            shared_post = Post.objects.get(id=shared_post)
+            post.shared_post = shared_post
+            post.is_sharing = True
+            post.save()
 
         return post
 
@@ -96,16 +102,16 @@ class PostSerializer(serializers.ModelSerializer):
         return post.comments.count()
 
     def get_shared_post(self, post):
-        return PostSerializer(post.shared_post).data
 
-    def get_shared_post(self, post):
-        user = self.context["request"].user
+        if not post.is_sharing:
+            return None
 
         shared_post = post.shared_post
 
         if not post.shared_post:
             return "AccessDenied"
 
+        user = self.context["request"].user
         if user == shared_post.author:
             pass
         elif user in shared_post.author.friends.all():
@@ -211,7 +217,7 @@ class MainPostSerializer(serializers.ModelSerializer):
         shared_post = post.shared_post
 
         if not post.shared_post:
-            return "AccessDenied"
+            return None
 
         if user == shared_post.author:
             pass

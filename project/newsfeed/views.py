@@ -14,7 +14,6 @@ from django.db import transaction
 from rest_framework.views import APIView
 
 from .pagination import NoticePagination
-import boto3
 from .serializers import (
     NoticeSerializer,
     NoticelistSerializer,
