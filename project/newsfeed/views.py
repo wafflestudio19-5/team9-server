@@ -494,6 +494,7 @@ class CommentUpdateDeleteView(APIView):
 
         return Response(status=status.HTTP_200_OK, data=CommentSerializer(comment).data)
 
+
 class CommentLikeView(GenericAPIView):
     serializer_class = CommentSerializer
     queryset = Comment.objects.all()
