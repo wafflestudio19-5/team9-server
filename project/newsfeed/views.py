@@ -470,6 +470,7 @@ class CommentUpdateDeleteView(APIView):
 
     @swagger_auto_schema(
         operation_description="특정 comment 가져오기",
+        responses={200: CommentSerializer()},
     )
     def get(self, request, post_id=None, comment_id=None):
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
