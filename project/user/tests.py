@@ -155,7 +155,7 @@ class SignUpUserTestCase(TestCase):
     def test_post_user_successful(self):
         data = self.post_data.copy()
         data["email"] = "waffle2@test.com"
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         data = response.json()
         self.assertEqual(data["user"]["username"], "이민준")
@@ -165,7 +165,7 @@ class SignUpUserTestCase(TestCase):
 
     def test_post_user_confilct(self):
         with transaction.atomic():
-            response = self.client.post("/api/v1/signup/", data=self.post_data)
+            response = self.client.post("/api/v1/account/signup/", data=self.post_data)
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
 
         self.assertEqual(User.objects.count(), 1)
@@ -174,7 +174,7 @@ class SignUpUserTestCase(TestCase):
         data = self.post_data.copy()
         data["email"] = "waffle2@test.com"
         data["gender"] = "WOW"
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         self.assertEqual(User.objects.count(), 1)
@@ -182,37 +182,37 @@ class SignUpUserTestCase(TestCase):
     def test_post_user_no_argument(self):
         data = self.post_data.copy()
         data.pop("email")
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
 
         data["email"] = "waffle2@test.com"
         data.pop("first_name")
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
 
         data["first_name"] = self.post_data["first_name"]
         data.pop("last_name")
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
 
         data["last_name"] = self.post_data["last_name"]
         data.pop("birth")
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
 
         data["birth"] = self.post_data["birth"]
         data.pop("gender")
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
 
         data["gender"] = self.post_data["gender"]
         data.pop("password")
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
 
@@ -220,35 +220,35 @@ class SignUpUserTestCase(TestCase):
         # first_name empty
         data = self.post_data.copy()
         data["first_name"] = ""
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
 
         # last_name empty
         data = self.post_data.copy()
         data["last_name"] = ""
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
 
         # common password
         data = self.post_data.copy()
         data["password"] = "12345678"
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
 
         # short password
         data = self.post_data.copy()
         data["password"] = "!nn?"
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
 
         # invalid birth
         data = self.post_data.copy()
         data["birth"] = "2100-12-23"
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
 
@@ -257,7 +257,7 @@ class SignUpUserTestCase(TestCase):
         data = self.post_data.copy()
         data["first_name"] = ""
         data.pop("email")
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
         data = response.json()
@@ -268,7 +268,7 @@ class SignUpUserTestCase(TestCase):
         data = self.post_data.copy()
         data.pop("gender")
         data.pop("email")
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
         data = response.json()
@@ -279,7 +279,7 @@ class SignUpUserTestCase(TestCase):
         data = self.post_data.copy()
         data["gender"] = "NoGender"
         data.pop("email")
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
         data = response.json()
@@ -290,7 +290,7 @@ class SignUpUserTestCase(TestCase):
         data = self.post_data.copy()
         data["password"] = "!nn?"
         data.pop("email")
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
         data = response.json()
@@ -301,7 +301,7 @@ class SignUpUserTestCase(TestCase):
         data = self.post_data.copy()
         data["birth"] = "2100-12-23"
         data.pop("email")
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
         data = response.json()
@@ -311,7 +311,7 @@ class SignUpUserTestCase(TestCase):
         # common and short and numeric password
         data = self.post_data.copy()
         data["password"] = "12345"
-        response = self.client.post("/api/v1/signup/", data=data)
+        response = self.client.post("/api/v1/account/signup/", data=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1)
         data = response.json()
@@ -338,7 +338,9 @@ class LoginTestCase(TestCase):
 
     def test_login(self):
         response = self.client.post(
-            "/api/v1/login/", data=self.post_data, content_type="application/json"
+            "/api/v1/account/login/",
+            data=self.post_data,
+            content_type="application/json",
         )
         data = response.json()
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -346,7 +348,7 @@ class LoginTestCase(TestCase):
 
     def test_login_fail(self):
         response = self.client.post(
-            "/api/v1/login/",
+            "/api/v1/account/login/",
             data={"email": "waffle@test.com", "password": "qlalfqjsgh"},
             content_type="application/json",
         )
@@ -368,12 +370,42 @@ class LogoutTestCase(TestCase):
     def test_logout(self):
         user_token = "JWT " + jwt_token_of(self.user)
         response = self.client.get(
-            "/api/v1/logout/",
+            "/api/v1/account/logout/",
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertNotEqual(user_token, "JWT " + jwt_token_of(self.user))
+
+
+class AccountDeletTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(
+            email="waffle@test.com",
+            first_name="민준",
+            last_name="이",
+            birth="2002-05-14",
+            gender="Male",
+            password="password",
+        )
+
+        cls.post_data = {
+            "email": "waffle@test.com",
+            "password": "password",
+        }
+
+    def test_accont_delete(self):
+        user_token = "JWT " + jwt_token_of(self.user)
+        user_id = self.user.id
+        response = self.client.delete(
+            "/api/v1/account/delete/",
+            data=self.post_data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(User.objects.filter(pk=user_id))
 
 
 class UserNewsFeedTestCase(TestCase):
@@ -1231,3 +1263,19 @@ class SearchTestCase(TestCase):
         self.assertEqual(len(data["results"]), 20)
         self.assertTrue(data["results"][0]["is_friend"])
         self.assertEqual(data["results"][0]["mutual_friends"]["count"], 0)
+
+
+class TokenTestCase(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.test_user = UserFactory.create(
+            first_name="와플",
+            last_name="김",
+        )
+
+    def test_refresh(self):
+        user_token = jwt_token_of(self.test_user)
+        response = self.client.post(
+            "/api/v1/token/refresh/", data={"token": user_token}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)

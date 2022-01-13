@@ -1,5 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
+from rest_framework_jwt.views import refresh_jwt_token
 
 from .views import (
     UserLoginView,
@@ -19,20 +20,30 @@ from .views import (
     UniversityCreateView,
     UniversityView,
     UserFriendRequestListView,
+    UserDeleteView,
 )
 from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path("signup/", UserSignUpView.as_view(), name="signup"),  # /api/v1/signup/
-    path("login/", UserLoginView.as_view(), name="login"),  # /api/v1/login/
-    path("logout/", UserLogoutView.as_view(), name="logout"),  # /api/v1/logout/
     path(
-        "kakao/login/", KakaoLoginView.as_view(), name="kakao_login"
-    ),  # /api/v1/kakao/login/
+        "account/signup/", UserSignUpView.as_view(), name="account_signup"
+    ),  # /api/v1/account/signup/
     path(
-        "kakao/connect/", KakaoConnectView.as_view(), name="kakao_connect"
-    ),  # /api/v1/kakao/connect/
+        "account/login/", UserLoginView.as_view(), name="account_login"
+    ),  # /api/v1/account/login/
+    path(
+        "account/logout/", UserLogoutView.as_view(), name="account_logout"
+    ),  # /api/v1/account/logout/
+    path(
+        "account/delete/", UserDeleteView.as_view(), name="account_delete"
+    ),  # /api/v1/account/delete/
+    path(
+        "account/kakao/login/", KakaoLoginView.as_view(), name="kakao_login"
+    ),  # /api/v1/account/kakao/login/
+    path(
+        "account/kakao/connect/", KakaoConnectView.as_view(), name="kakao_connect"
+    ),  # /api/v1/account/kakao/connect/
     path(
         "user/<int:user_id>/newsfeed/", UserNewsfeedView.as_view(), name="user_newsfeed"
     ),  # /api/v1/user/{user_id}/newsfeed/
@@ -71,6 +82,7 @@ urlpatterns = [
     ),
     path("friend/", UserFriendDeleteView.as_view(), name="friend"),  # /api/v1/friend/
     path("search/", UserSearchListView.as_view(), name="search"),  # /api/v1/search/
+    path("token/refresh/", refresh_jwt_token),  # /api/v1/token/refresh/
 ]
 
 # urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -79,7 +79,7 @@ class Notice(models.Model):
 
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=CASCADE, related_name="notices")
-    senders = models.ManyToManyField(User, null=True)
+    senders = models.ManyToManyField(User, null=True, related_name="sent_notices")
     post = models.ForeignKey(Post, on_delete=CASCADE, null=True, related_name="notices")
     comment = models.ForeignKey(
         Comment, on_delete=CASCADE, null=True, related_name="notices"
