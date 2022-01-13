@@ -1,5 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
+from rest_framework_jwt.views import refresh_jwt_token
 
 from .views import (
     UserLoginView,
@@ -71,6 +72,7 @@ urlpatterns = [
     ),
     path("friend/", UserFriendDeleteView.as_view(), name="friend"),  # /api/v1/friend/
     path("search/", UserSearchListView.as_view(), name="search"),  # /api/v1/search/
+    path("token/refresh/", refresh_jwt_token),  # /api/v1/token/refresh/
 ]
 
 # urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
