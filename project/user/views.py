@@ -4,7 +4,7 @@ from django.db.models import Model, Q
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from drf_yasg import openapi
 from rest_framework import status, viewsets, permissions, parsers
 from rest_framework.generics import (
@@ -104,8 +104,18 @@ class UserDeleteView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(operation_description="계정 삭제하기")
+    @transaction.atomic
     def delete(self, request):
         user = request.user
+
+        for notice in user.sent_notices:
+            if notice.senders.count() > 1:
+                notice.senders.remove(user)
+                notice.count -= 1
+                notice.save()
+            else:
+                notice.delete()
+
         user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
