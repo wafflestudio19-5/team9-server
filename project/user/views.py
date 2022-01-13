@@ -100,6 +100,18 @@ class UserLogoutView(APIView):
         return Response("로그아웃 되었습니다.", status=status.HTTP_200_OK)
 
 
+class UserDeleteView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    @swagger_auto_schema(
+        operation_description="계정 삭제하기"
+    )
+    def delete(self, request):
+        user = request.user
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class UserFriendRequestListView(ListAPIView):
     serializer_class = FriendRequestCreateSerializer
     queryset = FriendRequest.objects.all()
