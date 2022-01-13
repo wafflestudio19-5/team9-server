@@ -1231,3 +1231,19 @@ class SearchTestCase(TestCase):
         self.assertEqual(len(data["results"]), 20)
         self.assertTrue(data["results"][0]["is_friend"])
         self.assertEqual(data["results"][0]["mutual_friends"]["count"], 0)
+
+
+class TokenTestCase(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.test_user = UserFactory.create(
+            first_name="와플",
+            last_name="김",
+        )
+
+    def test_refresh(self):
+        user_token = jwt_token_of(self.test_user)
+        response = self.client.post(
+            "/api/v1/token/refresh/", data={"token": user_token}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
