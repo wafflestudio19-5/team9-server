@@ -338,7 +338,9 @@ class LoginTestCase(TestCase):
 
     def test_login(self):
         response = self.client.post(
-            "/api/v1/account/login/", data=self.post_data, content_type="application/json"
+            "/api/v1/account/login/",
+            data=self.post_data,
+            content_type="application/json",
         )
         data = response.json()
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -397,12 +399,14 @@ class AccountDeletTestCase(TestCase):
         user_token = "JWT " + jwt_token_of(self.user)
         user_id = self.user.id
         response = self.client.delete(
-            "/api/v1/account/delete/", data=self.post_data, content_type="application/json", HTTP_AUTHORIZATION=user_token,
+            "/api/v1/account/delete/",
+            data=self.post_data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
         )
         data = response.json()
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(User.objects.filter(pk=user_id))
-
 
 
 class UserNewsFeedTestCase(TestCase):

@@ -25,10 +25,18 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path("account/signup/", UserSignUpView.as_view(), name="account_signup"),  # /api/v1/account/signup/
-    path("account/login/", UserLoginView.as_view(), name="account_login"),  # /api/v1/account/login/
-    path("account/logout/", UserLogoutView.as_view(), name="account_logout"),  # /api/v1/account/logout/
-    path("account/delete/", UserDeleteView.as_view(), name="account_delete"),  # /api/v1/account/delete/
+    path(
+        "account/signup/", UserSignUpView.as_view(), name="account_signup"
+    ),  # /api/v1/account/signup/
+    path(
+        "account/login/", UserLoginView.as_view(), name="account_login"
+    ),  # /api/v1/account/login/
+    path(
+        "account/logout/", UserLogoutView.as_view(), name="account_logout"
+    ),  # /api/v1/account/logout/
+    path(
+        "account/delete/", UserDeleteView.as_view(), name="account_delete"
+    ),  # /api/v1/account/delete/
     path(
         "account/kakao/login/", KakaoLoginView.as_view(), name="kakao_login"
     ),  # /api/v1/account/kakao/login/

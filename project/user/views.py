@@ -103,9 +103,7 @@ class UserLogoutView(APIView):
 class UserDeleteView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
-    @swagger_auto_schema(
-        operation_description="계정 삭제하기"
-    )
+    @swagger_auto_schema(operation_description="계정 삭제하기")
     def delete(self, request):
         user = request.user
         user.delete()
