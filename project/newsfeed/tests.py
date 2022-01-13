@@ -1219,11 +1219,21 @@ class ScopeTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         # 알림을 눌러서 해당 게시글 링크로 갔는데, 공개범위가 그 전에 수정된 경우 404
+        # 알림을 눌러서 해당 댓글 링크로 갔는데, 공개범위가 그 전에 수정된 경우
         response = self.client.get(
             f"/api/v1/newsfeed/{mainpost_id}/",
             HTTP_AUTHORIZATION=self.stranger_token,
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.post(
+            f"/api/v1/newsfeed/{mainpost_id}/comment/",
+            data={"content": "전체공개 게시글의 댓글입니다."},
+            HTTP_AUTHORIZATION=self.stranger_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        comment_id = data["id"]
 
         data = {
             "content": "친구 공개 게시글입니다.",
@@ -1249,7 +1259,19 @@ class ScopeTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
         response = self.client.get(
+            f"/api/v1/newsfeed/{mainpost_id}/{comment_id}/",
+            HTTP_AUTHORIZATION=self.stranger_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        response = self.client.get(
             f"/api/v1/newsfeed/{mainpost_id}/",
+            HTTP_AUTHORIZATION=self.friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.get(
+            f"/api/v1/newsfeed/{mainpost_id}/{comment_id}/",
             HTTP_AUTHORIZATION=self.friend_token,
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -1277,7 +1299,11 @@ class ScopeTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-        # 알림을 눌러서 해당 댓글 링크로 갔는데, 공개범위가 그 전에 수정된 경우
+        response = self.client.get(
+            f"/api/v1/newsfeed/{mainpost_id}/{comment_id}/",
+            HTTP_AUTHORIZATION=self.friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
 class LikeTestCase(TestCase):
