@@ -468,6 +468,32 @@ class CommentUpdateDeleteView(APIView):
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @swagger_auto_schema(
+        operation_description="특정 comment 가져오기",
+    )
+    def get(self, request, post_id=None, comment_id=None):
+        
+        comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
+        post = comment.post
+        user = request.user
+
+        if post.author == user:
+            pass
+
+        elif user in post.author.friends.all():
+            if post.scope == 1:
+                return Response(
+                    status=status.HTTP_404_NOT_FOUND, data="해당 게시글이 존재하지 않습니다."
+                )
+
+        else:
+            if post.scope < 3:
+                return Response(
+                    status=status.HTTP_404_NOT_FOUND, data="해당 게시글이 존재하지 않습니다."
+                )
+
+        return Response(status=status.HTTP_200_OK, data=CommentSerializer(comment).data)
+        
 
 class CommentLikeView(GenericAPIView):
     serializer_class = CommentSerializer
