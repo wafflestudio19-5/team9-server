@@ -404,7 +404,6 @@ class AccountDeletTestCase(TestCase):
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
-        data = response.json()
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(User.objects.filter(pk=user_id))
 

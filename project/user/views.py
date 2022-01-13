@@ -108,7 +108,7 @@ class UserDeleteView(APIView):
     def delete(self, request):
         user = request.user
 
-        for notice in user.sent_notices:
+        for notice in user.sent_notices.all():
             if notice.senders.count() > 1:
                 notice.senders.remove(user)
                 notice.count -= 1
