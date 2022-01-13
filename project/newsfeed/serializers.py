@@ -15,6 +15,9 @@ class PostSerializer(serializers.ModelSerializer):
     is_liked = serializers.SerializerMethodField()
     author = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
+    shared_post = serializers.SerializerMethodField()
+    shared_counts = serializers.SerializerMethodField()
+    posted_at = serializers.SerializerMethodField()
 
     class Meta:
 
@@ -24,12 +27,15 @@ class PostSerializer(serializers.ModelSerializer):
             "id",
             "author",
             "content",
+            "posted_at",
             "mainpost",
             "subposts",
             "comments",
             "likes",
             "is_liked",
             "scope",
+            "shared_post",
+            "shared_counts",
         )
         extra_kwargs = {"content": {"help_text": "무슨 생각을 하고 계신가요?"}}
 
@@ -39,13 +45,15 @@ class PostSerializer(serializers.ModelSerializer):
         author = self.context["author"]
         content = validated_data.get("content", "")
         scope = validated_data["scope"]
+        shared_post = self.context.get("shared_post")
 
-        if mainpost:
-            post = Post.objects.create(
-                author=author, content=content, mainpost=mainpost, scope=scope
-            )
-        else:
-            post = Post.objects.create(author=author, content=content, scope=scope)
+        post = Post.objects.create(
+            author=author,
+            content=content,
+            mainpost=mainpost,
+            scope=scope,
+            shared_post=shared_post,
+        )
 
         return post
 
@@ -63,6 +71,9 @@ class PostSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("공개범위는 1, 2, 3 중에 선택해주세요.")
 
         return data
+
+    def get_posted_at(self, post):
+        return format_time(post.created)
 
     def get_subposts(self, post):
 
@@ -82,7 +93,32 @@ class PostSerializer(serializers.ModelSerializer):
         return UserSerializer(post.author).data
 
     def get_comments(self, post):
-        return Comment.objects.filter(post=post).count()
+        return post.comments.count()
+
+    def get_shared_post(self, post):
+        return PostSerializer(post.shared_post).data
+
+    def get_shared_post(self, post):
+        user = self.context["request"].user
+
+        shared_post = post.shared_post
+
+        if not post.shared_post:
+            return "AccessDenied"
+
+        if user == shared_post.author:
+            pass
+        elif user in shared_post.author.friends.all():
+            if shared_post.scope == 1:
+                return "AccessDenied"
+        else:
+            if shared_post.scope != 3:
+                return "AccessDenied"
+
+        return PostSerializer(shared_post).data
+
+    def get_shared_counts(self, post):
+        return post.sharing_posts.count()
 
 
 def format_time(time):
@@ -127,6 +163,8 @@ class MainPostSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField()
+    shared_post = serializers.SerializerMethodField()
+    shared_counts = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -140,6 +178,8 @@ class MainPostSerializer(serializers.ModelSerializer):
             "comments",
             "is_liked",
             "scope",
+            "shared_post",
+            "shared_counts",
         )
 
     def get_posted_at(self, post):
@@ -164,6 +204,28 @@ class MainPostSerializer(serializers.ModelSerializer):
             return True
 
         return False
+
+    def get_shared_post(self, post):
+        user = self.context["request"].user
+
+        shared_post = post.shared_post
+
+        if not post.shared_post:
+            return "AccessDenied"
+
+        if user == shared_post.author:
+            pass
+        elif user in shared_post.author.friends.all():
+            if shared_post.scope == 1:
+                return "AccessDenied"
+        else:
+            if shared_post.scope != 3:
+                return "AccessDenied"
+
+        return PostSerializer(shared_post).data
+
+    def get_shared_counts(self, post):
+        return post.sharing_posts.count()
 
 
 class SubPostSerializer(serializers.ModelSerializer):
@@ -411,7 +473,7 @@ class NoticelistSerializer(serializers.ModelSerializer):
         return posted_at
 
     def get_post(self, notice):
-        return PostSerializer(notice.post).data
+        return PostSerializer(notice.post, context=self.context).data
 
     def get_comment(self, notice):
         return CommentSerializer(notice.comment).data

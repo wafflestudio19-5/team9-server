@@ -18,7 +18,6 @@ import boto3
 from .serializers import (
     NoticeSerializer,
     NoticelistSerializer,
-    MainPostSerializer,
     PostSerializer,
     PostLikeSerializer,
     CommentListSerializer,
@@ -36,13 +35,13 @@ from rest_framework.parsers import DataAndFiles, MultiPartParser, FormParser, JS
 
 class PostListView(ListCreateAPIView):
 
-    serializer_class = MainPostSerializer
+    serializer_class = PostSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
         operation_description="로그인된 유저의 friend들의 post들을 최신순으로 가져오기(현재는 모든 유저 가져오도록 설정되어 있음)",
-        responses={200: MainPostSerializer()},
+        responses={200: PostSerializer()},
     )
     def get(self, request):
 
@@ -78,12 +77,14 @@ class PostListView(ListCreateAPIView):
 
         user = request.user
 
+        shared_post = request.data.get("shared_post")
+
         files = request.FILES.getlist("file")
-        context = {"isFile": False}
-        if files:
+        context = {"isFile": False, "shared_post": shared_post, "author": user}
+
+        if files or shared_post:
             context["isFile"] = True
 
-        context["author"] = user
         scope = request.data.get("scope", 3)
         data = request.data.copy()
         data["scope"] = scope
@@ -150,7 +151,7 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
                     status=status.HTTP_404_NOT_FOUND, data="해당 게시글이 존재하지 않습니다."
                 )
         return Response(
-            self.get_serializer(post).data,
+            PostSerializer(post, context={"request": request}).data,
             status=status.HTTP_200_OK,
         )
 
@@ -472,7 +473,7 @@ class CommentUpdateDeleteView(APIView):
         operation_description="특정 comment 가져오기",
     )
     def get(self, request, post_id=None, comment_id=None):
-        
+
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
         post = comment.post
         user = request.user
@@ -493,7 +494,7 @@ class CommentUpdateDeleteView(APIView):
                 )
 
         return Response(status=status.HTTP_200_OK, data=CommentSerializer(comment).data)
-        
+
 
 class CommentLikeView(GenericAPIView):
     serializer_class = CommentSerializer

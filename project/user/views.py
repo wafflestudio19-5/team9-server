@@ -24,6 +24,7 @@ from user.models import KakaoId, Company, University, FriendRequest
 from rest_framework.viewsets import GenericViewSet
 from user.models import KakaoId, FriendRequest
 from user.pagination import UserPagination
+from newsfeed.serializers import PostSerializer
 from user.serializers import (
     UserSerializer,
     UserLoginSerializer,
@@ -39,7 +40,6 @@ from user.serializers import (
     UserLoginSwaggerSerializer,
     UserProfileImageSwaggerSerializer,
 )
-from newsfeed.serializers import MainPostSerializer
 from newsfeed.models import Post
 from drf_yasg.utils import swagger_auto_schema
 import uuid
@@ -364,13 +364,13 @@ class KakaoConnectView(APIView):
 
 
 class UserNewsfeedView(ListAPIView):
-    serializer_class = MainPostSerializer
+    serializer_class = PostSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
         operation_description="선택된 유저가 작성한 게시글을 가져오기",
-        responses={200: MainPostSerializer()},
+        responses={200: PostSerializer()},
     )
     def get(self, request, user_id=None):
         user = get_object_or_404(User, pk=user_id)

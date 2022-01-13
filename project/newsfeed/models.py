@@ -44,6 +44,14 @@ class Post(NewsfeedObject):
         blank=True,
     )
 
+    shared_post = models.ForeignKey(
+        "self",
+        related_name="sharing_posts",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+
     def get_user_url(self):
         # 게시글에서 유저를 누르면 유저 프로필로 갈 수 있게 하기 위함
         return f"/api/v1/user/{self.author}/"
