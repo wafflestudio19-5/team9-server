@@ -44,7 +44,7 @@ from newsfeed.models import Post
 from drf_yasg.utils import swagger_auto_schema
 import uuid
 
-from newsfeed.views import NoticeCreate
+from newsfeed.views import NoticeCreate, NoticeCancel
 
 User = get_user_model()
 
@@ -181,11 +181,16 @@ class UserFriendRequestView(APIView):
     )
     def delete(self, request, pk=None):
         target_user = get_object_or_404(self.queryset, pk=pk)
+        user = request.user
 
-        if request.user.sent_friend_request.filter(receiver=target_user):
+        if user.sent_friend_request.filter(receiver=target_user):
             data = {"sender": request.user.id, "receiver": target_user.id}
-        elif request.user.received_friend_request.filter(sender=target_user):
+            NoticeCancel(receiver=target_user, sender=user, content="FriendRequest")
+
+        elif user.received_friend_request.filter(sender=target_user):
             data = {"sender": target_user.id, "receiver": request.user.id}
+            NoticeCancel(receiver=user, sender=target_user, content="FriendRequest")
+
         else:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST, data="해당 유저에게 보내거나 받은 친구 요청이 없습니다."

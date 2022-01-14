@@ -113,6 +113,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         notice_id = data["results"][0]["id"]
+        recent_comment_id = data["results"][0]["comment"]["id"]
         self.assertEqual(len(data["results"]), 1)
         self.assertEqual(data["results"][0]["content"], "PostComment")
         self.assertEqual(data["results"][0]["count"], 9)
@@ -226,24 +227,6 @@ class NoticeTestCase(TestCase):
         )
         self.assertEqual(data["results"][0]["is_checked"], False)
 
-        # 알림 삭제
-        response = self.client.delete(
-            f"/api/v1/newsfeed/notices/{notice_id}/",
-            content_type="application/json",
-            HTTP_AUTHORIZATION=self.user_token,
-        )
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-
-        response = self.client.get(
-            "/api/v1/newsfeed/notices/",
-            content_type="application/json",
-            HTTP_AUTHORIZATION=self.user_token,
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.json()
-        self.assertEqual(len(data["results"]), 2)
-        self.assertNotEqual(data["results"][-1]["id"], notice_id)
-
         # 알림 취소
         response = self.client.put(
             f"/api/v1/newsfeed/{self.test_post.id}/like/",
@@ -274,6 +257,39 @@ class NoticeTestCase(TestCase):
         data = response.json()
         self.assertEqual(data["results"][1]["count"], 8)
         self.assertEqual(len(data["results"][1]["senders"]), 9)
+
+        response = self.client.delete(
+            f"/api/v1/newsfeed/{self.test_post.id}/{recent_comment_id}/",
+            HTTP_AUTHORIZATION=self.friends_token[9],
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][2]["count"], 8)
+        self.assertEqual(len(data["results"][2]["senders"]), 9)
+
+        # 알림 삭제
+        response = self.client.delete(
+            f"/api/v1/newsfeed/notices/{notice_id}/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 2)
+        self.assertNotEqual(data["results"][-1]["id"], notice_id)
 
         # 친구요청
         stranger = UserFactory.create()
@@ -314,7 +330,77 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][0]["content"], "FriendAccept")
         self.assertEqual(data["results"][0]["senders"][0]["id"], self.test_user.id)
 
+        # 친구 요청 후, 요청한 사람이 친구 요청을 취소할 시, 보내졌던 알림 삭제
+        stranger2 = UserFactory.create()
+        stranger2_token = "JWT " + jwt_token_of(stranger2)
 
+        response = self.client.post(
+            f"/api/v1/friend/request/{self.test_user.id}/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=stranger2_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "FriendRequest")
+        self.assertEqual(data["results"][0]["senders"][0]["id"], stranger2.id)
+
+        response = self.client.delete(
+            f"/api/v1/friend/request/{self.test_user.id}/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=stranger2_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertNotEqual(data["results"][0]["senders"][0]["id"], stranger2.id)
+
+        # 친구 요청 후, 요청 받은 사람의 친구 요청 삭제시 알림도 삭제
+        response = self.client.post(
+            f"/api/v1/friend/request/{self.test_user.id}/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=stranger2_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "FriendRequest")
+        self.assertEqual(data["results"][0]["senders"][0]["id"], stranger2.id)
+
+        response = self.client.delete(
+            f"/api/v1/friend/request/{stranger2.id}/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertNotEqual(data["results"][0]["senders"][0]["id"], stranger2.id)
+
+
+"""
 class NewsFeedTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -1943,3 +2029,4 @@ class CommentTestCase(TestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+"""

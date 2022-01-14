@@ -315,17 +315,13 @@ class PostLikeView(GenericAPIView):
             post.likes = post.likes - 1
             post.save()
 
-            notice = Notice.objects.filter(post=post, comment=None)
-            if notice.exists():
-                notice = notice[0]
-
-                if user in notice.senders.all():
-                    if notice.senders.count() > 1:
-                        notice.senders.remove(user)
-                        notice.count -= 1
-                        notice.save()
-                    else:
-                        notice.delete()
+            NoticeCancel(
+                sender=user,
+                receiver=post.author,
+                content="PostLike",
+                post=post,
+                comment=None,
+            )
 
         # 좋아요 하지 않은 게시물 -> 좋아요 하기, 알림 생성
         else:
@@ -465,6 +461,10 @@ class CommentUpdateDeleteView(APIView):
                 status=status.HTTP_403_FORBIDDEN, data="다른 유저의 댓글을 삭제할 수 없습니다."
             )
         comment.delete()
+        post = comment.post
+        NoticeCancel(
+            sender=request.user, receiver=post.author, content="PostComment", post=post
+        )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -508,6 +508,7 @@ class CommentLikeView(GenericAPIView):
     def put(self, request, post_id=None, comment_id=None):
         user = request.user
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
+        post = comment.post
 
         # 이미 좋아요 한 댓글 -> 좋아요 취소, 관련 알림 삭제
         if comment.likeusers.filter(id=user.id).exists():
@@ -515,16 +516,13 @@ class CommentLikeView(GenericAPIView):
             comment.likes = comment.likes - 1
             comment.save()
 
-            notice = Notice.objects.filter(comment=comment)
-            if notice.exists():
-                notice = notice[0]
-                if user in notice.senders.all():
-                    if notice.senders.count() > 1:
-                        notice.senders.remove(user)
-                        notice.count -= 1
-                        notice.save()
-                    else:
-                        notice.delete()
+            NoticeCancel(
+                sender=user,
+                receiver=comment.author,
+                content="CommentLike",
+                post=post,
+                comment=comment,
+            )
 
         # 좋아요 하지 않은 댓글 -> 좋아요 하기, 알림 생성
         else:
@@ -532,7 +530,6 @@ class CommentLikeView(GenericAPIView):
             comment.likes = comment.likes + 1
             comment.save()
 
-            post = comment.post
             if user.id != comment.author.id:
                 NoticeCreate(
                     user=user, content="CommentLike", post=post, comment=comment
@@ -606,6 +603,41 @@ def NoticeCreate(**context):
         )
         serializer.is_valid(raise_exception=True)
         return serializer.save()
+
+
+def NoticeCancel(**context):
+
+    content = context["content"]
+    post = context.get("post")
+    comment = context.get("comment")
+    receiver = context.get("receiver")
+    sender = context.get("sender")
+
+    if content == "FriendRequest":
+        notice = receiver.notices.filter(senders=sender, content=content)
+        if notice.exists():
+            notice = notice[0]
+            notice.delete()
+        return
+
+    else:
+        if comment:
+            notice = receiver.notices.filter(
+                post=post, comment=comment, content=content
+            )
+        else:
+            notice = receiver.notices.filter(post=post, content=content)
+
+        if notice.exists():
+            notice = notice[0]
+            if sender in notice.senders.all():
+                if notice.senders.count() > 1:
+                    notice.senders.remove(sender)
+                    notice.count -= 1
+                    notice.save()
+                else:
+                    notice.delete()
+        return
 
 
 class NoticeView(GenericAPIView):
