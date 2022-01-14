@@ -81,11 +81,12 @@ class Notice(models.Model):
     user = models.ForeignKey(User, on_delete=CASCADE, related_name="notices")
     senders = models.ManyToManyField(User, null=True, related_name="sent_notices")
     post = models.ForeignKey(Post, on_delete=CASCADE, null=True, related_name="notices")
-    comment = models.ForeignKey(
+    parent_comment = models.ForeignKey(
         Comment, on_delete=CASCADE, null=True, related_name="notices"
     )
     content = models.CharField(max_length=30, blank=True)
     created = models.DateTimeField(auto_now_add=True)
     is_checked = models.BooleanField(default=False)
     url = models.CharField(max_length=1000)
-    count = models.PositiveIntegerField(default=0)
+
+    comments = models.ManyToManyField(Comment, null=True)
