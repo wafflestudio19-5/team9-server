@@ -7,13 +7,19 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('newsfeed', '0021_alter_post_scope'),
+        ("newsfeed", "0021_alter_post_scope"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='post',
-            name='shared_post',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='sharing_posts', to='newsfeed.post'),
+            model_name="post",
+            name="shared_post",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="sharing_posts",
+                to="newsfeed.post",
+            ),
         ),
     ]

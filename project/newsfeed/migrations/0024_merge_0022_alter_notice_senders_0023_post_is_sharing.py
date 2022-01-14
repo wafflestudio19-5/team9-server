@@ -6,9 +6,8 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('newsfeed', '0022_alter_notice_senders'),
-        ('newsfeed', '0023_post_is_sharing'),
+        ("newsfeed", "0022_alter_notice_senders"),
+        ("newsfeed", "0023_post_is_sharing"),
     ]
 
-    operations = [
-    ]
+    operations = []

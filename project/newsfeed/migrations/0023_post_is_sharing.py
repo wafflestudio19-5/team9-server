@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('newsfeed', '0022_post_shared_post'),
+        ("newsfeed", "0022_post_shared_post"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='post',
-            name='is_sharing',
+            model_name="post",
+            name="is_sharing",
             field=models.BooleanField(default=False),
         ),
     ]
