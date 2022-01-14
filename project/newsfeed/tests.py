@@ -97,6 +97,52 @@ class NoticeTestCase(TestCase):
 
     def test_notice(self):
 
+        tmp_comment_list = []
+
+        # 깊이 1인 답글 알림과 취소
+        for i, friend_token in enumerate(self.friends_token):
+            response = self.client.post(
+                f"/api/v1/newsfeed/{self.test_post.id}/comment/",
+                data={"content": f"알림 테스트 답글입니다...{i}", "parent": self.test_comment.id},
+                HTTP_AUTHORIZATION=friend_token,
+            )
+            tmp_comment_list.append(response.json()["id"])
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "CommentComment")
+        self.assertEqual(data["results"][0]["count"], 9)
+        self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
+        self.assertEqual(data["results"][0]["comment"]["id"], self.test_comment.id)
+        self.assertEqual(len(data["results"][0]["senders"]), 10)
+        self.assertEqual(
+            data["results"][0]["url"],
+            f"api/v1/newsfeed/{self.test_post.id}/{self.test_comment.id}/",
+        )
+        self.assertEqual(data["results"][0]["is_checked"], False)
+        self.assertEqual(data["results"][0]["comment"]["content"], "알림 테스트 답글입니다...9")
+
+        for i, friend_token in enumerate(self.friends_token):
+            tmp_comment_id = tmp_comment_list[i]
+            response = self.client.delete(
+                f"/api/v1/newsfeed/{self.test_post.id}/{tmp_comment_id}/",
+                HTTP_AUTHORIZATION=friend_token,
+            )
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(len(data["results"]), 0)
+
         # 댓글알림
         for i, friend_token in enumerate(self.friends_token):
             response = self.client.post(

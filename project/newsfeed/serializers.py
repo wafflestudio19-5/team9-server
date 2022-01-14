@@ -456,6 +456,7 @@ class NoticelistSerializer(serializers.ModelSerializer):
     post = serializers.SerializerMethodField()
     comment = serializers.SerializerMethodField()
     senders = serializers.SerializerMethodField()
+    comment_preview = serializers.SerializerMethodField()
 
     class Meta:
         model = Notice
@@ -470,6 +471,7 @@ class NoticelistSerializer(serializers.ModelSerializer):
             "url",
             "senders",
             "count",
+            "comment_preview",
         )
 
     def get_posted_at(self, notice):
@@ -486,3 +488,17 @@ class NoticelistSerializer(serializers.ModelSerializer):
 
     def get_senders(self, notice):
         return UserSerializer(notice.senders, many=True).data
+
+    def get_comment_preview(self, notice):
+        user = notice.senders.last()
+
+        # 답글인 경우
+        if notice.comment:
+            recent_comment = notice.post.comments.filter(
+                parent=notice.comment, author=user
+            )[-1]
+        # 댓글인 경우
+        else:
+            recent_comment = notice.post.comments.filter(parent=None, author=user)[-1]
+
+        return CommentSerializer(recent_comment).data

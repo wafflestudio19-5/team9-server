@@ -428,7 +428,6 @@ class CommentListView(ListCreateAPIView):
                     receiver=post.author,
                     content="PostComment",
                     post=post,
-                    comment=comment,
                 )
 
         return Response(
