@@ -197,7 +197,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(len(data["results"][0]["senders"]), 10)
         self.assertEqual(
             data["results"][0]["url"],
-            f"api/v1/newsfeed/{self.test_post.id}/{self.test_comment.id}/",
+            f"api/v1/newsfeed/{self.test_post.id}/",
         )
         self.assertEqual(data["results"][0]["is_checked"], False)
         self.assertEqual(data["results"][0]["comment"]["content"], "알림 테스트 댓글입니다.")

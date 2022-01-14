@@ -151,7 +151,7 @@ class UserFriendRequestView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         NoticeCreate(
-            user=sender,
+            sender=sender,
             content="FriendRequest",
             receiver=receiver.id,
         )
@@ -171,7 +171,7 @@ class UserFriendRequestView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.accept(serializer.validated_data)
 
-        NoticeCreate(user=receiver, content="FriendAccept", receiver=sender.id)
+        NoticeCreate(sender=receiver, content="FriendAccept", receiver=sender.id)
 
         return Response(status=status.HTTP_200_OK, data="수락 완료되었습니다.")
 
