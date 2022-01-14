@@ -810,6 +810,187 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
+class ShareTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+
+        cls.test_user = UserFactory.create(
+            email="test0@test.com",
+            password="password",
+            first_name="test",
+            last_name="user",
+            birth="1997-02-03",
+            gender="M",
+            phone_number="01000000000",
+        )
+
+        cls.test_friend = UserFactory.create(
+            email="test1@test.com",
+            password="password",
+            first_name="test",
+            last_name="friend",
+            birth="1997-02-03",
+            gender="M",
+            phone_number="01011111111",
+        )
+
+        cls.test_user.friends.add(cls.test_friend)
+        cls.test_user.save()
+
+        cls.test_stranger = UserFactory.create(
+            email="test2@test.com",
+            password="password",
+            first_name="test",
+            last_name="stranger",
+            birth="1997-02-03",
+            gender="M",
+            phone_number="01022222222",
+        )
+
+        cls.test_image = SimpleUploadedFile(
+            name="testimage2.jpg",
+            content=open(os.path.join(BASE_DIR, "testimage2.jpg"), "rb").read(),
+            content_type="image/jpeg",
+        )
+        cls.user_token = "JWT " + jwt_token_of(cls.test_user)
+        cls.friend_token = "JWT " + jwt_token_of(cls.test_friend)
+        cls.stranger_token = "JWT " + jwt_token_of(cls.test_stranger)
+
+    def test_post_share(self):
+
+        # 게시물 공유하기
+        data = {
+            "content": "공유할 게시글입니다.",
+            "subposts": [""],
+            "file": self.test_image,
+        }
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        sharing_post_id = data["id"]
+        subpost_id = data["subposts"][0]["id"]
+        sharing_post = self.test_user.posts.get(id=sharing_post_id)
+
+        data = {"content": "게시글을 공유했습니다.", "shared_post": sharing_post_id}
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        self.assertEqual(sharing_post_id, data["shared_post"]["id"])
+        self.assertEqual("공유할 게시글입니다.", data["shared_post"]["content"])
+
+        # 게시물 공유 시, 공유된 게시물의 공유된 횟수 증가
+        response = self.client.get(
+            f"/api/v1/newsfeed/{sharing_post_id}/",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["shared_counts"], 1)
+
+        # 친구 뉴스피드와 개인 뉴스피드에서 확인 가능
+        response = self.client.get(
+            "/api/v1/newsfeed/",
+            HTTP_AUTHORIZATION=self.friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "게시글을 공유했습니다.")
+        self.assertEqual(data["results"][0]["shared_post"]["id"], sharing_post_id)
+
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            HTTP_AUTHORIZATION=self.stranger_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "게시글을 공유했습니다.")
+        self.assertEqual(data["results"][0]["shared_post"]["id"], sharing_post_id)
+
+        # 내 공유를 본 사람이 공유된 게시글의 보기 권한이 없는 경우
+        data = {
+            "content": "",
+            "subposts": [""],
+            "subposts_id": [subpost_id],
+            "scope": 2,
+        }
+
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+        content_type = "multipart/form-data; boundary=BoUnDaRyStRiNg"
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{sharing_post_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            HTTP_AUTHORIZATION=self.stranger_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "게시글을 공유했습니다.")
+        self.assertEqual(data["results"][0]["shared_post"], "AccessDenied")
+
+        data = {
+            "content": "",
+            "subposts": [""],
+            "subposts_id": [subpost_id],
+            "scope": 1,
+        }
+
+        content = encode_multipart("BoUnDaRyStRiNg", data)
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{sharing_post_id}/",
+            data=content,
+            content_type=content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            HTTP_AUTHORIZATION=self.friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "게시글을 공유했습니다.")
+        self.assertEqual(data["results"][0]["shared_post"], "AccessDenied")
+
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "게시글을 공유했습니다.")
+        self.assertEqual(data["results"][0]["shared_post"]["id"], sharing_post_id)
+
+        # 공유된 게시글이 삭제된 경우
+        sharing_post.delete()
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "게시글을 공유했습니다.")
+        self.assertEqual(data["results"][0]["shared_post"], "AccessDenied")
+
+
 class ScopeTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
