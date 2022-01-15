@@ -492,16 +492,21 @@ class NoticelistSerializer(serializers.ModelSerializer):
 
     def get_comment_preview(self, notice):
 
-        if notice.comments.exists():
-            return CommentSerializer(notice.comments.last()).data
-
-        return None
+        if notice.content == "PostComment":
+            return CommentSerializer(notice.post.comments.last()).data
+        elif notice.content == "CommentComment":
+            return CommentSerializer(notice.parent_comment.children.last()).data
+        else:
+            return None
 
     def get_sender_preview(self, notice):
 
-        if notice.comments.exists():
-            return UserSerializer(notice.comments.last().author).data
-        return UserSerializer(notice.senders.last()).data
+        if notice.content == "PostComment":
+            return UserSerializer(notice.post.comments.last().author).data
+        elif notice.content == "CommentComment":
+            return UserSerializer(notice.parent_comment.children.last().author).data
+        else:
+            return UserSerializer(notice.senders.last()).data
 
     def get_senders(self, notice):
         if notice.comments.exists():
