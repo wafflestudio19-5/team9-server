@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_serializer_method
 from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
-from .models import Notice, Post, Comment, NewsfeedObject
+from .models import Notice, Post, Comment, NewsfeedObject, NoticeSender
 from user.serializers import UserSerializer
 from user.models import User
 from datetime import datetime, timedelta
@@ -437,7 +437,7 @@ class NoticeSerializer(serializers.ModelSerializer):
         post = validated_data.get("post")
         parent_comment = validated_data.get("parent_comment")
         sender = self.context["sender"]
-        comment = self.context.get("comment")
+        # comment = self.context.get("comment")
 
         notice = Notice.objects.create(
             user=user,
@@ -446,10 +446,11 @@ class NoticeSerializer(serializers.ModelSerializer):
             parent_comment=parent_comment,
             url=url,
         )
-        notice.senders.add(sender)
+        NoticeSender.objects.create(user=sender, notice=notice, count=1)
+        # notice.senders.add(sender)
 
-        if comment:
-            notice.comments.add(comment)
+        # if comment:
+        #     notice.comments.add(comment)
 
         return notice
 
@@ -506,16 +507,17 @@ class NoticelistSerializer(serializers.ModelSerializer):
         elif notice.content == "CommentComment":
             return UserSerializer(notice.parent_comment.children.last().author).data
         else:
-            return UserSerializer(notice.senders.last()).data
+            return UserSerializer(notice.senders.last().user).data
 
     def get_senders(self, notice):
-        if notice.comments.exists():
-            return UserSerializer(
-                notice.senders.exclude(id=notice.comments.last().author.id), many=True
-            ).data
-        return UserSerializer(
-            notice.senders.exclude(id=notice.senders.last().id), many=True
-        ).data
+        if notice.content == "PostComment":
+            recent_user = notice.post.comments.last().author
+        elif notice.content == "CommentComment":
+            recent_user = notice.parent_comment.children.last().author
+        else:
+            recent_user = notice.senders.last().user
+
+        return UserSerializer(notice.senders.exclude(user=recent_user), many=True).data
 
     def get_parent_comment(self, notice):
 

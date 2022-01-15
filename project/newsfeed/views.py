@@ -24,7 +24,7 @@ from .serializers import (
     CommentLikeSerializer,
     CommentPostSwaggerSerializer,
 )
-from .models import Notice, Post, Comment
+from .models import Notice, Post, Comment, NoticeSender
 from user.models import User
 from datetime import datetime
 from django.shortcuts import get_object_or_404
@@ -419,7 +419,6 @@ class CommentListView(ListCreateAPIView):
                     content="CommentComment",
                     post=post,
                     parent_comment=comment.parent,
-                    comment=comment,
                 )
         else:
             if user.id != post.author.id:
@@ -428,7 +427,6 @@ class CommentListView(ListCreateAPIView):
                     receiver=post.author,
                     content="PostComment",
                     post=post,
-                    comment=comment,
                 )
 
         return Response(
@@ -488,7 +486,6 @@ class CommentUpdateDeleteView(APIView):
                     content="CommentComment",
                     post=post,
                     parent_comment=parent,
-                    comment=comment,
                 )
 
         else:
@@ -498,7 +495,6 @@ class CommentUpdateDeleteView(APIView):
                     receiver=post.author,
                     content="PostComment",
                     post=post,
-                    comment=comment,
                 )
         comment.delete()
 
@@ -593,7 +589,7 @@ def NoticeCreate(**context):
     post = context.get("post")
     parent_comment = context.get("parent_comment")
     receiver = context["receiver"]
-    comment = context.get("comment")
+    # comment = context.get("comment")
 
     if content == "CommentLike" or content == "CommentComment":
         notice = receiver.notices.filter(
@@ -603,7 +599,9 @@ def NoticeCreate(**context):
     elif "Friend" in content:
 
         if content == "FriendAccept":
-            notice = sender.notices.filter(content="FriendRequest", senders=receiver)
+            notice = sender.notices.filter(
+                content="FriendRequest", senders_user=receiver
+            )
             if notice.exists():
                 notice = notice[0]
                 notice.content = "isFriend"
@@ -627,27 +625,25 @@ def NoticeCreate(**context):
 
     if notice:
         notice = notice[0]
-        notice.senders.add(sender)
-
-        if comment:
-            notice.comments.add(comment)
-
-        notice.save()
+        notice_sender = notice.senders.filter(user=sender)
+        if notice_sender.exists():
+            notice_sender = notice_sender[0]
+            notice_sender.count += 1
+            notice_sender.save()
+        else:
+            NoticeSender.objects.create(notice=notice, user=sender, count=1)
 
     else:
 
         data = {
-            "user": receiver.id,
+            "user": receiver,
             "content": content,
-            "post": post.id,
+            "post": post,
             "url": f"api/v1/newsfeed/{post.id}/",
         }
         context = {"sender": sender}
         if parent_comment:
-            data["parent_comment"] = parent_comment.id
-
-        if comment:
-            context["comment"] = comment.id
+            data["parent_comment"] = parent_comment
 
         if content == "CommentComment":
             data["url"] = f"api/v1/newsfeed/{post.id}/{parent_comment.id}/"
@@ -667,10 +663,9 @@ def NoticeCancel(**context):
     content = context["content"]
     post = context.get("post")
     parent_comment = context.get("parent_comment")
-    comment = context.get("comment")
 
     if content == "FriendRequest":
-        notice = receiver.notices.filter(senders=sender, content=content)
+        notice = receiver.notices.filter(senders_user=sender, content=content)
         if notice.exists():
             notice = notice[0]
             notice.delete()
@@ -686,19 +681,20 @@ def NoticeCancel(**context):
 
         if notice.exists():
             notice = notice[0]
-            if comment:
-                notice.comments.remove(comment)
-                if not notice.comments.filter(author=sender).exists():
-                    notice.senders.remove(sender)
-                notice.save()
 
-            else:
-                if sender in notice.senders.all():
-                    notice.senders.remove(sender)
-                    notice.save()
+            notice_sender = notice.senders.filter(user=sender)
 
-            if notice.senders.count() == 0 and notice.comments.count() == 0:
+            if notice_sender.exists():
+                notice_sender = notice_sender[0]
+                if notice_sender.count > 1:
+                    notice_sender.count -= 1
+                    notice_sender.save()
+                else:
+                    notice_sender.delete()
+
+            if notice.senders.count() == 0:
                 notice.delete()
+
         return
 
 

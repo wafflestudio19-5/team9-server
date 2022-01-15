@@ -79,7 +79,7 @@ class Notice(models.Model):
 
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=CASCADE, related_name="notices")
-    senders = models.ManyToManyField(User, null=True, related_name="sent_notices")
+    # senders = models.ManyToManyField(User, null=True, related_name="sent_notices")
     post = models.ForeignKey(Post, on_delete=CASCADE, null=True, related_name="notices")
     parent_comment = models.ForeignKey(
         Comment, on_delete=CASCADE, null=True, related_name="notices"
@@ -89,4 +89,13 @@ class Notice(models.Model):
     is_checked = models.BooleanField(default=False)
     url = models.CharField(max_length=1000)
 
-    comments = models.ManyToManyField(Comment, null=True)
+    # comments = models.ManyToManyField(Comment, null=True)
+
+
+class NoticeSender(models.Model):
+    notice = models.ForeignKey(
+        Notice, on_delete=CASCADE, null=True, related_name="senders"
+    )
+    user = models.ForeignKey(User, on_delete=CASCADE, null=True, related_name="notices")
+    count = models.PositiveIntegerField(default=0)
+    #updated = models.DateTimeField(auto_now=True)
