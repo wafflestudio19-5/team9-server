@@ -60,7 +60,7 @@ class UserCreateSerializer(serializers.Serializer):
         validated_data["username"] = (
             validated_data["last_name"] + validated_data["first_name"]
         )
-        user = User.objects.create_user(**validated_data)
+        user = User.objects.create_user(**validated_data, is_active=False)
         return user, jwt_token_of(user)
 
 
@@ -81,6 +81,8 @@ class UserLoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("이메일 또는 비밀번호가 잘못되었습니다.")
 
         update_last_login(None, user)
+        if not user.is_active:
+            raise serializers.ValidationError("이메일 인증을 완료해주세요.")
         return {"user": user, "token": jwt_token_of(user)}
 
 
