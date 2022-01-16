@@ -749,9 +749,15 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["is_noticed"], True)
 
         # 댓글 작성, 알림 O
+        test_image = SimpleUploadedFile(
+            name="testimage2.jpg",
+            content=open(os.path.join(BASE_DIR, "testimage2.jpg"), "rb").read(),
+            content_type="image/jpeg",
+        )
+
         response = self.client.post(
             f"/api/v1/newsfeed/{self.test_post.id}/comment/",
-            data={"content": "알림이 발생합니다."},
+            data={"content": "알림이 발생합니다.", "file": test_image},
             HTTP_AUTHORIZATION=self.friends_token[0],
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -778,6 +784,7 @@ class NoticeTestCase(TestCase):
         )
         self.assertEqual(data["results"][0]["is_checked"], False)
         self.assertEqual(data["results"][0]["sender_preview"]["content"], "알림이 발생합니다.")
+        self.assertIn("testimage2.jpg", data["results"][0]["sender_preview"]["file"])
 
         # 게시글 좋아요, 알림 O
         response = self.client.put(
@@ -927,6 +934,82 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][0]["is_checked"], False)
         self.assertEqual(
             data["results"][0]["sender_preview"]["content"], "알림이 발생하는 답글입니다."
+        )
+
+        # subpost 단위로 알림 꺼보기
+        data = {
+            "content": "메인 포스트입니다.",
+            "subposts": ["첫번째 포스트입니다."],
+            "file": [test_image],
+        }
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        subpost_id = response.json()["subposts"][0]["id"]
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{subpost_id}/notice/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["is_noticed"], False)
+
+        response = self.client.post(
+            f"/api/v1/newsfeed/{subpost_id}/comment/",
+            data={"content": "subpost 알림이 발생하지 않습니다."},
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertNotEqual(data["results"][0]["content"], "PostComment")
+
+        # subpost 단위로 알림 받기
+        response = self.client.put(
+            f"/api/v1/newsfeed/{subpost_id}/notice/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["is_noticed"], True)
+
+        response = self.client.post(
+            f"/api/v1/newsfeed/{subpost_id}/comment/",
+            data={"content": "subpost 알림이 발생합니다."},
+            HTTP_AUTHORIZATION=self.friends_token[1],
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(data["results"][0]["content"], "PostComment")
+        self.assertEqual(data["results"][0]["count"], 0)
+        self.assertEqual(data["results"][0]["post"]["id"], subpost_id)
+        self.assertEqual(len(data["results"][0]["senders"]), 0)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user_id"], self.test_friends[1].id
+        )
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["content"], "subpost 알림이 발생합니다."
         )
 
 
@@ -1604,6 +1687,46 @@ class ShareTestCase(TestCase):
         data = response.json()
         self.assertEqual(data["results"][0]["content"], "게시글을 공유했습니다.")
         self.assertEqual(data["results"][0]["shared_post"], "AccessDenied")
+
+        # subpost도 공유가 가능한지
+        test_image = SimpleUploadedFile(
+            name="testimage2.jpg",
+            content=open(os.path.join(BASE_DIR, "testimage2.jpg"), "rb").read(),
+            content_type="image/jpeg",
+        )
+        data = {
+            "content": "메인 포스트입니다.",
+            "subposts": ["첫번째 포스트입니다."],
+            "file": [test_image],
+        }
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        sharing_post_id = response.json()["subposts"][0]["id"]
+        data = {"content": "", "shared_post": sharing_post_id}
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        self.assertEqual(sharing_post_id, data["shared_post"]["id"])
+        self.assertEqual("첫번째 포스트입니다.", data["shared_post"]["content"])
+
+        # 게시물 공유 시, 공유된 게시물의 공유된 횟수 증가
+        response = self.client.get(
+            f"/api/v1/newsfeed/{sharing_post_id}/",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["shared_counts"], 1)
 
 
 class ScopeTestCase(TestCase):
