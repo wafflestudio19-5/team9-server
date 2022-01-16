@@ -461,7 +461,6 @@ class NoticelistSerializer(serializers.ModelSerializer):
     post = serializers.SerializerMethodField()
     parent_comment = serializers.SerializerMethodField()
     senders = serializers.SerializerMethodField()
-    comment_preview = serializers.SerializerMethodField()
     count = serializers.SerializerMethodField()
     sender_preview = serializers.SerializerMethodField()
 
@@ -473,7 +472,6 @@ class NoticelistSerializer(serializers.ModelSerializer):
             "post",
             "parent_comment",
             "sender_preview",
-            "comment_preview",
             "content",
             "posted_at",
             "is_checked",
@@ -491,37 +489,60 @@ class NoticelistSerializer(serializers.ModelSerializer):
     def get_post(self, notice):
         return PostSerializer(notice.post, context=self.context).data
 
-    def get_comment_preview(self, notice):
-
-        if notice.content == "PostComment":
-            return CommentSerializer(notice.post.comments.last()).data
-        elif notice.content == "CommentComment":
-            return CommentSerializer(notice.parent_comment.children.last()).data
-        else:
-            return None
-
     def get_sender_preview(self, notice):
 
         if notice.content == "PostComment":
-            return UserSerializer(notice.post.comments.last().author).data
+            return NoticeCommentSerializer(
+                notice.post.comments.exclude(author=notice.user).last()
+            ).data
         elif notice.content == "CommentComment":
-            return UserSerializer(notice.parent_comment.children.last().author).data
+            return NoticeCommentSerializer(
+                notice.parent_comment.children.exclude(author=notice.user).last()
+            ).data
         else:
-            return UserSerializer(notice.senders.last().user).data
+            return NoticeSenderSerializer(notice.senders.last()).data
 
     def get_senders(self, notice):
         if notice.content == "PostComment":
-            recent_user = notice.post.comments.last().author
+            recent_user = notice.post.comments.exclude(author=notice.user).last().author
         elif notice.content == "CommentComment":
-            recent_user = notice.parent_comment.children.last().author
+            recent_user = (
+                notice.parent_comment.children.exclude(author=notice.user).last().author
+            )
         else:
             recent_user = notice.senders.last().user
 
-        return UserSerializer(notice.senders.exclude(user=recent_user), many=True).data
+        return NoticeSenderSerializer(
+            notice.senders.exclude(user=recent_user), many=True
+        ).data
 
     def get_parent_comment(self, notice):
 
-        return CommentSerializer(notice.parent_comment).data
+        return NoticeCommentSerializer(notice.parent_comment).data
 
     def get_count(self, notice):
         return notice.senders.count() - 1
+
+
+class NoticeSenderSerializer(serializers.ModelSerializer):
+
+    user_id = serializers.IntegerField(source="user.id")
+    username = serializers.CharField(source="user.username")
+
+    class Meta:
+        model = NoticeSender
+        fields = (
+            "user_id",
+            "username",
+        )
+
+
+class NoticeCommentSerializer(serializers.ModelSerializer):
+
+    user_id = serializers.IntegerField(source="author.id")
+    username = serializers.CharField(source="author.username")
+    comment_id = serializers.IntegerField(source="id")
+
+    class Meta:
+        model = Comment
+        fields = ("user_id", "username", "comment_id", "content", "file")

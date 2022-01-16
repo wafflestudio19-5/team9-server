@@ -96,6 +96,6 @@ class NoticeSender(models.Model):
     notice = models.ForeignKey(
         Notice, on_delete=CASCADE, null=True, related_name="senders"
     )
-    user = models.ForeignKey(User, on_delete=CASCADE, null=True, related_name="notices")
+    user = models.ForeignKey(User, on_delete=CASCADE, null=True, related_name="noticesenders")
     count = models.PositiveIntegerField(default=0)
     #updated = models.DateTimeField(auto_now=True)

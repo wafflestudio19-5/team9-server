@@ -600,7 +600,7 @@ def NoticeCreate(**context):
 
         if content == "FriendAccept":
             notice = sender.notices.filter(
-                content="FriendRequest", senders_user=receiver
+                content="FriendRequest", senders__user=receiver
             )
             if notice.exists():
                 notice = notice[0]
@@ -636,14 +636,14 @@ def NoticeCreate(**context):
     else:
 
         data = {
-            "user": receiver,
+            "user": receiver.id,
             "content": content,
-            "post": post,
+            "post": post.id,
             "url": f"api/v1/newsfeed/{post.id}/",
         }
         context = {"sender": sender}
         if parent_comment:
-            data["parent_comment"] = parent_comment
+            data["parent_comment"] = parent_comment.id
 
         if content == "CommentComment":
             data["url"] = f"api/v1/newsfeed/{post.id}/{parent_comment.id}/"
@@ -665,7 +665,7 @@ def NoticeCancel(**context):
     parent_comment = context.get("parent_comment")
 
     if content == "FriendRequest":
-        notice = receiver.notices.filter(senders_user=sender, content=content)
+        notice = receiver.notices.filter(senders__user=sender, content=content)
         if notice.exists():
             notice = notice[0]
             notice.delete()
