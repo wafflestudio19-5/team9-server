@@ -107,7 +107,7 @@ class UserDeleteView(APIView):
     @transaction.atomic
     def delete(self, request):
         user = request.user
-
+        """
         for notice in user.sent_notices.all():
             if notice.senders.count() > 1:
                 notice.senders.remove(user)
@@ -115,6 +115,7 @@ class UserDeleteView(APIView):
                 notice.save()
             else:
                 notice.delete()
+        """
 
         user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

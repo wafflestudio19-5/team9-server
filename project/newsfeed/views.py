@@ -79,7 +79,12 @@ class PostListView(ListCreateAPIView):
         shared_post = request.data.get("shared_post")
 
         files = request.FILES.getlist("file")
-        context = {"isFile": False, "shared_post": shared_post, "author": user}
+        context = {
+            "isFile": False,
+            "shared_post": shared_post,
+            "author": user,
+            "request": request,
+        }
 
         if files or shared_post:
             context["isFile"] = True
@@ -87,7 +92,6 @@ class PostListView(ListCreateAPIView):
         scope = request.data.get("scope", 3)
         data = request.data.copy()
         data["scope"] = scope
-
         serializer = PostSerializer(data=data, context=context)
 
         serializer.is_valid(raise_exception=True)
@@ -589,7 +593,10 @@ def NoticeCreate(**context):
     post = context.get("post")
     parent_comment = context.get("parent_comment")
     receiver = context["receiver"]
-    # comment = context.get("comment")
+
+    if post:
+        if post.notice_off_users.filter(id=receiver.id).exists():
+            return None
 
     if content == "CommentLike" or content == "CommentComment":
         notice = receiver.notices.filter(
@@ -664,12 +671,16 @@ def NoticeCancel(**context):
     post = context.get("post")
     parent_comment = context.get("parent_comment")
 
+    if post:
+        if post.notice_off_users.filter(id=receiver.id).exists():
+            return False
+
     if content == "FriendRequest":
         notice = receiver.notices.filter(senders__user=sender, content=content)
         if notice.exists():
             notice = notice[0]
             notice.delete()
-        return
+        return True
 
     else:
         if parent_comment:
@@ -695,7 +706,7 @@ def NoticeCancel(**context):
             if notice.senders.count() == 0:
                 notice.delete()
 
-        return
+        return True
 
 
 class NoticeView(GenericAPIView):
@@ -737,3 +748,23 @@ class NoticeListView(ListAPIView):
     def get(self, request):
         self.queryset = request.user.notices.all()
         return super().list(request)
+
+
+class NoticeOnOffView(GenericAPIView):
+    serializer_class = PostSerializer
+
+    def put(self, request, post_id=None):
+        post = get_object_or_404(Post, id=post_id)
+
+        user = request.user
+
+        if post.notice_off_users.filter(id=user.id).exists():
+            post.notice_off_users.remove(user)
+        else:
+            post.notice_off_users.add(user)
+        post.save()
+
+        return Response(
+            self.get_serializer(post).data,
+            status=status.HTTP_200_OK,
+        )

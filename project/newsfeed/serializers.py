@@ -18,6 +18,7 @@ class PostSerializer(serializers.ModelSerializer):
     shared_post = serializers.SerializerMethodField()
     shared_counts = serializers.SerializerMethodField()
     posted_at = serializers.SerializerMethodField()
+    is_noticed = serializers.SerializerMethodField()
 
     class Meta:
 
@@ -37,6 +38,7 @@ class PostSerializer(serializers.ModelSerializer):
             "shared_post",
             "is_sharing",
             "shared_counts",
+            "is_noticed",
         )
         extra_kwargs = {"content": {"help_text": "무슨 생각을 하고 계신가요?"}}
 
@@ -121,10 +123,17 @@ class PostSerializer(serializers.ModelSerializer):
             if shared_post.scope != 3:
                 return "AccessDenied"
 
-        return PostSerializer(shared_post).data
+        return PostSerializer(shared_post, context=self.context).data
 
     def get_shared_counts(self, post):
         return post.sharing_posts.count()
+
+    def get_is_noticed(self, post):
+        user = self.context["request"].user
+        if post.notice_off_users.filter(id=user.id).exists():
+            return False
+        else:
+            return True
 
 
 def format_time(time):
@@ -162,83 +171,13 @@ def notice_format_time(time):
         return f"{week}주"
 
 
-class MainPostSerializer(serializers.ModelSerializer):
-
-    posted_at = serializers.SerializerMethodField()
-    subposts = serializers.SerializerMethodField()
-    author = serializers.SerializerMethodField()
-    comments = serializers.SerializerMethodField()
-    is_liked = serializers.SerializerMethodField()
-    shared_post = serializers.SerializerMethodField()
-    shared_counts = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Post
-        fields = (
-            "id",
-            "author",
-            "content",
-            "subposts",
-            "likes",
-            "posted_at",
-            "comments",
-            "is_liked",
-            "scope",
-            "shared_post",
-            "shared_counts",
-        )
-
-    def get_posted_at(self, post):
-        return format_time(post.created)
-
-    def get_subposts(self, post):
-        return SubPostSerializer(post.subposts, many=True, context=self.context).data
-
-    @swagger_serializer_method(serializer_or_field=UserSerializer)
-    def get_author(self, post):
-        return UserSerializer(post.author).data
-
-    def get_comments(self, post):
-        return Comment.objects.filter(post=post).count()
-
-    def get_is_liked(self, post):
-        request = self.context.get("request")
-        if not request:
-            return None
-
-        if post.likeusers.filter(pk=request.user.id).exists():
-            return True
-
-        return False
-
-    def get_shared_post(self, post):
-        user = self.context["request"].user
-
-        shared_post = post.shared_post
-
-        if not post.shared_post:
-            return None
-
-        if user == shared_post.author:
-            pass
-        elif user in shared_post.author.friends.all():
-            if shared_post.scope == 1:
-                return "AccessDenied"
-        else:
-            if shared_post.scope != 3:
-                return "AccessDenied"
-
-        return PostSerializer(shared_post).data
-
-    def get_shared_counts(self, post):
-        return post.sharing_posts.count()
-
-
 class SubPostSerializer(serializers.ModelSerializer):
 
     posted_at = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField()
+    is_noticed = serializers.SerializerMethodField()
+    shared_counts = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -252,6 +191,8 @@ class SubPostSerializer(serializers.ModelSerializer):
             "comments",
             "is_liked",
             "scope",
+            "is_noticed",
+            "shared_counts",
         )
 
     def get_posted_at(self, post):
@@ -259,6 +200,9 @@ class SubPostSerializer(serializers.ModelSerializer):
 
     def get_comments(self, post):
         return Comment.objects.filter(post=post).count()
+
+    def get_shared_counts(self, post):
+        return post.sharing_posts.count()
 
     def get_is_liked(self, post):
         request = self.context.get("request")
@@ -269,6 +213,13 @@ class SubPostSerializer(serializers.ModelSerializer):
             return True
 
         return False
+
+    def get_is_noticed(self, post):
+        user = self.context["request"].user
+        if post.notice_off_users.filter(id=user.id).exists():
+            return False
+        else:
+            return True
 
 
 class PostLikeSerializer(serializers.ModelSerializer):
@@ -437,7 +388,6 @@ class NoticeSerializer(serializers.ModelSerializer):
         post = validated_data.get("post")
         parent_comment = validated_data.get("parent_comment")
         sender = self.context["sender"]
-        # comment = self.context.get("comment")
 
         notice = Notice.objects.create(
             user=user,
@@ -447,10 +397,6 @@ class NoticeSerializer(serializers.ModelSerializer):
             url=url,
         )
         NoticeSender.objects.create(user=sender, notice=notice, count=1)
-        # notice.senders.add(sender)
-
-        # if comment:
-        #     notice.comments.add(comment)
 
         return notice
 

@@ -13,6 +13,7 @@ from django.utils import timezone
 from datetime import datetime
 
 
+
 def get_profile_image_path(instance, filename):
     upload_date = datetime.now().strftime("%Y%m%d")
     return f"user/{instance.email}/profile_images/{upload_date}/{filename}"
