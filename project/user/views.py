@@ -23,7 +23,7 @@ from config.settings import get_secret
 from user.models import KakaoId, Company, University, FriendRequest
 from rest_framework.viewsets import GenericViewSet
 from user.models import KakaoId, FriendRequest
-from user.pagination import UserPagination
+from user.pagination import UserPagination, FriendPagination
 from newsfeed.serializers import PostSerializer
 from user.serializers import (
     UserSerializer,
@@ -411,7 +411,7 @@ class UserFriendListView(ListAPIView):
     serializer_class = UserSerializer
     queryset = User.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
-    pagination_class = LimitOffsetPagination
+    pagination_class = FriendPagination
 
     @swagger_auto_schema(
         operation_description="선택된 유저의 친구들을 가져오기",
