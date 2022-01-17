@@ -8,17 +8,19 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('newsfeed', '0028_post_get_notice'),
+        ("newsfeed", "0028_post_get_notice"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='post',
-            name='get_notice',
+            model_name="post",
+            name="get_notice",
         ),
         migrations.AddField(
-            model_name='post',
-            name='notice_off_users',
-            field=models.ManyToManyField(blank=True, related_name='notice_off_posts', to=settings.AUTH_USER_MODEL),
+            model_name="post",
+            name="notice_off_users",
+            field=models.ManyToManyField(
+                blank=True, related_name="notice_off_posts", to=settings.AUTH_USER_MODEL
+            ),
         ),
     ]

@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('newsfeed', '0027_auto_20220116_1509'),
+        ("newsfeed", "0027_auto_20220116_1509"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='post',
-            name='get_notice',
+            model_name="post",
+            name="get_notice",
             field=models.BooleanField(default=True),
         ),
     ]
