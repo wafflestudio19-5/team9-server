@@ -159,6 +159,7 @@ class SignUpUserTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         data = response.json()
         self.assertEqual(data["user"]["username"], "이민준")
+        self.assertEqual(data["user"]["is_active"], False)
 
         self.assertEqual(User.objects.count(), 2)
         self.assertEqual(User.objects.last().username, "이민준")
