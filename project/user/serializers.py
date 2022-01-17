@@ -91,7 +91,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         # Django 기본 User 모델에 존재하는 필드 중 일부
-        fields = ("id", "email", "username", "profile_image")
+        fields = ("id", "email", "username", "profile_image", "is_active")
         extra_kwargs = {"password": {"write_only": True}}
 
     def validate(self, data):
