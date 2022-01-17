@@ -365,7 +365,7 @@ class KakaoConnectView(APIView):
                 "access_token": openapi.Schema(type=openapi.TYPE_STRING),
             },
         ),
-        responses={200: "연결 해제되었습니다."}
+        responses={200: "연결 해제되었습니다."},
     )
     def delete(self, request):
         if not hasattr(request.user, "kakao"):
