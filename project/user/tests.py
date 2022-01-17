@@ -162,6 +162,8 @@ class SignUpUserTestCase(TestCase):
 
         self.assertEqual(User.objects.count(), 2)
         self.assertEqual(User.objects.last().username, "이민준")
+        user = User.objects.get(email="waffle2@test.com")
+        self.assertEqual(user.is_active, False)
 
     def test_post_user_confilct(self):
         with transaction.atomic():
