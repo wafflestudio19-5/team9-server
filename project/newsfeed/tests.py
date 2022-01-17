@@ -97,6 +97,114 @@ class NoticeTestCase(TestCase):
 
     def test_notice(self):
 
+        tmp_comment_list = []
+
+        # 깊이 1인 답글 알림
+        for i, friend_token in enumerate(self.friends_token):
+            response = self.client.post(
+                f"/api/v1/newsfeed/{self.test_post.id}/comment/",
+                data={"content": f"알림 테스트 답글입니다...{i}", "parent": self.test_comment.id},
+                HTTP_AUTHORIZATION=friend_token,
+            )
+            tmp_comment_list.append(response.json()["id"])
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "CommentComment")
+        self.assertEqual(data["results"][0]["count"], 9)
+        self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
+        self.assertEqual(
+            data["results"][0]["parent_comment"]["comment_id"], self.test_comment.id
+        )
+        self.assertEqual(len(data["results"][0]["senders"]), 9)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user_id"], self.test_friends[-1].id
+        )
+        self.assertEqual(
+            data["results"][0]["url"],
+            f"api/v1/newsfeed/{self.test_post.id}/{self.test_comment.id}/",
+        )
+        self.assertEqual(data["results"][0]["is_checked"], False)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["content"], "알림 테스트 답글입니다...9"
+        )
+
+        tmp_comment_id = data["results"][0]["sender_preview"]["comment_id"]
+
+        # 깊이 2인 답글 알림
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.test_post.id}/comment/",
+            data={"content": "알림 테스트 답글의 답글입니다.", "parent": tmp_comment_id},
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[-1],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "CommentComment")
+        self.assertEqual(data["results"][0]["count"], 0)
+        self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
+        self.assertEqual(
+            data["results"][0]["parent_comment"]["comment_id"], tmp_comment_id
+        )
+        self.assertEqual(len(data["results"][0]["senders"]), 0)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user_id"], self.test_user.id
+        )
+        self.assertEqual(
+            data["results"][0]["url"],
+            f"api/v1/newsfeed/{self.test_post.id}/{tmp_comment_id}/",
+        )
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["content"], "알림 테스트 답글의 답글입니다."
+        )
+        tmp_comment_id = data["results"][0]["sender_preview"]["comment_id"]
+
+        # 깊이 2인 답글 삭제 --> 알림 취소
+        response = self.client.delete(
+            f"/api/v1/newsfeed/{self.test_post.id}/{tmp_comment_id}/",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[-1],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 0)
+
+        # 깊이 1인 답글들 삭제 --> 알림 취소
+        for i, friend_token in enumerate(self.friends_token):
+            tmp_comment_id = tmp_comment_list[i]
+            response = self.client.delete(
+                f"/api/v1/newsfeed/{self.test_post.id}/{tmp_comment_id}/",
+                HTTP_AUTHORIZATION=friend_token,
+            )
+            self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(len(data["results"]), 0)
+
         # 댓글알림
         for i, friend_token in enumerate(self.friends_token):
             response = self.client.post(
@@ -104,6 +212,7 @@ class NoticeTestCase(TestCase):
                 data={"content": f"알림 테스트 댓글입니다...{i}"},
                 HTTP_AUTHORIZATION=friend_token,
             )
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         response = self.client.get(
             "/api/v1/newsfeed/notices/",
@@ -113,16 +222,48 @@ class NoticeTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         notice_id = data["results"][0]["id"]
+
         self.assertEqual(len(data["results"]), 1)
         self.assertEqual(data["results"][0]["content"], "PostComment")
         self.assertEqual(data["results"][0]["count"], 9)
         self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
-        self.assertEqual(len(data["results"][0]["senders"]), 10)
+        self.assertEqual(len(data["results"][0]["senders"]), 9)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user_id"], self.test_friends[-1].id
+        )
         self.assertEqual(
             data["results"][0]["url"], f"api/v1/newsfeed/{self.test_post.id}/"
         )
         self.assertEqual(data["results"][0]["is_checked"], False)
-        self.assertEqual(data["results"][0]["comment"]["content"], "알림 테스트 댓글입니다...9")
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["content"], "알림 테스트 댓글입니다...9"
+        )
+
+        # 댓글을 단 사람이 또 다른 댓글을 다는 경우
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.test_post.id}/comment/",
+            data={"content": "이미 댓글을 단 사람은, 또 댓글을 달아도 count가 늘어나지 않습니다."},
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(
+            f"/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["count"], 9)
+        self.assertEqual(len(data["results"][0]["senders"]), 9)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user_id"], self.test_friends[0].id
+        )
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["content"],
+            "이미 댓글을 단 사람은, 또 댓글을 달아도 count가 늘어나지 않습니다.",
+        )
+        recent_comment_id = data["results"][0]["sender_preview"]["comment_id"]
 
         # 알림 is_checked
         response = self.client.get(
@@ -150,15 +291,30 @@ class NoticeTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["results"][0]["count"], 9)
-        self.assertEqual(len(data["results"][0]["senders"]), 10)
+        self.assertEqual(len(data["results"][0]["senders"]), 9)
 
-        # 댓글을 단 사람이 또 다른 댓글을 다는 경우
         response = self.client.post(
             f"/api/v1/newsfeed/{self.test_post.id}/comment/",
-            data={"content": "이미 댓글을 단 사람은, 또 댓글을 달아도 알림에 추가되지 않습니다."},
+            data={"content": "본인이 단 답글은 알림에 뜨지 않습니다.", "parent": recent_comment_id},
             HTTP_AUTHORIZATION=self.friends_token[0],
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(
+            f"/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 0)
+
+        # 댓글을 2개 이상 단 사람이, 하나를 삭제해도 count는 그대로 !
+        response = self.client.delete(
+            f"/api/v1/newsfeed/{self.test_post.id}/{recent_comment_id}/",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
         response = self.client.get(
             f"/api/v1/newsfeed/notices/",
@@ -168,11 +324,14 @@ class NoticeTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["results"][0]["count"], 9)
-        self.assertEqual(len(data["results"][0]["senders"]), 10)
+        self.assertEqual(len(data["results"][0]["senders"]), 9)
         self.assertEqual(
-            data["results"][0]["comment"]["content"],
-            "이미 댓글을 단 사람은, 또 댓글을 달아도 알림에 추가되지 않습니다.",
+            data["results"][0]["sender_preview"]["user_id"], self.test_friends[-1].id
         )
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["content"], "알림 테스트 댓글입니다...9"
+        )
+        recent_comment_id = data["results"][0]["sender_preview"]["comment_id"]
 
         # 댓글 좋아요
         for friend_token in self.friends_token:
@@ -192,14 +351,21 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][0]["content"], "CommentLike")
         self.assertEqual(data["results"][0]["count"], 9)
         self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
-        self.assertEqual(data["results"][0]["comment"]["id"], self.test_comment.id)
-        self.assertEqual(len(data["results"][0]["senders"]), 10)
+        self.assertEqual(
+            data["results"][0]["parent_comment"]["comment_id"], self.test_comment.id
+        )
+        self.assertEqual(len(data["results"][0]["senders"]), 9)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user_id"], self.test_friends[-1].id
+        )
         self.assertEqual(
             data["results"][0]["url"],
-            f"api/v1/newsfeed/{self.test_post.id}/{self.test_comment.id}/",
+            f"api/v1/newsfeed/{self.test_post.id}/",
         )
         self.assertEqual(data["results"][0]["is_checked"], False)
-        self.assertEqual(data["results"][0]["comment"]["content"], "알림 테스트 댓글입니다.")
+        self.assertEqual(
+            data["results"][0]["parent_comment"]["content"], "알림 테스트 댓글입니다."
+        )
 
         # 게시글 좋아요
         for friend_token in self.friends_token:
@@ -216,15 +382,77 @@ class NoticeTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(len(data["results"]), 3)
+        notice_id_2 = data["results"][0]["id"]
         self.assertEqual(data["results"][0]["content"], "PostLike")
         self.assertEqual(data["results"][0]["count"], 9)
         self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
-        self.assertEqual(len(data["results"][0]["senders"]), 10)
+        self.assertEqual(len(data["results"][0]["senders"]), 9)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user_id"], self.test_friends[-1].id
+        )
         self.assertEqual(
             data["results"][0]["url"],
             f"api/v1/newsfeed/{self.test_post.id}/",
         )
         self.assertEqual(data["results"][0]["is_checked"], False)
+
+        # 알림 취소
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.test_post.id}/like/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["count"], 8)
+        self.assertEqual(len(data["results"][0]["senders"]), 8)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user_id"], self.test_friends[-1].id
+        )
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.test_post.id}/{self.test_comment.id}/like/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][1]["count"], 8)
+        self.assertEqual(len(data["results"][1]["senders"]), 8)
+        self.assertEqual(
+            data["results"][1]["sender_preview"]["user_id"], self.test_friends[-1].id
+        )
+
+        response = self.client.delete(
+            f"/api/v1/newsfeed/{self.test_post.id}/{recent_comment_id}/",
+            HTTP_AUTHORIZATION=self.friends_token[9],
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][2]["count"], 8)
+        self.assertEqual(len(data["results"][2]["senders"]), 8)
+        self.assertEqual(
+            data["results"][2]["sender_preview"]["content"], "알림 테스트 댓글입니다...8"
+        )
+        self.assertEqual(
+            data["results"][2]["sender_preview"]["user_id"], self.test_friends[-2].id
+        )
 
         # 알림 삭제
         response = self.client.delete(
@@ -244,27 +472,15 @@ class NoticeTestCase(TestCase):
         self.assertEqual(len(data["results"]), 2)
         self.assertNotEqual(data["results"][-1]["id"], notice_id)
 
-        # 알림 취소
-        response = self.client.put(
-            f"/api/v1/newsfeed/{self.test_post.id}/like/",
-            content_type="application/json",
-            HTTP_AUTHORIZATION=self.friends_token[0],
-        )
-        response = self.client.get(
-            "/api/v1/newsfeed/notices/",
-            content_type="application/json",
-            HTTP_AUTHORIZATION=self.user_token,
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.json()
-        self.assertEqual(data["results"][0]["count"], 8)
-        self.assertEqual(len(data["results"][0]["senders"]), 9)
+        # 댓글 알림 삭제한 후에 댓글이 달려 알림이 오는 경우
+        for i, friend_token in enumerate(self.friends_token):
+            response = self.client.post(
+                f"/api/v1/newsfeed/{self.test_post.id}/comment/",
+                data={"content": f"새로운 알림 테스트 댓글입니다...{i}"},
+                HTTP_AUTHORIZATION=friend_token,
+            )
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        response = self.client.put(
-            f"/api/v1/newsfeed/{self.test_post.id}/{self.test_comment.id}/like/",
-            content_type="application/json",
-            HTTP_AUTHORIZATION=self.friends_token[0],
-        )
         response = self.client.get(
             "/api/v1/newsfeed/notices/",
             content_type="application/json",
@@ -272,8 +488,63 @@ class NoticeTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        self.assertEqual(data["results"][1]["count"], 8)
-        self.assertEqual(len(data["results"][1]["senders"]), 9)
+
+        self.assertEqual(len(data["results"]), 3)
+        self.assertEqual(data["results"][0]["content"], "PostComment")
+        self.assertEqual(data["results"][0]["count"], 9)
+        self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
+        self.assertEqual(len(data["results"][0]["senders"]), 9)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user_id"], self.test_friends[-1].id
+        )
+        self.assertEqual(
+            data["results"][0]["url"], f"api/v1/newsfeed/{self.test_post.id}/"
+        )
+        self.assertEqual(data["results"][0]["is_checked"], False)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["content"], "새로운 알림 테스트 댓글입니다...9"
+        )
+
+        # 좋아요 알림 삭제한 후에 좋아요 알림이 새로 오는 경우
+        response = self.client.delete(
+            f"/api/v1/newsfeed/notices/{notice_id_2}/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        for i in range(1, 10):
+            response = self.client.put(
+                f"/api/v1/newsfeed/{self.test_post.id}/like/",
+                content_type="application/json",
+                HTTP_AUTHORIZATION=self.friends_token[i],
+            )
+        for friend_token in self.friends_token:
+            response = self.client.put(
+                f"/api/v1/newsfeed/{self.test_post.id}/like/",
+                content_type="application/json",
+                HTTP_AUTHORIZATION=friend_token,
+            )
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 3)
+        self.assertEqual(data["results"][0]["content"], "PostLike")
+        self.assertEqual(data["results"][0]["count"], 9)
+        self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
+        self.assertEqual(len(data["results"][0]["senders"]), 9)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user_id"], self.test_friends[-1].id
+        )
+        self.assertEqual(
+            data["results"][0]["url"],
+            f"api/v1/newsfeed/{self.test_post.id}/",
+        )
+        self.assertEqual(data["results"][0]["is_checked"], False)
 
         # 친구요청
         stranger = UserFactory.create()
@@ -293,7 +564,8 @@ class NoticeTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["results"][0]["content"], "FriendRequest")
-        self.assertEqual(data["results"][0]["senders"][0]["id"], stranger.id)
+        self.assertEqual(data["results"][0]["sender_preview"]["user_id"], stranger.id)
+        self.assertEqual(len(data["results"][0]["senders"]), 0)
 
         # 친구수락
         response = self.client.put(
@@ -307,12 +579,438 @@ class NoticeTestCase(TestCase):
         response = self.client.get(
             "/api/v1/newsfeed/notices/",
             content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "isFriend")
+        self.assertEqual(data["results"][0]["is_checked"], True)
+        self.assertEqual(data["results"][0]["sender_preview"]["user_id"], stranger.id)
+        self.assertEqual(len(data["results"][0]["senders"]), 0)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
             HTTP_AUTHORIZATION=stranger_token,
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["results"][0]["content"], "FriendAccept")
-        self.assertEqual(data["results"][0]["senders"][0]["id"], self.test_user.id)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user_id"], self.test_user.id
+        )
+        self.assertEqual(len(data["results"][0]["senders"]), 0)
+
+        # 친구 요청 후, 요청한 사람이 친구 요청을 취소할 시, 보내졌던 알림 삭제
+        stranger2 = UserFactory.create()
+        stranger2_token = "JWT " + jwt_token_of(stranger2)
+
+        response = self.client.post(
+            f"/api/v1/friend/request/{self.test_user.id}/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=stranger2_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "FriendRequest")
+        self.assertEqual(data["results"][0]["sender_preview"]["user_id"], stranger2.id)
+        self.assertEqual(len(data["results"][0]["senders"]), 0)
+
+        response = self.client.delete(
+            f"/api/v1/friend/request/{self.test_user.id}/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=stranger2_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertNotEqual(
+            data["results"][0]["sender_preview"]["user_id"], stranger2.id
+        )
+
+        # 친구 요청 후, 요청 받은 사람의 친구 요청 삭제시 알림도 삭제
+        response = self.client.post(
+            f"/api/v1/friend/request/{self.test_user.id}/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=stranger2_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "FriendRequest")
+        self.assertEqual(data["results"][0]["sender_preview"]["user_id"], stranger2.id)
+        self.assertEqual(len(data["results"][0]["senders"]), 0)
+
+        response = self.client.delete(
+            f"/api/v1/friend/request/{stranger2.id}/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertNotEqual(
+            data["results"][0]["sender_preview"]["user_id"], stranger2.id
+        )
+
+    def test_notice_on_off(self):
+
+        # 게시물 작성자가 게시물에 대한 알림 끄기
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.test_post.id}/notice/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["is_noticed"], False)
+
+        # 댓글 작성, 알림 X
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.test_post.id}/comment/",
+            data={"content": "알림이 발생하지 않습니다."},
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        comment_id = data["id"]
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 0)
+
+        # 게시글 좋아요, 알림 X
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.test_post.id}/like/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 0)
+
+        # 게시글 좋아요 취소, 에러 발생 X
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.test_post.id}/like/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+
+        # 게시글 댓글 삭제, 에러 발생 X
+        response = self.client.delete(
+            f"/api/v1/newsfeed/{self.test_post.id}/{comment_id}/",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        # 게시물에 대한 알림 켜기
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.test_post.id}/notice/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["is_noticed"], True)
+
+        # 댓글 작성, 알림 O
+        test_image = SimpleUploadedFile(
+            name="testimage2.jpg",
+            content=open(os.path.join(BASE_DIR, "testimage2.jpg"), "rb").read(),
+            content_type="image/jpeg",
+        )
+
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.test_post.id}/comment/",
+            data={"content": "알림이 발생합니다.", "file": test_image},
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        comment_id = data["id"]
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 1)
+        self.assertEqual(data["results"][0]["content"], "PostComment")
+        self.assertEqual(data["results"][0]["count"], 0)
+        self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
+        self.assertEqual(len(data["results"][0]["senders"]), 0)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user_id"], self.test_friends[0].id
+        )
+        self.assertEqual(
+            data["results"][0]["url"], f"api/v1/newsfeed/{self.test_post.id}/"
+        )
+        self.assertEqual(data["results"][0]["is_checked"], False)
+        self.assertEqual(data["results"][0]["sender_preview"]["content"], "알림이 발생합니다.")
+        self.assertIn("testimage2.jpg", data["results"][0]["sender_preview"]["file"])
+
+        # 게시글 좋아요, 알림 O
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.test_post.id}/like/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 2)
+        self.assertEqual(data["results"][0]["content"], "PostLike")
+        self.assertEqual(data["results"][0]["count"], 0)
+        self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
+        self.assertEqual(len(data["results"][0]["senders"]), 0)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user_id"], self.test_friends[0].id
+        )
+        self.assertEqual(
+            data["results"][0]["url"],
+            f"api/v1/newsfeed/{self.test_post.id}/",
+        )
+        self.assertEqual(data["results"][0]["is_checked"], False)
+
+        # 댓글 작성자의 게시물에 대한 알림 끄기
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.test_post.id}/notice/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["is_noticed"], False)
+
+        # 댓글 좋아요 해도 알림 X
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.test_post.id}/{comment_id}/like/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[1],
+        )
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 0)
+
+        # 답글 달기, 알림 X
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.test_post.id}/comment/",
+            data={"content": f"알림이 발생하지 않는 답글입니다.", "parent": comment_id},
+            HTTP_AUTHORIZATION=self.friends_token[2],
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 0)
+
+        # 댓글 작성자의 게시물에 대한 알림 켜기
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.test_post.id}/notice/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["is_noticed"], True)
+
+        # 댓글 좋아요, 알림 O
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.test_post.id}/{comment_id}/like/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[1],
+        )
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.test_post.id}/{comment_id}/like/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[1],
+        )
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 1)
+        self.assertEqual(data["results"][0]["content"], "CommentLike")
+        self.assertEqual(data["results"][0]["count"], 0)
+        self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
+        self.assertEqual(data["results"][0]["parent_comment"]["comment_id"], comment_id)
+        self.assertEqual(len(data["results"][0]["senders"]), 0)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user_id"], self.test_friends[1].id
+        )
+        self.assertEqual(
+            data["results"][0]["url"],
+            f"api/v1/newsfeed/{self.test_post.id}/",
+        )
+        self.assertEqual(data["results"][0]["is_checked"], False)
+        self.assertEqual(data["results"][0]["parent_comment"]["content"], "알림이 발생합니다.")
+
+        # 답글 달기, 알림 O
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.test_post.id}/comment/",
+            data={"content": "알림이 발생하는 답글입니다.", "parent": comment_id},
+            HTTP_AUTHORIZATION=self.friends_token[3],
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "CommentComment")
+        self.assertEqual(data["results"][0]["count"], 0)
+        self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
+        self.assertEqual(data["results"][0]["parent_comment"]["comment_id"], comment_id)
+        self.assertEqual(len(data["results"][0]["senders"]), 0)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user_id"], self.test_friends[3].id
+        )
+        self.assertEqual(
+            data["results"][0]["url"],
+            f"api/v1/newsfeed/{self.test_post.id}/{comment_id}/",
+        )
+        self.assertEqual(data["results"][0]["is_checked"], False)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["content"], "알림이 발생하는 답글입니다."
+        )
+
+        # subpost 단위로 알림 꺼보기
+        data = {
+            "content": "메인 포스트입니다.",
+            "subposts": ["첫번째 포스트입니다."],
+            "file": [test_image],
+        }
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        subpost_id = response.json()["subposts"][0]["id"]
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{subpost_id}/notice/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["is_noticed"], False)
+
+        response = self.client.post(
+            f"/api/v1/newsfeed/{subpost_id}/comment/",
+            data={"content": "subpost 알림이 발생하지 않습니다."},
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertNotEqual(data["results"][0]["content"], "PostComment")
+
+        # subpost 단위로 알림 받기
+        response = self.client.put(
+            f"/api/v1/newsfeed/{subpost_id}/notice/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["is_noticed"], True)
+
+        response = self.client.post(
+            f"/api/v1/newsfeed/{subpost_id}/comment/",
+            data={"content": "subpost 알림이 발생합니다."},
+            HTTP_AUTHORIZATION=self.friends_token[1],
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        self.assertEqual(data["results"][0]["content"], "PostComment")
+        self.assertEqual(data["results"][0]["count"], 0)
+        self.assertEqual(data["results"][0]["post"]["id"], subpost_id)
+        self.assertEqual(len(data["results"][0]["senders"]), 0)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user_id"], self.test_friends[1].id
+        )
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["content"], "subpost 알림이 발생합니다."
+        )
 
 
 class NewsFeedTestCase(TestCase):
@@ -989,6 +1687,46 @@ class ShareTestCase(TestCase):
         data = response.json()
         self.assertEqual(data["results"][0]["content"], "게시글을 공유했습니다.")
         self.assertEqual(data["results"][0]["shared_post"], "AccessDenied")
+
+        # subpost도 공유가 가능한지
+        test_image = SimpleUploadedFile(
+            name="testimage2.jpg",
+            content=open(os.path.join(BASE_DIR, "testimage2.jpg"), "rb").read(),
+            content_type="image/jpeg",
+        )
+        data = {
+            "content": "메인 포스트입니다.",
+            "subposts": ["첫번째 포스트입니다."],
+            "file": [test_image],
+        }
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        sharing_post_id = response.json()["subposts"][0]["id"]
+        data = {"content": "", "shared_post": sharing_post_id}
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=data,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        self.assertEqual(sharing_post_id, data["shared_post"]["id"])
+        self.assertEqual("첫번째 포스트입니다.", data["shared_post"]["content"])
+
+        # 게시물 공유 시, 공유된 게시물의 공유된 횟수 증가
+        response = self.client.get(
+            f"/api/v1/newsfeed/{sharing_post_id}/",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["shared_counts"], 1)
 
 
 class ScopeTestCase(TestCase):

@@ -24,7 +24,7 @@ from .serializers import (
     CommentLikeSerializer,
     CommentPostSwaggerSerializer,
 )
-from .models import Notice, Post, Comment
+from .models import Notice, Post, Comment, NoticeSender
 from user.models import User
 from datetime import datetime
 from django.shortcuts import get_object_or_404
@@ -79,7 +79,12 @@ class PostListView(ListCreateAPIView):
         shared_post = request.data.get("shared_post")
 
         files = request.FILES.getlist("file")
-        context = {"isFile": False, "shared_post": shared_post, "author": user}
+        context = {
+            "isFile": False,
+            "shared_post": shared_post,
+            "author": user,
+            "request": request,
+        }
 
         if files or shared_post:
             context["isFile"] = True
@@ -87,7 +92,6 @@ class PostListView(ListCreateAPIView):
         scope = request.data.get("scope", 3)
         data = request.data.copy()
         data["scope"] = scope
-
         serializer = PostSerializer(data=data, context=context)
 
         serializer.is_valid(raise_exception=True)
@@ -314,18 +318,13 @@ class PostLikeView(GenericAPIView):
             post.likeusers.remove(user)
             post.likes = post.likes - 1
             post.save()
-
-            notice = Notice.objects.filter(post=post, comment=None)
-            if notice.exists():
-                notice = notice[0]
-
-                if user in notice.senders.all():
-                    if notice.senders.count() > 1:
-                        notice.senders.remove(user)
-                        notice.count -= 1
-                        notice.save()
-                    else:
-                        notice.delete()
+            if user.id != post.author.id:
+                NoticeCancel(
+                    sender=user,
+                    receiver=post.author,
+                    content="PostLike",
+                    post=post,
+                )
 
         # 좋아요 하지 않은 게시물 -> 좋아요 하기, 알림 생성
         else:
@@ -334,7 +333,9 @@ class PostLikeView(GenericAPIView):
             post.save()
 
             if user.id != post.author.id:
-                NoticeCreate(user=user, content="PostLike", post=post)
+                NoticeCreate(
+                    sender=user, receiver=post.author, content="PostLike", post=post
+                )
 
         return Response(self.get_serializer(post).data, status=status.HTTP_200_OK)
 
@@ -414,8 +415,23 @@ class CommentListView(ListCreateAPIView):
         if file:
             comment.file.save(file.name, file, save=True)
 
-        if user.id != post.author.id:
-            NoticeCreate(user=user, content="PostComment", post=post, comment=comment)
+        if data.get("parent"):
+            if user.id != comment.parent.author.id:
+                NoticeCreate(
+                    sender=user,
+                    receiver=comment.parent.author,
+                    content="CommentComment",
+                    post=post,
+                    parent_comment=comment.parent,
+                )
+        else:
+            if user.id != post.author.id:
+                NoticeCreate(
+                    sender=user,
+                    receiver=post.author,
+                    content="PostComment",
+                    post=post,
+                )
 
         return Response(
             self.get_serializer(comment).data, status=status.HTTP_201_CREATED
@@ -459,11 +475,31 @@ class CommentUpdateDeleteView(APIView):
     )
     def delete(self, request, post_id=None, comment_id=None):
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
-
-        if comment.author != request.user:
+        user = request.user
+        if comment.author != user:
             return Response(
                 status=status.HTTP_403_FORBIDDEN, data="다른 유저의 댓글을 삭제할 수 없습니다."
             )
+        parent = comment.parent
+        post = comment.post
+        if parent:
+            if user.id != parent.author.id:
+                NoticeCancel(
+                    sender=user,
+                    receiver=parent.author,
+                    content="CommentComment",
+                    post=post,
+                    parent_comment=parent,
+                )
+
+        else:
+            if user.id != post.author.id:
+                NoticeCancel(
+                    sender=user,
+                    receiver=post.author,
+                    content="PostComment",
+                    post=post,
+                )
         comment.delete()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -508,6 +544,7 @@ class CommentLikeView(GenericAPIView):
     def put(self, request, post_id=None, comment_id=None):
         user = request.user
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
+        post = comment.post
 
         # 이미 좋아요 한 댓글 -> 좋아요 취소, 관련 알림 삭제
         if comment.likeusers.filter(id=user.id).exists():
@@ -515,16 +552,14 @@ class CommentLikeView(GenericAPIView):
             comment.likes = comment.likes - 1
             comment.save()
 
-            notice = Notice.objects.filter(comment=comment)
-            if notice.exists():
-                notice = notice[0]
-                if user in notice.senders.all():
-                    if notice.senders.count() > 1:
-                        notice.senders.remove(user)
-                        notice.count -= 1
-                        notice.save()
-                    else:
-                        notice.delete()
+            if user.id != comment.author.id:
+                NoticeCancel(
+                    sender=user,
+                    receiver=comment.author,
+                    content="CommentLike",
+                    post=post,
+                    parent_comment=comment,
+                )
 
         # 좋아요 하지 않은 댓글 -> 좋아요 하기, 알림 생성
         else:
@@ -532,10 +567,13 @@ class CommentLikeView(GenericAPIView):
             comment.likes = comment.likes + 1
             comment.save()
 
-            post = comment.post
             if user.id != comment.author.id:
                 NoticeCreate(
-                    user=user, content="CommentLike", post=post, comment=comment
+                    sender=user,
+                    receiver=comment.author,
+                    content="CommentLike",
+                    post=post,
+                    parent_comment=comment,
                 )
 
         return Response(self.get_serializer(comment).data, status=status.HTTP_200_OK)
@@ -551,61 +589,124 @@ class CommentLikeView(GenericAPIView):
 
 def NoticeCreate(**context):
     content = context["content"]
-    user = context["user"]
+    sender = context["sender"]
     post = context.get("post")
-    comment = context.get("comment")
+    parent_comment = context.get("parent_comment")
+    receiver = context["receiver"]
 
-    if content == "CommentLike":
-        target = comment.author
-        notice = target.notices.filter(comment=comment.id, content__contains=content)
+    if post:
+        if post.notice_off_users.filter(id=receiver.id).exists():
+            return None
+
+    if content == "CommentLike" or content == "CommentComment":
+        notice = receiver.notices.filter(
+            post=post, parent_comment=parent_comment, content=content
+        )
 
     elif "Friend" in content:
-        target = context["receiver"]
+
+        if content == "FriendAccept":
+            notice = sender.notices.filter(
+                content="FriendRequest", senders__user=receiver
+            )
+            if notice.exists():
+                notice = notice[0]
+                notice.content = "isFriend"
+                notice.is_checked = True
+                notice.save()
+
         data = {
-            "user": target,
+            "user": receiver,
             "content": content,
-            "url": f"api/v1/user/{user.id}/newsfeed/",
+            "url": f"api/v1/user/{sender.id}/newsfeed/",
         }
         serializer = NoticeSerializer(
             data=data,
-            context={"sender": user},
+            context={"sender": sender},
         )
         serializer.is_valid(raise_exception=True)
         return serializer.save()
 
     else:
-        target = post.author
-        notice = target.notices.filter(post=post.id, content__contains=content)
+        notice = receiver.notices.filter(post=post, content=content)
 
     if notice:
         notice = notice[0]
-        if user not in notice.senders.all():
-            notice.count += 1
-            notice.senders.add(user)
-
-        if comment:
-            notice.comment = comment
-        notice.save()
+        notice_sender = notice.senders.filter(user=sender)
+        if notice_sender.exists():
+            notice_sender = notice_sender[0]
+            notice_sender.count += 1
+            notice_sender.save()
+        else:
+            NoticeSender.objects.create(notice=notice, user=sender, count=1)
 
     else:
 
         data = {
-            "user": target.id,
+            "user": receiver.id,
             "content": content,
             "post": post.id,
             "url": f"api/v1/newsfeed/{post.id}/",
         }
-        if comment:
-            data["comment"] = comment.id
-        if content == "CommentLike":
-            data["url"] = f"api/v1/newsfeed/{post.id}/{comment.id}/"
+        context = {"sender": sender}
+        if parent_comment:
+            data["parent_comment"] = parent_comment.id
+
+        if content == "CommentComment":
+            data["url"] = f"api/v1/newsfeed/{post.id}/{parent_comment.id}/"
 
         serializer = NoticeSerializer(
             data=data,
-            context={"sender": user},
+            context=context,
         )
         serializer.is_valid(raise_exception=True)
         return serializer.save()
+
+
+def NoticeCancel(**context):
+
+    receiver = context["receiver"]
+    sender = context["sender"]
+    content = context["content"]
+    post = context.get("post")
+    parent_comment = context.get("parent_comment")
+
+    if post:
+        if post.notice_off_users.filter(id=receiver.id).exists():
+            return False
+
+    if content == "FriendRequest":
+        notice = receiver.notices.filter(senders__user=sender, content=content)
+        if notice.exists():
+            notice = notice[0]
+            notice.delete()
+        return True
+
+    else:
+        if parent_comment:
+            notice = receiver.notices.filter(
+                post=post, parent_comment=parent_comment, content=content
+            )
+        else:
+            notice = receiver.notices.filter(post=post, content=content)
+
+        if notice.exists():
+            notice = notice[0]
+
+            notice_sender = notice.senders.filter(user=sender)
+
+            if notice_sender.exists():
+                notice_sender = notice_sender[0]
+                if notice_sender.count > 1:
+                    notice_sender.count -= 1
+                    notice_sender.save()
+                else:
+                    notice_sender.delete()
+
+            if notice.senders.count() == 0:
+                notice.delete()
+
+        return True
 
 
 class NoticeView(GenericAPIView):
@@ -645,5 +746,25 @@ class NoticeListView(ListAPIView):
         responses={200: NoticelistSerializer(many=True)},
     )
     def get(self, request):
-        notices = request.user.notices.all()
-        return super().list(notices)
+        self.queryset = request.user.notices.all()
+        return super().list(request)
+
+
+class NoticeOnOffView(GenericAPIView):
+    serializer_class = PostSerializer
+
+    def put(self, request, post_id=None):
+        post = get_object_or_404(Post, id=post_id)
+
+        user = request.user
+
+        if post.notice_off_users.filter(id=user.id).exists():
+            post.notice_off_users.remove(user)
+        else:
+            post.notice_off_users.add(user)
+        post.save()
+
+        return Response(
+            self.get_serializer(post).data,
+            status=status.HTTP_200_OK,
+        )

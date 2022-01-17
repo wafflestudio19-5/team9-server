@@ -44,7 +44,7 @@ from newsfeed.models import Post
 from drf_yasg.utils import swagger_auto_schema
 import uuid
 
-from newsfeed.views import NoticeCreate
+from newsfeed.views import NoticeCreate, NoticeCancel
 
 User = get_user_model()
 
@@ -107,7 +107,7 @@ class UserDeleteView(APIView):
     @transaction.atomic
     def delete(self, request):
         user = request.user
-
+        """
         for notice in user.sent_notices.all():
             if notice.senders.count() > 1:
                 notice.senders.remove(user)
@@ -115,6 +115,7 @@ class UserDeleteView(APIView):
                 notice.save()
             else:
                 notice.delete()
+        """
 
         user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -151,7 +152,7 @@ class UserFriendRequestView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         NoticeCreate(
-            user=sender,
+            sender=sender,
             content="FriendRequest",
             receiver=receiver.id,
         )
@@ -171,7 +172,7 @@ class UserFriendRequestView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.accept(serializer.validated_data)
 
-        NoticeCreate(user=receiver, content="FriendAccept", receiver=sender.id)
+        NoticeCreate(sender=receiver, content="FriendAccept", receiver=sender.id)
 
         return Response(status=status.HTTP_200_OK, data="수락 완료되었습니다.")
 
@@ -181,11 +182,16 @@ class UserFriendRequestView(APIView):
     )
     def delete(self, request, pk=None):
         target_user = get_object_or_404(self.queryset, pk=pk)
+        user = request.user
 
-        if request.user.sent_friend_request.filter(receiver=target_user):
+        if user.sent_friend_request.filter(receiver=target_user):
             data = {"sender": request.user.id, "receiver": target_user.id}
-        elif request.user.received_friend_request.filter(sender=target_user):
+            NoticeCancel(receiver=target_user, sender=user, content="FriendRequest")
+
+        elif user.received_friend_request.filter(sender=target_user):
             data = {"sender": target_user.id, "receiver": request.user.id}
+            NoticeCancel(receiver=user, sender=target_user, content="FriendRequest")
+
         else:
             return Response(
                 status=status.HTTP_400_BAD_REQUEST, data="해당 유저에게 보내거나 받은 친구 요청이 없습니다."
