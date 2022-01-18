@@ -12,6 +12,9 @@ from pathlib import Path
 import json
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from .utils import account_activation_token
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -36,6 +39,7 @@ class UserFactory(DjangoModelFactory):
                 "gender", fake.random_choices(elements=("M", "F"), length=1)[0]
             ),
             phone_number=kwargs.get("phone_number", fake.numerify(text="010########")),
+            is_active=kwargs.get("is_active", True),
         )
         user.username = user.last_name + user.first_name
         user.set_password(kwargs.get("password", ""))
@@ -1282,3 +1286,34 @@ class TokenTestCase(APITestCase):
             "/api/v1/token/refresh/", data={"token": user_token}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class ActivateTestCase(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.test_user = UserFactory.create(
+            first_name="와플", last_name="김", is_active=False
+        )
+
+    def test_activate(self):
+        user = self.test_user
+        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+        token = account_activation_token.make_token(user)
+        response = self.client.get(f"/api/v1/account/activate/{uidb64}/{token}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertEqual(user.is_active, True)
+
+    def test_not_found(self):
+        user = self.test_user
+        uidb64 = urlsafe_base64_encode(force_bytes(10))
+        token = account_activation_token.make_token(user)
+        response = self.client.get(f"/api/v1/account/activate/{uidb64}/{token}/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_bad_request(self):
+        user = self.test_user
+        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+        token = account_activation_token.make_token(user) + "asdf"
+        response = self.client.get(f"/api/v1/account/activate/{uidb64}/{token}/")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
