@@ -5,6 +5,10 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.db import IntegrityError, transaction
+from django.contrib.sites.shortcuts import get_current_site
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.core.mail import EmailMessage
+from django.utils.encoding import force_bytes, force_text
 from drf_yasg import openapi
 from rest_framework import status, viewsets, permissions, parsers
 from rest_framework.generics import (
@@ -42,6 +46,7 @@ from user.serializers import (
 )
 from newsfeed.models import Post
 from drf_yasg.utils import swagger_auto_schema
+from .utils import account_activation_token, message
 import uuid
 
 from newsfeed.views import NoticeCreate, NoticeCancel
@@ -63,10 +68,33 @@ class UserSignUpView(APIView):
         except IntegrityError:
             return Response(status=status.HTTP_409_CONFLICT, data="이미 존재하는 유저 이메일입니다.")
 
+        current_site = get_current_site(request)
+        domain = current_site.domain
+        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+        token = account_activation_token.make_token(user)
+        message_data = message(domain, uidb64, token)
+        mail_title = "이메일 인증을 완료해주세요"
+        mail_to = request.data["email"]
+        email = EmailMessage(mail_title, message_data, to=[mail_to])
+        email.send()
+
         return Response(
             {"user": UserSerializer(user).data, "token": jwt_token},
             status=status.HTTP_201_CREATED,
         )
+
+
+class UserActivateView(APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def get(self, request, uidb64, token):
+        uid = force_text(urlsafe_base64_decode(uidb64))
+        user = get_object_or_404(User.objects.all(), pk=uid)
+        if account_activation_token.check_token(user, token):
+            user.is_active = True
+            user.save()
+            return Response("활성화가 완료되었습니다.", status=status.HTTP_200_OK)
+        return Response("활성화에 실패했습니다.", status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserLoginView(APIView):

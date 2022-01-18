@@ -80,6 +80,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     phone_number = models.CharField(max_length=20, unique=True, blank=True, null=True)
 
     is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
 
     # 가입, 로그인 시점
     last_login = models.DateTimeField(auto_now=True)
