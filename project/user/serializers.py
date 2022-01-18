@@ -343,8 +343,8 @@ class FriendRequestAcceptDeleteSerializer(serializers.ModelSerializer):
     def validate(self, data):
         receiver = data["receiver"]
         sender = data["sender"]
-        friend_request = FriendRequest.objects.all().filter(
-            sender=sender, receiver=receiver
+        friend_request = receiver.received_friend_request.filter(
+            sender=sender
         )
         if not friend_request.exists():
             raise serializers.ValidationError("해당 친구 요청이 존재하지 않습니다.")

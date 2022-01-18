@@ -131,7 +131,7 @@ class UserFriendRequestListView(ListAPIView):
         responses={200: FriendRequestCreateSerializer(many=True)},
     )
     def get(self, request):
-        self.queryset = self.queryset.filter(receiver=request.user)
+        self.queryset = request.user.received_friend_request.all()
         return super().list(request)
 
 
@@ -403,13 +403,13 @@ class UserNewsfeedView(ListAPIView):
         user = get_object_or_404(User, pk=user_id)
 
         if request.user == user:
-            self.queryset = Post.objects.filter(author=user, mainpost=None)
+            self.queryset = user.posts.filter(mainpost=None)
 
         elif request.user in user.friends.all():
-            self.queryset = Post.objects.filter(author=user, mainpost=None, scope__gt=1)
+            self.queryset = user.posts.filter(mainpost=None, scope__gt=1)
 
         else:
-            self.queryset = Post.objects.filter(author=user, mainpost=None, scope__gt=2)
+            self.queryset = user.posts.filter(mainpost=None, scope__gt=2)
 
         return super().list(request)
 

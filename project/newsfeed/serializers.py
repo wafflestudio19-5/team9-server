@@ -486,10 +486,23 @@ class NoticeCommentSerializer(serializers.ModelSerializer):
 
     user = serializers.SerializerMethodField()
     comment_id = serializers.IntegerField(source="id")
+    is_file = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
-        fields = ("user", "comment_id", "content", "file")
+        fields = ("user", "comment_id", "content", "is_file")
 
     def get_user(self, comment):
         return UserSerializer(comment.author).data
+
+    def get_is_file(self, comment):
+        if comment.file:
+            extension = comment.file.name.split(".")[-1]
+            if extension == "jpg" or extension == "png" or extension == "jpeg":
+                return "photo"
+            elif extension == "gif":
+                return "sticker"
+            else:
+                return "else"
+        else:
+            return None
