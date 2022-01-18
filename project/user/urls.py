@@ -21,6 +21,7 @@ from .views import (
     UniversityView,
     UserFriendRequestListView,
     UserDeleteView,
+    UserActivateView,
 )
 from django.conf import settings
 from django.conf.urls.static import static
@@ -29,6 +30,11 @@ urlpatterns = [
     path(
         "account/signup/", UserSignUpView.as_view(), name="account_signup"
     ),  # /api/v1/account/signup/
+    path(
+        "account/activate/<str:uidb64>/<str:token>/",
+        UserActivateView.as_view(),
+        name="account_activate",
+    ),  # /api/v1/account/activate/{uidb64}/{token}/
     path(
         "account/login/", UserLoginView.as_view(), name="account_login"
     ),  # /api/v1/account/login/
