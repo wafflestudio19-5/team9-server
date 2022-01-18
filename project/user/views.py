@@ -84,6 +84,19 @@ class UserSignUpView(APIView):
         )
 
 
+class UserActivateView(APIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def get(self, request, uidb64, token):
+        uid = force_text(urlsafe_base64_decode(uidb64))
+        user = get_object_or_404(User.objects.all(), pk=uid)
+        if account_activation_token.check_token(user, token):
+            user.is_active = True
+            user.save()
+            return Response("활성화가 완료되었습니다.", status=status.HTTP_200_OK)
+        return Response("활성화에 실패했습니다.", status=status.HTTP_400_BAD_REQUEST)
+
+
 class UserLoginView(APIView):
     permission_classes = (permissions.AllowAny,)
 
