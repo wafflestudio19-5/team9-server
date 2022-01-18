@@ -124,7 +124,7 @@ class NoticeTestCase(TestCase):
         )
         self.assertEqual(len(data["results"][0]["senders"]), 9)
         self.assertEqual(
-            data["results"][0]["sender_preview"]["user_id"], self.test_friends[-1].id
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_friends[-1].id
         )
         self.assertEqual(
             data["results"][0]["url"],
@@ -160,7 +160,7 @@ class NoticeTestCase(TestCase):
         )
         self.assertEqual(len(data["results"][0]["senders"]), 0)
         self.assertEqual(
-            data["results"][0]["sender_preview"]["user_id"], self.test_user.id
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
         )
         self.assertEqual(
             data["results"][0]["url"],
@@ -229,7 +229,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
         self.assertEqual(len(data["results"][0]["senders"]), 9)
         self.assertEqual(
-            data["results"][0]["sender_preview"]["user_id"], self.test_friends[-1].id
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_friends[-1].id
         )
         self.assertEqual(
             data["results"][0]["url"], f"api/v1/newsfeed/{self.test_post.id}/"
@@ -257,7 +257,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][0]["count"], 9)
         self.assertEqual(len(data["results"][0]["senders"]), 9)
         self.assertEqual(
-            data["results"][0]["sender_preview"]["user_id"], self.test_friends[0].id
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_friends[0].id
         )
         self.assertEqual(
             data["results"][0]["sender_preview"]["content"],
@@ -326,7 +326,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][0]["count"], 9)
         self.assertEqual(len(data["results"][0]["senders"]), 9)
         self.assertEqual(
-            data["results"][0]["sender_preview"]["user_id"], self.test_friends[-1].id
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_friends[-1].id
         )
         self.assertEqual(
             data["results"][0]["sender_preview"]["content"], "알림 테스트 댓글입니다...9"
@@ -356,7 +356,7 @@ class NoticeTestCase(TestCase):
         )
         self.assertEqual(len(data["results"][0]["senders"]), 9)
         self.assertEqual(
-            data["results"][0]["sender_preview"]["user_id"], self.test_friends[-1].id
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_friends[-1].id
         )
         self.assertEqual(
             data["results"][0]["url"],
@@ -388,7 +388,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
         self.assertEqual(len(data["results"][0]["senders"]), 9)
         self.assertEqual(
-            data["results"][0]["sender_preview"]["user_id"], self.test_friends[-1].id
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_friends[-1].id
         )
         self.assertEqual(
             data["results"][0]["url"],
@@ -412,7 +412,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][0]["count"], 8)
         self.assertEqual(len(data["results"][0]["senders"]), 8)
         self.assertEqual(
-            data["results"][0]["sender_preview"]["user_id"], self.test_friends[-1].id
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_friends[-1].id
         )
 
         response = self.client.put(
@@ -430,7 +430,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][1]["count"], 8)
         self.assertEqual(len(data["results"][1]["senders"]), 8)
         self.assertEqual(
-            data["results"][1]["sender_preview"]["user_id"], self.test_friends[-1].id
+            data["results"][1]["sender_preview"]["user"]["id"], self.test_friends[-1].id
         )
 
         response = self.client.delete(
@@ -451,7 +451,7 @@ class NoticeTestCase(TestCase):
             data["results"][2]["sender_preview"]["content"], "알림 테스트 댓글입니다...8"
         )
         self.assertEqual(
-            data["results"][2]["sender_preview"]["user_id"], self.test_friends[-2].id
+            data["results"][2]["sender_preview"]["user"]["id"], self.test_friends[-2].id
         )
 
         # 알림 삭제
@@ -495,7 +495,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
         self.assertEqual(len(data["results"][0]["senders"]), 9)
         self.assertEqual(
-            data["results"][0]["sender_preview"]["user_id"], self.test_friends[-1].id
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_friends[-1].id
         )
         self.assertEqual(
             data["results"][0]["url"], f"api/v1/newsfeed/{self.test_post.id}/"
@@ -538,7 +538,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
         self.assertEqual(len(data["results"][0]["senders"]), 9)
         self.assertEqual(
-            data["results"][0]["sender_preview"]["user_id"], self.test_friends[-1].id
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_friends[-1].id
         )
         self.assertEqual(
             data["results"][0]["url"],
@@ -564,7 +564,9 @@ class NoticeTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["results"][0]["content"], "FriendRequest")
-        self.assertEqual(data["results"][0]["sender_preview"]["user_id"], stranger.id)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user"]["id"], stranger.id
+        )
         self.assertEqual(len(data["results"][0]["senders"]), 0)
 
         # 친구수락
@@ -585,7 +587,9 @@ class NoticeTestCase(TestCase):
         data = response.json()
         self.assertEqual(data["results"][0]["content"], "isFriend")
         self.assertEqual(data["results"][0]["is_checked"], True)
-        self.assertEqual(data["results"][0]["sender_preview"]["user_id"], stranger.id)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user"]["id"], stranger.id
+        )
         self.assertEqual(len(data["results"][0]["senders"]), 0)
 
         response = self.client.get(
@@ -597,7 +601,7 @@ class NoticeTestCase(TestCase):
         data = response.json()
         self.assertEqual(data["results"][0]["content"], "FriendAccept")
         self.assertEqual(
-            data["results"][0]["sender_preview"]["user_id"], self.test_user.id
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
         )
         self.assertEqual(len(data["results"][0]["senders"]), 0)
 
@@ -620,7 +624,9 @@ class NoticeTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["results"][0]["content"], "FriendRequest")
-        self.assertEqual(data["results"][0]["sender_preview"]["user_id"], stranger2.id)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user"]["id"], stranger2.id
+        )
         self.assertEqual(len(data["results"][0]["senders"]), 0)
 
         response = self.client.delete(
@@ -637,7 +643,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertNotEqual(
-            data["results"][0]["sender_preview"]["user_id"], stranger2.id
+            data["results"][0]["sender_preview"]["user"]["id"], stranger2.id
         )
 
         # 친구 요청 후, 요청 받은 사람의 친구 요청 삭제시 알림도 삭제
@@ -656,7 +662,9 @@ class NoticeTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["results"][0]["content"], "FriendRequest")
-        self.assertEqual(data["results"][0]["sender_preview"]["user_id"], stranger2.id)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user"]["id"], stranger2.id
+        )
         self.assertEqual(len(data["results"][0]["senders"]), 0)
 
         response = self.client.delete(
@@ -673,7 +681,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertNotEqual(
-            data["results"][0]["sender_preview"]["user_id"], stranger2.id
+            data["results"][0]["sender_preview"]["user"]["id"], stranger2.id
         )
 
     def test_notice_on_off(self):
@@ -777,7 +785,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
         self.assertEqual(len(data["results"][0]["senders"]), 0)
         self.assertEqual(
-            data["results"][0]["sender_preview"]["user_id"], self.test_friends[0].id
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_friends[0].id
         )
         self.assertEqual(
             data["results"][0]["url"], f"api/v1/newsfeed/{self.test_post.id}/"
@@ -807,7 +815,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
         self.assertEqual(len(data["results"][0]["senders"]), 0)
         self.assertEqual(
-            data["results"][0]["sender_preview"]["user_id"], self.test_friends[0].id
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_friends[0].id
         )
         self.assertEqual(
             data["results"][0]["url"],
@@ -895,7 +903,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][0]["parent_comment"]["comment_id"], comment_id)
         self.assertEqual(len(data["results"][0]["senders"]), 0)
         self.assertEqual(
-            data["results"][0]["sender_preview"]["user_id"], self.test_friends[1].id
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_friends[1].id
         )
         self.assertEqual(
             data["results"][0]["url"],
@@ -925,7 +933,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][0]["parent_comment"]["comment_id"], comment_id)
         self.assertEqual(len(data["results"][0]["senders"]), 0)
         self.assertEqual(
-            data["results"][0]["sender_preview"]["user_id"], self.test_friends[3].id
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_friends[3].id
         )
         self.assertEqual(
             data["results"][0]["url"],
@@ -1006,7 +1014,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(data["results"][0]["post"]["id"], subpost_id)
         self.assertEqual(len(data["results"][0]["senders"]), 0)
         self.assertEqual(
-            data["results"][0]["sender_preview"]["user_id"], self.test_friends[1].id
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_friends[1].id
         )
         self.assertEqual(
             data["results"][0]["sender_preview"]["content"], "subpost 알림이 발생합니다."
