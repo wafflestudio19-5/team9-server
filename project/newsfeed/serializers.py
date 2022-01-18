@@ -199,7 +199,7 @@ class SubPostSerializer(serializers.ModelSerializer):
         return format_time(post.created)
 
     def get_comments(self, post):
-        return Comment.objects.filter(post=post).count()
+        return post.comments.count()
 
     def get_shared_counts(self, post):
         return post.sharing_posts.count()
