@@ -472,23 +472,24 @@ class NoticelistSerializer(serializers.ModelSerializer):
 
 class NoticeSenderSerializer(serializers.ModelSerializer):
 
-    user_id = serializers.IntegerField(source="user.id")
-    username = serializers.CharField(source="user.username")
+    user = serializers.SerializerMethodField()
 
     class Meta:
         model = NoticeSender
-        fields = (
-            "user_id",
-            "username",
-        )
+        fields = ("user",)
+
+    def get_user(self, notice):
+        return UserSerializer(notice.user).data
 
 
 class NoticeCommentSerializer(serializers.ModelSerializer):
 
-    user_id = serializers.IntegerField(source="author.id")
-    username = serializers.CharField(source="author.username")
+    user = serializers.SerializerMethodField()
     comment_id = serializers.IntegerField(source="id")
 
     class Meta:
         model = Comment
-        fields = ("user_id", "username", "comment_id", "content", "file")
+        fields = ("user", "comment_id", "content", "file")
+
+    def get_user(self, comment):
+        return UserSerializer(comment.author).data
