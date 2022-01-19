@@ -353,6 +353,19 @@ class LoginTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(data["token"], jwt_token_of((self.user)))
 
+    def test_login_inactive(self):
+        self.user.is_active = False
+        self.user.save()
+
+        response = self.client.post(
+            "/api/v1/account/login/",
+            data=self.post_data,
+            content_type="application/json",
+        )
+        data = response.json()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(data["token"], jwt_token_of((self.user)))
+
     def test_login_fail(self):
         response = self.client.post(
             "/api/v1/account/login/",
