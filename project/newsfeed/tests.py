@@ -792,7 +792,7 @@ class NoticeTestCase(TestCase):
         )
         self.assertEqual(data["results"][0]["is_checked"], False)
         self.assertEqual(data["results"][0]["sender_preview"]["content"], "알림이 발생합니다.")
-        self.assertIn("testimage2.jpg", data["results"][0]["sender_preview"]["file"])
+        self.assertIn("photo", data["results"][0]["sender_preview"]["is_file"])
 
         # 게시글 좋아요, 알림 O
         response = self.client.put(
