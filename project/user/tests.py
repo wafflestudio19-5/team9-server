@@ -40,6 +40,7 @@ class UserFactory(DjangoModelFactory):
             ),
             phone_number=kwargs.get("phone_number", fake.numerify(text="010########")),
             is_active=kwargs.get("is_active", True),
+            is_valid=kwargs.get("is_valid", True),
         )
         user.username = user.last_name + user.first_name
         user.set_password(kwargs.get("password", ""))
@@ -130,7 +131,6 @@ class UniversityFactory(DjangoModelFactory):
             join_date=kwargs.get("join_date", fake.date()),
             graduate_date=kwargs.get("graduate_date"),
             is_active=kwargs.get("is_active", True),
-            is_valid=kwargs.get("is_valid", True),
         )
         university.save()
         return university
