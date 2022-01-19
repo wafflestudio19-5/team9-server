@@ -243,6 +243,7 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
         cnt = post.subposts.count()
         scope = request.data.get("scope")
         removed = request.data.getlist("removed_subposts_id")
+        tagged_users = request.data.getlist("tagged_users")
 
         if cnt != len(set(subposts)):
             return Response(
@@ -259,20 +260,40 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
 
             scope = int(scope)
 
+        # mainpost 수정
+        content = request.data.get("content")
         if (set(subposts) == set(removed)) and not files:
-            content = request.data.get("content")
+
             if not content:
                 return Response(status=status.HTTP_400_BAD_REQUEST, data="내용을 입력해주세요.")
-            post.content = content
-            if scope:
-                post.scope = scope
-            post.save()
-        else:
-            post.content = request.data.get("content")
-            if scope:
-                post.scope = scope
-            post.save()
 
+        post.content = request.data.get("content")
+
+        if scope:
+            post.scope = scope
+
+        for before_tagged_user in post.tagged_users.all():
+            NoticeCancel(
+                sender=user,
+                receiver=before_tagged_user,
+                content="PostTag",
+                post=post,
+            )
+        post.tagged_users.delete()
+        for tagged_user in tagged_users:
+            tagged_user = int(tagged_user)
+            post.tagged_users.add(tagged_user)
+            if user.id != tagged_user:
+                NoticeCreate(
+                    sender=user,
+                    receiver=User.objects.get(id=tagged_user),
+                    content="PostTag",
+                    post=post,
+                )
+        post.save()
+
+        # 기존의 subposts content 수정 및 subpost 삭제
+        subposts_tagged_users = request.data.getlist("subposts_tagged_users")
         for i in range(len(subposts)):
             subpost = get_object_or_404(post.subposts, id=subposts[i])
 
@@ -282,8 +303,31 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
                 subpost.content = contents[i]
                 if scope:
                     subpost.scope = scope
+
+                subpost_tagged_users = list(subposts_tagged_users[i][1:-1].split(","))
+
+                for before_tagged_user in subpost.tagged_users.all():
+                    NoticeCancel(
+                        sender=user,
+                        receiver=before_tagged_user,
+                        content="PostTag",
+                        post=subpost,
+                    )
+                subpost.tagged_users.delete()
+
+                for subpost_tagged_user in subpost_tagged_users:
+                    subpost_tagged_user = int(subpost_tagged_user)
+                    subpost.tagged_users.add(subpost_tagged_user)
+                    if user.id != subpost_tagged_user:
+                        NoticeCreate(
+                            sender=user,
+                            receiver=User.objects.get(id=subpost_tagged_user),
+                            content="PostTag",
+                            post=subpost,
+                        )
                 subpost.save()
 
+        # 파일 추가하는 경우 subpost 추가
         if files:
             for i in range(len(files)):
                 idx = i + len(subposts)
@@ -493,27 +537,16 @@ class CommentListView(ListCreateAPIView):
 
         for tagged_user in tagged_users:
             tagged_user = int(tagged_user)
-            if data.get("parent"):
-                comment.tagged_users.add(tagged_user)
-                comment.save()
-                if user.id != tagged_user:
-                    NoticeCreate(
-                        sender=user,
-                        receiver=User.objects.get(id=tagged_user),
-                        content="CommentTag",
-                        post=post,
-                        parent_comment=comment.parent,
-                    )
-            else:
-                comment.tagged_users.add(tagged_user)
-                comment.save()
-                if user.id != tagged_user:
-                    NoticeCreate(
-                        sender=user,
-                        receiver=User.objects.get(id=tagged_user),
-                        content="CommentTag",
-                        post=post,
-                    )
+            comment.tagged_users.add(tagged_user)
+            comment.save()
+            if user.id != tagged_user:
+                NoticeCreate(
+                    sender=user,
+                    receiver=User.objects.get(id=tagged_user),
+                    content="CommentTag",
+                    post=post,
+                    parent_comment=comment.parent,
+                )
 
         return Response(
             self.get_serializer(comment).data, status=status.HTTP_201_CREATED
@@ -549,6 +582,28 @@ class CommentUpdateDeleteView(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST, data="content를 입력해주세요")
 
         comment.content = content
+
+        tagged_users = request.data.getlist("tagged_users")
+        for before_tagged_user in comment.tagged_users.all():
+            NoticeCancel(
+                sender=request.user,
+                receiver=before_tagged_user,
+                content="CommentTag",
+                post=comment.post,
+                parent_comment=comment.parent,
+            )
+        comment.tagged_users.delete()
+        for tagged_user in tagged_users:
+            tagged_user = int(tagged_user)
+            comment.tagged_users.add(tagged_user)
+            if request.user.id != tagged_user:
+                NoticeCreate(
+                    sender=request.user,
+                    receiver=User.objects.get(id=tagged_user),
+                    content="CommentTag",
+                    post=comment.post,
+                    parent_comment=comment.parent,
+                )
         comment.save()
         return Response(status=status.HTTP_200_OK, data=CommentSerializer(comment).data)
 

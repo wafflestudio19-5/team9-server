@@ -1140,12 +1140,12 @@ class NoticeTestCase(TestCase):
             "content": "",
             "subposts": [
                 f"@{friend_1.username}, @{friend_2.username}",
-                f"@{friend_2.username}, @{friend_3.username}",
+                f"@{friend_3.username}",
             ],
             "file": [test_image, test_image],
             "subposts_tagged_users": [
                 [friend_1.id, friend_2.id],
-                [friend_2.id, friend_3.id],
+                [friend_3.id],
             ],
         }
 
@@ -1182,7 +1182,7 @@ class NoticeTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        self.assertEqual(data["results"][0]["post"]["id"], subpost2_id)
+        self.assertEqual(data["results"][0]["post"]["id"], subpost_id)
         self.assertEqual(data["results"][0]["content"], "PostTag")
         self.assertEqual(
             data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
@@ -1395,7 +1395,7 @@ class NoticeTestCase(TestCase):
             )
             self.assertEqual(data["results"][0]["count"], 0)
 
-        # 한 댓글에서 2번 이상 언급된 경우
+        # 한 댓글에서 2번 이상 답글 언급된 경우
         data = {
             "content": f"@{friend_1.username}, @{friend_2.username} @{self.test_user.username} 2번째 언급",
             "tagged_users": [friend_1.id, friend_2.id, self.test_user.id],
