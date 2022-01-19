@@ -40,6 +40,7 @@ class UserFactory(DjangoModelFactory):
             ),
             phone_number=kwargs.get("phone_number", fake.numerify(text="010########")),
             is_active=kwargs.get("is_active", True),
+            is_valid=kwargs.get("is_valid", True),
         )
         user.username = user.last_name + user.first_name
         user.set_password(kwargs.get("password", ""))
@@ -163,12 +164,12 @@ class SignUpUserTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         data = response.json()
         self.assertEqual(data["user"]["username"], "이민준")
-        self.assertEqual(data["user"]["is_active"], False)
+        self.assertEqual(data["user"]["is_valid"], False)
 
         self.assertEqual(User.objects.count(), 2)
         self.assertEqual(User.objects.last().username, "이민준")
         user = User.objects.get(email="waffle2@test.com")
-        self.assertEqual(user.is_active, False)
+        self.assertEqual(user.is_valid, False)
 
     def test_post_user_confilct(self):
         with transaction.atomic():
@@ -353,8 +354,8 @@ class LoginTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(data["token"], jwt_token_of((self.user)))
 
-    def test_login_inactive(self):
-        self.user.is_active = False
+    def test_login_invalid(self):
+        self.user.is_valid = False
         self.user.save()
 
         response = self.client.post(
@@ -1315,7 +1316,7 @@ class ActivateTestCase(APITestCase):
         response = self.client.get(f"/api/v1/account/activate/{uidb64}/{token}/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         user.refresh_from_db()
-        self.assertEqual(user.is_active, True)
+        self.assertEqual(user.is_valid, True)
 
     def test_not_found(self):
         user = self.test_user
