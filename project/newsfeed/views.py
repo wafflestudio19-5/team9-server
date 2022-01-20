@@ -279,7 +279,7 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
                 content="PostTag",
                 post=post,
             )
-        post.tagged_users.delete()
+        post.tagged_users.clear()
         for tagged_user in tagged_users:
             tagged_user = int(tagged_user)
             post.tagged_users.add(tagged_user)
@@ -304,7 +304,12 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
                 if scope:
                     subpost.scope = scope
 
-                subpost_tagged_users = list(subposts_tagged_users[i][1:-1].split(","))
+                if len(subposts_tagged_users) > i:
+                    subpost_tagged_users = list(
+                        subposts_tagged_users[i][1:-1].split(",")
+                    )
+                else:
+                    subpost_tagged_users = []
 
                 for before_tagged_user in subpost.tagged_users.all():
                     NoticeCancel(
@@ -313,7 +318,7 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
                         content="PostTag",
                         post=subpost,
                     )
-                subpost.tagged_users.delete()
+                subpost.tagged_users.clear()
 
                 for subpost_tagged_user in subpost_tagged_users:
                     subpost_tagged_user = int(subpost_tagged_user)
@@ -342,6 +347,26 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
                 serializer.is_valid(raise_exception=True)
                 subpost = serializer.save()
                 subpost.file.save(files[i].name, files[i], save=True)
+
+                if len(subposts_tagged_users) > idx:
+                    subpost_tagged_users = list(
+                        subposts_tagged_users[idx][1:-1].split(",")
+                    )
+
+                else:
+                    subpost_tagged_users = []
+
+                for subpost_tagged_user in subpost_tagged_users:
+                    subpost_tagged_user = int(subpost_tagged_user)
+                    subpost.tagged_users.add(subpost_tagged_user)
+                    subpost.save()
+                    if user.id != subpost_tagged_user:
+                        NoticeCreate(
+                            sender=user,
+                            receiver=User.objects.get(id=subpost_tagged_user),
+                            content="PostTag",
+                            post=subpost,
+                        )
 
         return Response(
             self.get_serializer(post).data,
@@ -592,7 +617,7 @@ class CommentUpdateDeleteView(APIView):
                 post=comment.post,
                 parent_comment=comment.parent,
             )
-        comment.tagged_users.delete()
+        comment.tagged_users.clear()
         for tagged_user in tagged_users:
             tagged_user = int(tagged_user)
             comment.tagged_users.add(tagged_user)
@@ -746,11 +771,7 @@ def NoticeCreate(**context):
         if post.notice_off_users.filter(id=receiver.id).exists():
             return None
 
-    if (
-        content == "CommentLike"
-        or content == "CommentComment"
-        or content == "CommentTag"
-    ):
+    if parent_comment:
         notice = receiver.notices.filter(
             post=post, parent_comment=parent_comment, content=content
         )

@@ -454,8 +454,9 @@ class NoticelistSerializer(serializers.ModelSerializer):
         ).data
 
     def get_parent_comment(self, notice):
-
-        return NoticeCommentSerializer(notice.parent_comment).data
+        if notice.parent_comment:
+            return NoticeCommentSerializer(notice.parent_comment).data
+        return None
 
     def get_count(self, notice):
         return notice.senders.count() - 1
