@@ -469,7 +469,11 @@ class UserProfileView(RetrieveUpdateAPIView):
         responses={200: UserProfileSerializer()},
     )
     def get(self, request, pk=None):
-        return super().retrieve(request, pk=pk)
+        user = get_object_or_404(self.queryset, pk=pk)
+        return Response(
+            status=status.HTTP_200_OK,
+            data=self.serializer_class(user, context={"request": request}).data,
+        )
 
     @swagger_auto_schema(
         operation_description="프로필 정보 편집하기",

@@ -646,6 +646,7 @@ class UserProfileTestCase(APITestCase):
         self.assertIn("testimage.jpg", data["cover_image"])
         self.assertEqual(len(data["company"]), 3)
         self.assertEqual(len(data["university"]), 3)
+        self.assertEqual(data["friend_info"], "self")
         friend_token = "JWT " + jwt_token_of(self.test_friend)
         response = self.client.get(
             f"/api/v1/user/{self.test_user.id}/profile/",
@@ -654,7 +655,46 @@ class UserProfileTestCase(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         newdata = response.json()
+        # 이름은 friend지만 여기선 친구가 아니게 설정하고 테스트 중이었네요.
+        self.assertEqual(newdata["friend_info"], "nothing")
+        data.pop("friend_info")
+        newdata.pop("friend_info")
         self.assertEqual(data, newdata)
+
+    def test_get_user_profile_friend_info_friend(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        self.test_user.friends.add(self.test_friend)
+        self.test_user.save()
+        response = self.client.get(
+            f"/api/v1/user/{self.test_friend.id}/profile/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["friend_info"], "friend")
+
+    def test_get_user_profile_friend_info_sent_and_received(self):
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        FriendRequestFactory.create(sender=self.test_user, receiver=self.test_friend)
+        response = self.client.get(
+            f"/api/v1/user/{self.test_friend.id}/profile/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["friend_info"], "sent")
+
+        friend_token = "JWT " + jwt_token_of(self.test_friend)
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/profile/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=friend_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["friend_info"], "received")
 
     def test_get_user_profile_unauthorized(self):
         response = self.client.get(

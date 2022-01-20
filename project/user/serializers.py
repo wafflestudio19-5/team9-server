@@ -259,6 +259,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     company = CompanySerializer(many=True, read_only=True)
     university = UniversitySerializer(many=True, read_only=True)
+    friend_info = serializers.SerializerMethodField(
+        read_only=True,
+        help_text="오류 상황시 None, 본인이면 self, 친구이면 friend, 로그인된 유저가 요청을 보냈으면 sent, 로그인된 유저가 요청을 받았으면 received, 아무것도 아니면 nothing",
+    )
 
     class Meta:
         model = User
@@ -275,6 +279,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "cover_image",
             "company",
             "university",
+            "friend_info",
         )
         read_only_fields = (
             "id",
@@ -300,6 +305,21 @@ class UserProfileSerializer(serializers.ModelSerializer):
         user.username = user.last_name + user.first_name
         user.save()
         return user
+
+    def get_friend_info(self, user):
+        request = self.context.get("request")
+        if not request:
+            return None
+        current_user = request.user
+        if user.id == current_user.id:
+            return "self"
+        if user.friends.all().filter(id=current_user.id).exists():
+            return "friend"
+        if current_user.sent_friend_request.filter(receiver=user).exists():
+            return "sent"
+        if user.sent_friend_request.filter(receiver=current_user).exists():
+            return "received"
+        return "nothing"
 
 
 class FriendRequestCreateSerializer(serializers.ModelSerializer):
