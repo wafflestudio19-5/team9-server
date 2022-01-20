@@ -6,9 +6,8 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('newsfeed', '0030_alter_notice_created'),
-        ('newsfeed', '0030_auto_20220120_0056'),
+        ("newsfeed", "0030_alter_notice_created"),
+        ("newsfeed", "0030_auto_20220120_0056"),
     ]
 
-    operations = [
-    ]
+    operations = []
