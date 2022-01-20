@@ -439,7 +439,8 @@ class CommentListView(ListCreateAPIView):
         return Response(CommentSerializer(comment).data, status=status.HTTP_201_CREATED)
 
 
-class CommentUpdateDeleteView(APIView):
+class CommentUpdateDeleteView(GenericAPIView):
+    serializer_class = CommentSerializer
     permission_classes = (permissions.IsAuthenticated,)
     queryset = Comment.objects.all()
 
@@ -469,7 +470,9 @@ class CommentUpdateDeleteView(APIView):
 
         comment.content = content
         comment.save()
-        return Response(status=status.HTTP_200_OK, data=CommentSerializer(comment).data)
+        return Response(
+            status=status.HTTP_200_OK, data=self.get_serializer(comment).data
+        )
 
     @swagger_auto_schema(
         operation_description="comment 삭제하기",
@@ -530,7 +533,9 @@ class CommentUpdateDeleteView(APIView):
                     status=status.HTTP_404_NOT_FOUND, data="해당 게시글이 존재하지 않습니다."
                 )
 
-        return Response(status=status.HTTP_200_OK, data=CommentSerializer(comment).data)
+        return Response(
+            status=status.HTTP_200_OK, data=self.get_serializer(comment).data
+        )
 
 
 class CommentLikeView(GenericAPIView):
