@@ -313,7 +313,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         current_user = request.user
         if user.id == current_user.id:
             return "self"
-        if user.friends.all.contains(current_user):
+        if user.friends.all().filter(id=current_user.id).exists():
             return "friend"
         if current_user.sent_friend_request.filter(receiver=user).exists():
             return "sent"
