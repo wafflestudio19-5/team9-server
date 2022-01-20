@@ -26,6 +26,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include("user.urls")),
     path("api/v1/", include("newsfeed.urls")),
+    path("api/v1/", include("notice.urls")),
     path(
         "swagger/",
         schema_view.with_ui("swagger", cache_timeout=0),
