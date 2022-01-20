@@ -253,10 +253,7 @@ class CommentPostSwaggerSerializer(serializers.Serializer):
     )
 
 
-class CommentSerializer(serializers.ModelSerializer):
-    is_liked = serializers.SerializerMethodField()
-    author_profile = serializers.SerializerMethodField(read_only=True)
-
+class CommentCreateSerializer(serializers.ModelSerializer):
     class Meta:
 
         model = Comment
@@ -265,17 +262,9 @@ class CommentSerializer(serializers.ModelSerializer):
             "id",
             "post",
             "author",
-            "author_profile",
             "content",
-            "file",
             "parent",
-            "depth",
-            "created",
-            "likes",
-            "is_liked",
         )
-
-        extra_kwargs = {"author": {"write_only": True}}
 
     def create(self, validated_data):
         return Comment.objects.create(
@@ -310,6 +299,28 @@ class CommentSerializer(serializers.ModelSerializer):
 
         return data
 
+
+class CommentSerializer(serializers.ModelSerializer):
+    is_liked = serializers.SerializerMethodField()
+    author = serializers.SerializerMethodField()
+
+    class Meta:
+
+        model = Comment
+
+        fields = (
+            "id",
+            "post",
+            "author",
+            "content",
+            "file",
+            "parent",
+            "depth",
+            "created",
+            "likes",
+            "is_liked",
+        )
+
     def get_is_liked(self, comment):
         request = self.context.get("request")
         if not request:
@@ -320,7 +331,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
         return False
 
-    def get_author_profile(self, comment):
+    def get_author(self, comment):
         return UserSerializer(comment.author).data
 
 

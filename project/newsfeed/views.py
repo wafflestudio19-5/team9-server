@@ -20,6 +20,7 @@ from .serializers import (
     PostSerializer,
     PostLikeSerializer,
     CommentListSerializer,
+    CommentCreateSerializer,
     CommentSerializer,
     CommentLikeSerializer,
     CommentPostSwaggerSerializer,
@@ -407,7 +408,9 @@ class CommentListView(ListCreateAPIView):
             )
         """
         # 친구만 댓글 달 수 있도록 하는 기능 해제
-        serializer = CommentSerializer(data=data, context={"user": user, "post": post})
+        serializer = CommentCreateSerializer(
+            data=data, context={"user": user, "post": post}
+        )
         serializer.is_valid(raise_exception=True)
         comment = serializer.save()
 
@@ -433,9 +436,7 @@ class CommentListView(ListCreateAPIView):
                     post=post,
                 )
 
-        return Response(
-            self.get_serializer(comment).data, status=status.HTTP_201_CREATED
-        )
+        return Response(CommentSerializer(comment).data, status=status.HTTP_201_CREATED)
 
 
 class CommentUpdateDeleteView(APIView):
