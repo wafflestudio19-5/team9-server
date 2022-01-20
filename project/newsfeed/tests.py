@@ -2397,7 +2397,7 @@ class ShareTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["results"][0]["content"], "게시글을 공유했습니다.")
-        self.assertEqual(data["results"][0]["shared_post"], "AccessDenied")
+        self.assertEqual(data["results"][0]["shared_post"], None)
 
         data = {
             "content": "",
@@ -2423,7 +2423,7 @@ class ShareTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["results"][0]["content"], "게시글을 공유했습니다.")
-        self.assertEqual(data["results"][0]["shared_post"], "AccessDenied")
+        self.assertEqual(data["results"][0]["shared_post"], None)
 
         response = self.client.get(
             f"/api/v1/user/{self.test_user.id}/newsfeed/",
@@ -2443,7 +2443,7 @@ class ShareTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["results"][0]["content"], "게시글을 공유했습니다.")
-        self.assertEqual(data["results"][0]["shared_post"], "AccessDenied")
+        self.assertEqual(data["results"][0]["shared_post"], None)
 
         # subpost도 공유가 가능한지
         test_image = SimpleUploadedFile(
