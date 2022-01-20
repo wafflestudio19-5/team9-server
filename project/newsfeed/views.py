@@ -80,12 +80,10 @@ class PostListView(ListCreateAPIView):
         shared_post = request.data.get("shared_post")
 
         files = request.FILES.getlist("file")
-        context = {
-            "isFile": False,
-            "shared_post": shared_post,
-            "author": user,
-            "request": request,
-        }
+
+        tagged_users = request.data.getlist("tagged_users", [])
+
+        context = {"isFile": False, "request": request}
 
         if files or shared_post:
             context["isFile"] = True
@@ -97,8 +95,21 @@ class PostListView(ListCreateAPIView):
 
         serializer.is_valid(raise_exception=True)
         mainpost = serializer.save()
+        for tagged_user in tagged_users:
+            tagged_user = int(tagged_user)
+            mainpost.tagged_users.add(tagged_user)
+            mainpost.save()
+            if user.id != tagged_user:
+                NoticeCreate(
+                    sender=user,
+                    receiver=User.objects.get(id=tagged_user),
+                    content="PostTag",
+                    post=mainpost,
+                )
+
         if files:
             contents = request.data.getlist("subposts", [])
+            subposts_tagged_users = request.data.getlist("subposts_tagged_users", [])
 
             for i in range(len(files)):
 
@@ -119,6 +130,26 @@ class PostListView(ListCreateAPIView):
                 serializer.is_valid(raise_exception=True)
                 subpost = serializer.save()
                 subpost.file.save(files[i].name, files[i], save=True)
+
+                if len(subposts_tagged_users) > i:
+                    subpost_tagged_users = list(
+                        subposts_tagged_users[i][1:-1].split(",")
+                    )
+
+                else:
+                    subpost_tagged_users = []
+
+                for subpost_tagged_user in subpost_tagged_users:
+                    subpost_tagged_user = int(subpost_tagged_user)
+                    subpost.tagged_users.add(subpost_tagged_user)
+                    subpost.save()
+                    if user.id != subpost_tagged_user:
+                        NoticeCreate(
+                            sender=user,
+                            receiver=User.objects.get(id=subpost_tagged_user),
+                            content="PostTag",
+                            post=subpost,
+                        )
 
         return Response(
             PostSerializer(mainpost, context={"request": request}).data,
@@ -213,6 +244,7 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
         cnt = post.subposts.count()
         scope = request.data.get("scope")
         removed = request.data.getlist("removed_subposts_id")
+        tagged_users = request.data.getlist("tagged_users")
 
         if cnt != len(set(subposts)):
             return Response(
@@ -229,20 +261,40 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
 
             scope = int(scope)
 
+        # mainpost 수정
+        content = request.data.get("content")
         if (set(subposts) == set(removed)) and not files:
-            content = request.data.get("content")
+
             if not content:
                 return Response(status=status.HTTP_400_BAD_REQUEST, data="내용을 입력해주세요.")
-            post.content = content
-            if scope:
-                post.scope = scope
-            post.save()
-        else:
-            post.content = request.data.get("content")
-            if scope:
-                post.scope = scope
-            post.save()
 
+        post.content = request.data.get("content")
+
+        if scope:
+            post.scope = scope
+
+        for before_tagged_user in post.tagged_users.all():
+            NoticeCancel(
+                sender=user,
+                receiver=before_tagged_user,
+                content="PostTag",
+                post=post,
+            )
+        post.tagged_users.clear()
+        for tagged_user in tagged_users:
+            tagged_user = int(tagged_user)
+            post.tagged_users.add(tagged_user)
+            if user.id != tagged_user:
+                NoticeCreate(
+                    sender=user,
+                    receiver=User.objects.get(id=tagged_user),
+                    content="PostTag",
+                    post=post,
+                )
+        post.save()
+
+        # 기존의 subposts content 수정 및 subpost 삭제
+        subposts_tagged_users = request.data.getlist("subposts_tagged_users")
         for i in range(len(subposts)):
             subpost = get_object_or_404(post.subposts, id=subposts[i])
 
@@ -252,8 +304,36 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
                 subpost.content = contents[i]
                 if scope:
                     subpost.scope = scope
+
+                if len(subposts_tagged_users) > i:
+                    subpost_tagged_users = list(
+                        subposts_tagged_users[i][1:-1].split(",")
+                    )
+                else:
+                    subpost_tagged_users = []
+
+                for before_tagged_user in subpost.tagged_users.all():
+                    NoticeCancel(
+                        sender=user,
+                        receiver=before_tagged_user,
+                        content="PostTag",
+                        post=subpost,
+                    )
+                subpost.tagged_users.clear()
+
+                for subpost_tagged_user in subpost_tagged_users:
+                    subpost_tagged_user = int(subpost_tagged_user)
+                    subpost.tagged_users.add(subpost_tagged_user)
+                    if user.id != subpost_tagged_user:
+                        NoticeCreate(
+                            sender=user,
+                            receiver=User.objects.get(id=subpost_tagged_user),
+                            content="PostTag",
+                            post=subpost,
+                        )
                 subpost.save()
 
+        # 파일 추가하는 경우 subpost 추가
         if files:
             for i in range(len(files)):
                 idx = i + len(subposts)
@@ -263,11 +343,31 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
                         "mainpost": post.id,
                         "scope": post.scope,
                     },
-                    context={"isFile": True, "author": user},
+                    context={"isFile": True, "request": request},
                 )
                 serializer.is_valid(raise_exception=True)
                 subpost = serializer.save()
                 subpost.file.save(files[i].name, files[i], save=True)
+
+                if len(subposts_tagged_users) > idx:
+                    subpost_tagged_users = list(
+                        subposts_tagged_users[idx][1:-1].split(",")
+                    )
+
+                else:
+                    subpost_tagged_users = []
+
+                for subpost_tagged_user in subpost_tagged_users:
+                    subpost_tagged_user = int(subpost_tagged_user)
+                    subpost.tagged_users.add(subpost_tagged_user)
+                    subpost.save()
+                    if user.id != subpost_tagged_user:
+                        NoticeCreate(
+                            sender=user,
+                            receiver=User.objects.get(id=subpost_tagged_user),
+                            content="PostTag",
+                            post=subpost,
+                        )
 
         return Response(
             self.get_serializer(post).data,
@@ -284,6 +384,28 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
             return Response(
                 status=status.HTTP_403_FORBIDDEN, data="다른 유저의 게시글을 삭제할 수 없습니다."
             )
+
+        if post.tagged_users.all().exists():
+            for tagged_user in post.tagged_users.all():
+                if request.user != tagged_user:
+                    NoticeCancel(
+                        sender=request.user,
+                        receiver=tagged_user,
+                        content="PostTag",
+                        post=post,
+                    )
+        if post.subposts.all().exists():
+            for subpost in post.subposts.all():
+                if subpost.tagged_users.all().exists():
+                    for tagged_user in subpost.tagged_users.all():
+                        if request.user != tagged_user:
+                            NoticeCancel(
+                                sender=request.user,
+                                receiver=tagged_user,
+                                content="PostTag",
+                                post=post,
+                            )
+
         return super().destroy(request, pk=pk)
 
     # 부모의 patch 메서드를 drf-yasg가 읽지 않게 오버리이딩
@@ -398,6 +520,8 @@ class CommentListView(ListCreateAPIView):
         post = get_object_or_404(self.queryset, pk=post_id)
         data["post"] = post.id
 
+        tagged_users = request.data.getlist("tagged_users")
+
         """
         if (
             not user.friends.filter(id=post.author.id).exists()
@@ -436,7 +560,22 @@ class CommentListView(ListCreateAPIView):
                     post=post,
                 )
 
-        return Response(CommentSerializer(comment).data, status=status.HTTP_201_CREATED)
+        for tagged_user in tagged_users:
+            tagged_user = int(tagged_user)
+            comment.tagged_users.add(tagged_user)
+            comment.save()
+            if user.id != tagged_user:
+                NoticeCreate(
+                    sender=user,
+                    receiver=User.objects.get(id=tagged_user),
+                    content="CommentTag",
+                    post=post,
+                    parent_comment=comment.parent,
+                )
+
+        return Response(
+            self.get_serializer(comment).data, status=status.HTTP_201_CREATED
+        )
 
 
 class CommentUpdateDeleteView(APIView):
@@ -468,6 +607,28 @@ class CommentUpdateDeleteView(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST, data="content를 입력해주세요")
 
         comment.content = content
+
+        tagged_users = request.data.getlist("tagged_users")
+        for before_tagged_user in comment.tagged_users.all():
+            NoticeCancel(
+                sender=request.user,
+                receiver=before_tagged_user,
+                content="CommentTag",
+                post=comment.post,
+                parent_comment=comment.parent,
+            )
+        comment.tagged_users.clear()
+        for tagged_user in tagged_users:
+            tagged_user = int(tagged_user)
+            comment.tagged_users.add(tagged_user)
+            if request.user.id != tagged_user:
+                NoticeCreate(
+                    sender=request.user,
+                    receiver=User.objects.get(id=tagged_user),
+                    content="CommentTag",
+                    post=comment.post,
+                    parent_comment=comment.parent,
+                )
         comment.save()
         return Response(status=status.HTTP_200_OK, data=CommentSerializer(comment).data)
 
@@ -501,6 +662,17 @@ class CommentUpdateDeleteView(APIView):
                     content="PostComment",
                     post=post,
                 )
+        if comment.tagged_users.all().exists():
+            for tagged_user in comment.tagged_users.all():
+                if user != tagged_user:
+                    NoticeCancel(
+                        sender=user,
+                        receiver=tagged_user,
+                        content="CommentTag",
+                        post=post,
+                        parent_comment=parent,
+                    )
+
         comment.delete()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -599,7 +771,7 @@ def NoticeCreate(**context):
         if post.notice_off_users.filter(id=receiver.id).exists():
             return None
 
-    if content == "CommentLike" or content == "CommentComment":
+    if parent_comment:
         notice = receiver.notices.filter(
             post=post, parent_comment=parent_comment, content=content
         )
@@ -636,8 +808,9 @@ def NoticeCreate(**context):
         notice_sender = notice.senders.filter(user=sender)
         if notice_sender.exists():
             notice_sender = notice_sender[0]
-            notice_sender.count += 1
-            notice_sender.save()
+            count = notice_sender.count + 1
+            notice_sender.delete()
+            NoticeSender.objects.create(notice=notice, user=sender, count=count)
         else:
             NoticeSender.objects.create(notice=notice, user=sender, count=1)
 
@@ -653,8 +826,9 @@ def NoticeCreate(**context):
         if parent_comment:
             data["parent_comment"] = parent_comment.id
 
-        if content == "CommentComment":
-            data["url"] = f"api/v1/newsfeed/{post.id}/{parent_comment.id}/"
+        if content == "CommentComment" or content == "CommentTag":
+            if parent_comment:
+                data["url"] = f"api/v1/newsfeed/{post.id}/{parent_comment.id}/"
 
         serializer = NoticeSerializer(
             data=data,
@@ -767,5 +941,13 @@ class NoticeOnOffView(GenericAPIView):
 
         return Response(
             self.get_serializer(post).data,
+            status=status.HTTP_200_OK,
+        )
+
+
+class TestView(GenericAPIView):
+    def put(self, request):
+        print(request.data["email"]["data"])
+        return Response(
             status=status.HTTP_200_OK,
         )

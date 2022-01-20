@@ -5,7 +5,7 @@ from rest_framework_jwt.settings import api_settings
 from .models import Notice, Post, Comment, NewsfeedObject, NoticeSender
 from user.serializers import UserSerializer
 from user.models import User
-from datetime import datetime, timedelta
+from .utils import notice_format_time, format_time
 from pytz import timezone
 
 
@@ -19,6 +19,7 @@ class PostSerializer(serializers.ModelSerializer):
     shared_counts = serializers.SerializerMethodField()
     posted_at = serializers.SerializerMethodField()
     is_noticed = serializers.SerializerMethodField()
+    tagged_users = serializers.SerializerMethodField()
 
     class Meta:
 
@@ -39,16 +40,17 @@ class PostSerializer(serializers.ModelSerializer):
             "is_sharing",
             "shared_counts",
             "is_noticed",
+            "tagged_users",
         )
         extra_kwargs = {"content": {"help_text": "무슨 생각을 하고 계신가요?"}}
 
     def create(self, validated_data):
 
         mainpost = validated_data.get("mainpost", None)
-        author = self.context["author"]
+        author = self.context["request"].user
         content = validated_data.get("content", "")
         scope = validated_data["scope"]
-        shared_post = self.context.get("shared_post")
+        shared_post = self.context["request"].data.get("shared_post")
 
         post = Post.objects.create(
             author=author,
@@ -135,40 +137,8 @@ class PostSerializer(serializers.ModelSerializer):
         else:
             return True
 
-
-def format_time(time):
-    now = datetime.now()
-    time_elapsed = now - time
-    if time_elapsed < timedelta(minutes=1):
-        return "방금"
-    elif time_elapsed < timedelta(hours=1):
-        return f"{int(time_elapsed.seconds / 60)}분"
-    elif time_elapsed < timedelta(days=1):
-        return f"{int(time_elapsed.seconds / (60 * 60))}시간"
-    elif time_elapsed < timedelta(days=7):
-        return f"{time_elapsed.days}일"
-    elif time.year == now.year:
-        return f"{time.month}월 {time.day}일"
-    else:
-        return f"{time.year}년 {time.month}월 {time.day}일"
-
-
-def notice_format_time(time):
-    now = datetime.now()
-    time_elapsed = now - time
-    if time_elapsed < timedelta(minutes=1):
-        return "방금"
-    elif time_elapsed < timedelta(hours=1):
-        return f"{int(time_elapsed.seconds / 60)}분"
-    elif time_elapsed < timedelta(days=1):
-        return f"{int(time_elapsed.seconds / (60 * 60))}시간"
-    elif time_elapsed < timedelta(days=7):
-        return f"{time_elapsed.days}일"
-    else:
-        if time_elapsed.days > 60:
-            return False
-        week = time_elapsed.days // 7
-        return f"{week}주"
+    def get_tagged_users(self, post):
+        return TagUserSerializer(post.tagged_users, many=True).data
 
 
 class SubPostSerializer(serializers.ModelSerializer):
@@ -178,6 +148,7 @@ class SubPostSerializer(serializers.ModelSerializer):
     is_liked = serializers.SerializerMethodField()
     is_noticed = serializers.SerializerMethodField()
     shared_counts = serializers.SerializerMethodField()
+    tagged_users = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -193,6 +164,7 @@ class SubPostSerializer(serializers.ModelSerializer):
             "scope",
             "is_noticed",
             "shared_counts",
+            "tagged_users",
         )
 
     def get_posted_at(self, post):
@@ -220,6 +192,9 @@ class SubPostSerializer(serializers.ModelSerializer):
             return False
         else:
             return True
+
+    def get_tagged_users(self, post):
+        return TagUserSerializer(post.tagged_users, many=True).data
 
 
 class PostLikeSerializer(serializers.ModelSerializer):
@@ -267,13 +242,15 @@ class CommentCreateSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
-        return Comment.objects.create(
+        comment = Comment.objects.create(
             post=validated_data["post"],
             author=validated_data["author"],
             content=validated_data["content"],
             parent=validated_data.get("parent"),
             depth=validated_data.get("depth"),
         )
+
+        return comment
 
     def validate(self, data):
         post = data.get("post", None)
@@ -341,6 +318,7 @@ class CommentListSerializer(serializers.ModelSerializer):
     children_count = serializers.SerializerMethodField()
     children = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField()
+    tagged_users = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
@@ -356,6 +334,7 @@ class CommentListSerializer(serializers.ModelSerializer):
             "children_count",
             "children",
             "is_liked",
+            "tagged_users",
         )
 
     @swagger_serializer_method(serializer_or_field=UserSerializer)
@@ -384,6 +363,18 @@ class CommentListSerializer(serializers.ModelSerializer):
             return True
 
         return False
+
+    def get_tagged_users(self, post):
+        return TagUserSerializer(post.tagged_users, many=True).data
+
+
+class TagUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "username",
+        )
 
 
 class NoticeSerializer(serializers.ModelSerializer):
@@ -481,8 +472,9 @@ class NoticelistSerializer(serializers.ModelSerializer):
         ).data
 
     def get_parent_comment(self, notice):
-
-        return NoticeCommentSerializer(notice.parent_comment).data
+        if notice.parent_comment:
+            return NoticeCommentSerializer(notice.parent_comment).data
+        return None
 
     def get_count(self, notice):
         return notice.senders.count() - 1
