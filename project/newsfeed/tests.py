@@ -95,16 +95,21 @@ class NoticeTestCase(TestCase):
             author=cls.test_user, post=cls.test_post, depth=0, content="알림 테스트 댓글입니다."
         )
 
+        cls.content_type = "multipart/form-data; boundary=BoUnDaRyStRiNg"
+
     def test_notice(self):
 
         tmp_comment_list = []
 
         # 깊이 1인 답글 알림
         for i, friend_token in enumerate(self.friends_token):
+            data = {"content": f"알림 테스트 답글입니다...{i}", "parent": self.test_comment.id}
+            content = encode_multipart("BoUnDaRyStRiNg", data)
             response = self.client.post(
                 f"/api/v1/newsfeed/{self.test_post.id}/comment/",
-                data={"content": f"알림 테스트 답글입니다...{i}", "parent": self.test_comment.id},
+                data=content,
                 HTTP_AUTHORIZATION=friend_token,
+                content_type=self.content_type,
             )
             tmp_comment_list.append(response.json()["id"])
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -140,8 +145,12 @@ class NoticeTestCase(TestCase):
         # 깊이 2인 답글 알림
         response = self.client.post(
             f"/api/v1/newsfeed/{self.test_post.id}/comment/",
-            data={"content": "알림 테스트 답글의 답글입니다.", "parent": tmp_comment_id},
+            data=encode_multipart(
+                "BoUnDaRyStRiNg",
+                {"content": "알림 테스트 답글의 답글입니다.", "parent": tmp_comment_id},
+            ),
             HTTP_AUTHORIZATION=self.user_token,
+            content_type=self.content_type,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
@@ -209,8 +218,11 @@ class NoticeTestCase(TestCase):
         for i, friend_token in enumerate(self.friends_token):
             response = self.client.post(
                 f"/api/v1/newsfeed/{self.test_post.id}/comment/",
-                data={"content": f"알림 테스트 댓글입니다...{i}"},
+                data=encode_multipart(
+                    "BoUnDaRyStRiNg", {"content": f"알림 테스트 댓글입니다...{i}"}
+                ),
                 HTTP_AUTHORIZATION=friend_token,
+                content_type=self.content_type,
             )
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
@@ -242,8 +254,12 @@ class NoticeTestCase(TestCase):
         # 댓글을 단 사람이 또 다른 댓글을 다는 경우
         response = self.client.post(
             f"/api/v1/newsfeed/{self.test_post.id}/comment/",
-            data={"content": "이미 댓글을 단 사람은, 또 댓글을 달아도 count가 늘어나지 않습니다."},
+            data=encode_multipart(
+                "BoUnDaRyStRiNg",
+                {"content": "이미 댓글을 단 사람은, 또 댓글을 달아도 count가 늘어나지 않습니다."},
+            ),
             HTTP_AUTHORIZATION=self.friends_token[0],
+            content_type=self.content_type,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
@@ -278,7 +294,10 @@ class NoticeTestCase(TestCase):
         # 자기자신 알림 X
         response = self.client.post(
             f"/api/v1/newsfeed/{self.test_post.id}/comment/",
-            data={"content": "본인이 단 댓글은 알림에 뜨지 않습니다."},
+            data=encode_multipart(
+                "BoUnDaRyStRiNg", {"content": "본인이 단 댓글은 알림에 뜨지 않습니다."}
+            ),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -295,7 +314,11 @@ class NoticeTestCase(TestCase):
 
         response = self.client.post(
             f"/api/v1/newsfeed/{self.test_post.id}/comment/",
-            data={"content": "본인이 단 답글은 알림에 뜨지 않습니다.", "parent": recent_comment_id},
+            data=encode_multipart(
+                "BoUnDaRyStRiNg",
+                {"content": "본인이 단 답글은 알림에 뜨지 않습니다.", "parent": recent_comment_id},
+            ),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.friends_token[0],
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -476,7 +499,10 @@ class NoticeTestCase(TestCase):
         for i, friend_token in enumerate(self.friends_token):
             response = self.client.post(
                 f"/api/v1/newsfeed/{self.test_post.id}/comment/",
-                data={"content": f"새로운 알림 테스트 댓글입니다...{i}"},
+                data=encode_multipart(
+                    "BoUnDaRyStRiNg", {"content": f"새로운 알림 테스트 댓글입니다...{i}"}
+                ),
+                content_type=self.content_type,
                 HTTP_AUTHORIZATION=friend_token,
             )
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -699,7 +725,8 @@ class NoticeTestCase(TestCase):
         # 댓글 작성, 알림 X
         response = self.client.post(
             f"/api/v1/newsfeed/{self.test_post.id}/comment/",
-            data={"content": "알림이 발생하지 않습니다."},
+            data=encode_multipart("BoUnDaRyStRiNg", {"content": "알림이 발생하지 않습니다."}),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.friends_token[0],
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -765,7 +792,10 @@ class NoticeTestCase(TestCase):
 
         response = self.client.post(
             f"/api/v1/newsfeed/{self.test_post.id}/comment/",
-            data={"content": "알림이 발생합니다.", "file": test_image},
+            data=encode_multipart(
+                "BoUnDaRyStRiNg", {"content": "알림이 발생합니다.", "file": test_image}
+            ),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.friends_token[0],
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -852,7 +882,11 @@ class NoticeTestCase(TestCase):
         # 답글 달기, 알림 X
         response = self.client.post(
             f"/api/v1/newsfeed/{self.test_post.id}/comment/",
-            data={"content": f"알림이 발생하지 않는 답글입니다.", "parent": comment_id},
+            data=encode_multipart(
+                "BoUnDaRyStRiNg",
+                {"content": f"알림이 발생하지 않는 답글입니다.", "parent": comment_id},
+            ),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.friends_token[2],
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -915,7 +949,10 @@ class NoticeTestCase(TestCase):
         # 답글 달기, 알림 O
         response = self.client.post(
             f"/api/v1/newsfeed/{self.test_post.id}/comment/",
-            data={"content": "알림이 발생하는 답글입니다.", "parent": comment_id},
+            data=encode_multipart(
+                "BoUnDaRyStRiNg", {"content": "알림이 발생하는 답글입니다.", "parent": comment_id}
+            ),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.friends_token[3],
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -953,7 +990,8 @@ class NoticeTestCase(TestCase):
 
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -970,7 +1008,10 @@ class NoticeTestCase(TestCase):
 
         response = self.client.post(
             f"/api/v1/newsfeed/{subpost_id}/comment/",
-            data={"content": "subpost 알림이 발생하지 않습니다."},
+            data=encode_multipart(
+                "BoUnDaRyStRiNg", {"content": "subpost 알림이 발생하지 않습니다."}
+            ),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.friends_token[0],
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -996,7 +1037,8 @@ class NoticeTestCase(TestCase):
 
         response = self.client.post(
             f"/api/v1/newsfeed/{subpost_id}/comment/",
-            data={"content": "subpost 알림이 발생합니다."},
+            data=encode_multipart("BoUnDaRyStRiNg", {"content": "subpost 알림이 발생합니다."}),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.friends_token[1],
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1019,6 +1061,703 @@ class NoticeTestCase(TestCase):
         self.assertEqual(
             data["results"][0]["sender_preview"]["content"], "subpost 알림이 발생합니다."
         )
+
+    def test_tag_notice(self):
+
+        # Mainpost에서 친구랑 작성자 본인 언급
+        friend_1 = self.test_friends[0]
+        friend_2 = self.test_friends[1]
+        data = {
+            "content": f"@{friend_1.username}, @{friend_2.username}, @{self.test_user.username} 친구 태그 테스트입니다.",
+            "tagged_users": [friend_1.id, friend_2.id, self.test_user.id],
+        }
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        mainpost_id = data["id"]
+
+        # 작성자 본인을 알림 X
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 0)
+
+        # 친구들은 알림 O
+        for i in range(2):
+            response = self.client.get(
+                "/api/v1/newsfeed/notices/",
+                content_type="application/json",
+                HTTP_AUTHORIZATION=self.friends_token[i],
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            data = response.json()
+            self.assertEqual(data["results"][0]["content"], "PostTag")
+            self.assertEqual(
+                data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
+            )
+            self.assertEqual(data["results"][0]["count"], 0)
+
+        # Mainpost 삭제시 알림 취소
+        response = self.client.delete(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        # 친구들 알림 취소
+        for i in range(2):
+            response = self.client.get(
+                "/api/v1/newsfeed/notices/",
+                content_type="application/json",
+                HTTP_AUTHORIZATION=self.friends_token[i],
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            data = response.json()
+            self.assertEqual(len(data["results"]), 0)
+
+        # Subpost에서 친구 언급
+        test_image = SimpleUploadedFile(
+            name="testimage2.jpg",
+            content=open(os.path.join(BASE_DIR, "testimage2.jpg"), "rb").read(),
+            content_type="image/jpeg",
+        )
+
+        friend_3 = self.test_friends[2]
+        friend_4 = self.test_friends[3]
+        data = {
+            "content": "",
+            "subposts": [
+                f"@{friend_1.username}, @{friend_2.username}",
+                f"@{friend_3.username}",
+            ],
+            "file": [test_image, test_image],
+            "subposts_tagged_users": [
+                [friend_1.id, friend_2.id],
+                [friend_3.id],
+            ],
+        }
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        mainpost_id = data["id"]
+        subpost_id = data["subposts"][0]["id"]
+        subpost2_id = data["subposts"][1]["id"]
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["post"]["id"], subpost_id)
+        self.assertEqual(data["results"][0]["content"], "PostTag")
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
+        )
+        self.assertEqual(data["results"][0]["count"], 0)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[1],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["post"]["id"], subpost_id)
+        self.assertEqual(data["results"][0]["content"], "PostTag")
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
+        )
+        self.assertEqual(data["results"][0]["count"], 0)
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[2],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["post"]["id"], subpost2_id)
+        self.assertEqual(data["results"][0]["content"], "PostTag")
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
+        )
+        self.assertEqual(data["results"][0]["count"], 0)
+
+        # Subpost 삭제시 알림 취소
+        response = self.client.delete(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        for i in range(3):
+
+            response = self.client.get(
+                "/api/v1/newsfeed/notices/",
+                content_type="application/json",
+                HTTP_AUTHORIZATION=self.friends_token[i],
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            data = response.json()
+            self.assertEqual(len(data["results"]), 0)
+
+        # 댓글에서 친구 언급, 작성자 본인 언급시 알림 X
+        data = {
+            "content": f"@{friend_1.username}, @{friend_2.username} @{self.test_user.username}",
+            "tagged_users": [friend_1.id, friend_2.id, self.test_user.id],
+        }
+
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.test_post.id}/comment/",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+
+        # 작성자 본인을 알림 X
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 0)
+
+        # 친구들은 알림 O
+        for i in range(2):
+            response = self.client.get(
+                "/api/v1/newsfeed/notices/",
+                content_type="application/json",
+                HTTP_AUTHORIZATION=self.friends_token[i],
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            data = response.json()
+            self.assertEqual(data["results"][0]["content"], "CommentTag")
+            self.assertEqual(
+                data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
+            )
+            self.assertEqual(data["results"][0]["count"], 0)
+
+        # 한 게시물에서 2번 이상 언급된 경우
+        data = {
+            "content": f"@{friend_1.username}, @{friend_2.username} @{self.test_user.username} 2번째 언급",
+            "tagged_users": [friend_1.id, friend_2.id, self.test_user.id],
+        }
+
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.test_post.id}/comment/",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
+            HTTP_AUTHORIZATION=self.friends_token[2],
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        comment_id = data["id"]
+
+        for i in range(2):
+            response = self.client.get(
+                "/api/v1/newsfeed/notices/",
+                content_type="application/json",
+                HTTP_AUTHORIZATION=self.friends_token[i],
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            data = response.json()
+            self.assertEqual(data["results"][0]["content"], "CommentTag")
+            self.assertEqual(
+                data["results"][0]["sender_preview"]["user"]["id"],
+                self.test_friends[2].id,
+            )
+            self.assertEqual(data["results"][0]["count"], 1)
+
+        # 이미 언급한 적 있는 유저가 또 언급할 경우, 알림은 update 되나 count는 그대로
+        data = {
+            "content": f"@{friend_1.username}, @{friend_2.username} @{self.test_user.username} 또 언급",
+            "tagged_users": [friend_1.id, friend_2.id, self.test_user.id],
+        }
+
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.test_post.id}/comment/",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        parent_id = data["id"]
+
+        for i in range(2):
+            response = self.client.get(
+                "/api/v1/newsfeed/notices/",
+                content_type="application/json",
+                HTTP_AUTHORIZATION=self.friends_token[i],
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            data = response.json()
+            self.assertEqual(data["results"][0]["content"], "CommentTag")
+            self.assertEqual(
+                data["results"][0]["sender_preview"]["user"]["id"],
+                self.test_user.id,
+            )
+            self.assertEqual(data["results"][0]["count"], 1)
+
+        # 댓글 삭제시 알림 취소
+        response = self.client.delete(
+            f"/api/v1/newsfeed/{self.test_post.id}/{comment_id}/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[2],
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        for i in range(2):
+            response = self.client.get(
+                "/api/v1/newsfeed/notices/",
+                content_type="application/json",
+                HTTP_AUTHORIZATION=self.friends_token[i],
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            data = response.json()
+            self.assertEqual(data["results"][0]["content"], "CommentTag")
+            self.assertEqual(
+                data["results"][0]["sender_preview"]["user"]["id"],
+                self.test_user.id,
+            )
+            self.assertEqual(data["results"][0]["count"], 0)
+
+        # 답글에서 친구 언급
+        data = {
+            "content": f"@{friend_1.username}, @{friend_2.username} @{self.test_user.username} 답글에서 언급",
+            "tagged_users": [friend_1.id, friend_2.id, self.test_user.id],
+            "parent": parent_id,
+        }
+
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.test_post.id}/comment/",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+
+        # 작성자 본인을 알림 X
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 0)
+
+        # 친구들은 알림 O
+        for i in range(2):
+            response = self.client.get(
+                "/api/v1/newsfeed/notices/",
+                content_type="application/json",
+                HTTP_AUTHORIZATION=self.friends_token[i],
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            data = response.json()
+            self.assertEqual(data["results"][0]["content"], "CommentTag")
+            self.assertEqual(
+                data["results"][0]["parent_comment"]["comment_id"], parent_id
+            )
+            self.assertEqual(
+                data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
+            )
+            self.assertEqual(data["results"][0]["count"], 0)
+
+        # 한 댓글에서 2번 이상 답글 언급된 경우
+        data = {
+            "content": f"@{friend_1.username}, @{friend_2.username} @{self.test_user.username} 2번째 언급",
+            "tagged_users": [friend_1.id, friend_2.id, self.test_user.id],
+            "parent": parent_id,
+        }
+
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.test_post.id}/comment/",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
+            HTTP_AUTHORIZATION=self.friends_token[2],
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        comment_id = data["id"]
+
+        for i in range(2):
+            response = self.client.get(
+                "/api/v1/newsfeed/notices/",
+                content_type="application/json",
+                HTTP_AUTHORIZATION=self.friends_token[i],
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            data = response.json()
+            self.assertEqual(data["results"][0]["content"], "CommentTag")
+            self.assertEqual(
+                data["results"][0]["sender_preview"]["user"]["id"],
+                self.test_friends[2].id,
+            )
+            self.assertEqual(
+                data["results"][0]["parent_comment"]["comment_id"], parent_id
+            )
+            self.assertEqual(data["results"][0]["count"], 1)
+
+        # 답글 삭제시 알림 취소
+        response = self.client.delete(
+            f"/api/v1/newsfeed/{self.test_post.id}/{comment_id}/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[2],
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        for i in range(2):
+            response = self.client.get(
+                "/api/v1/newsfeed/notices/",
+                content_type="application/json",
+                HTTP_AUTHORIZATION=self.friends_token[i],
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            data = response.json()
+            self.assertEqual(data["results"][0]["content"], "CommentTag")
+            self.assertEqual(
+                data["results"][0]["sender_preview"]["user"]["id"],
+                self.test_user.id,
+            )
+            self.assertEqual(data["results"][0]["count"], 0)
+
+    def test_tag_update(self):
+
+        # MainPost와 SubPost에서 친구들 태그 수정
+        test_image = SimpleUploadedFile(
+            name="testimage2.jpg",
+            content=open(os.path.join(BASE_DIR, "testimage2.jpg"), "rb").read(),
+            content_type="image/jpeg",
+        )
+
+        friend_1 = self.test_friends[0]
+        friend_2 = self.test_friends[1]
+        friend_3 = self.test_friends[2]
+        friend_4 = self.test_friends[3]
+
+        data = {
+            "content": f"@{friend_1.username}",
+            "subposts": [f"@{friend_2.username}, @{friend_3.username}"],
+            "file": [test_image],
+            "tagged_users": [friend_1.id],
+            "subposts_tagged_users": [[friend_2.id, friend_3.id]],
+        }
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        mainpost_id = data["id"]
+        subpost_id = data["subposts"][0]["id"]
+
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "PostTag")
+        self.assertEqual(data["results"][0]["post"]["id"], mainpost_id)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
+        )
+        self.assertEqual(data["results"][0]["count"], 0)
+
+        for i in range(1, 3):
+            response = self.client.get(
+                "/api/v1/newsfeed/notices/",
+                content_type="application/json",
+                HTTP_AUTHORIZATION=self.friends_token[i],
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            data = response.json()
+            self.assertEqual(data["results"][0]["content"], "PostTag")
+            self.assertEqual(data["results"][0]["post"]["id"], subpost_id)
+            self.assertEqual(
+                data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
+            )
+            self.assertEqual(data["results"][0]["count"], 0)
+
+        data = {
+            "content": f"@{friend_4.username}, @{self.test_user.username}",
+            "subposts": [
+                f"@{friend_1.username}, @{friend_3.username}",
+                f"@{friend_2.username}",
+            ],
+            "file": [test_image],
+            "subposts_id": [subpost_id],
+            "tagged_users": [friend_4.id, self.test_user.id],
+            "subposts_tagged_users": [[friend_1.id, friend_3.id], [friend_2.id]],
+        }
+        response = self.client.put(
+            f"/api/v1/newsfeed/{mainpost_id}/",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        subpost2_id = data["subposts"][1]["id"]
+
+        # 친구1 mainpost 태그 -> subpost 태그로 변경
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 1)
+        self.assertEqual(data["results"][0]["content"], "PostTag")
+        self.assertEqual(data["results"][0]["post"]["id"], subpost_id)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
+        )
+        self.assertEqual(data["results"][0]["count"], 0)
+
+        # 친구 2 subpost 태그 -> subpost2 태그로 변경 (파일 추가)
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[1],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 1)
+        self.assertEqual(data["results"][0]["content"], "PostTag")
+        self.assertEqual(data["results"][0]["post"]["id"], subpost2_id)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
+        )
+        self.assertEqual(data["results"][0]["count"], 0)
+
+        # 친구 3 그대로
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[2],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 1)
+        self.assertEqual(data["results"][0]["content"], "PostTag")
+        self.assertEqual(data["results"][0]["post"]["id"], subpost_id)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
+        )
+        self.assertEqual(data["results"][0]["count"], 0)
+
+        # 친구 4 태그 X -> mainpost에 태그
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[3],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 1)
+        self.assertEqual(data["results"][0]["content"], "PostTag")
+        self.assertEqual(data["results"][0]["post"]["id"], mainpost_id)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
+        )
+        self.assertEqual(data["results"][0]["count"], 0)
+
+        # 작성자 본인 -> 알림X
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 0)
+
+        # 댓글 작성
+        data = {
+            "content": f"@{friend_1.username}, @{friend_2.username}",
+            "tagged_users": [friend_1.id, friend_2.id],
+        }
+
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.test_post.id}/comment/",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+        comment_id = data["id"]
+
+        # 댓글 수정
+        data = {
+            "content": f"@{friend_4.username}, @{friend_2.username}",
+            "tagged_users": [friend_4.id, friend_2.id],
+        }
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.test_post.id}/{comment_id}/",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        # 친구1 --> 댓글 알림 취소
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertNotEqual(data["results"][0]["content"], "CommentTag")
+
+        # 친구2 --> 댓글 알림 그대로
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[1],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "CommentTag")
+        self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
+        self.assertEqual(data["results"][0]["parent_comment"], None)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
+        )
+        self.assertEqual(data["results"][0]["count"], 0)
+
+        # 친구4 --> 댓글 알림 생성
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[3],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "CommentTag")
+        self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
+        self.assertEqual(data["results"][0]["parent_comment"], None)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
+        )
+        self.assertEqual(data["results"][0]["count"], 0)
+
+        # 답글 작성
+        data = {
+            "content": f"@{friend_1.username}, @{friend_2.username}",
+            "tagged_users": [friend_1.id, friend_2.id],
+            "parent": comment_id,
+        }
+
+        response = self.client.post(
+            f"/api/v1/newsfeed/{self.test_post.id}/comment/",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        child_comment_id = response.json()["id"]
+
+        # 답글 수정
+        data = {
+            "content": f"@{friend_1.username}, @{friend_3.username}",
+            "tagged_users": [friend_1.id, friend_3.id],
+            "parent": comment_id,
+        }
+
+        response = self.client.put(
+            f"/api/v1/newsfeed/{self.test_post.id}/{child_comment_id}/",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
+            HTTP_AUTHORIZATION=self.user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+
+        # 친구1 --> 답글 알림 그대로
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[0],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "CommentTag")
+        self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
+        self.assertEqual(data["results"][0]["parent_comment"]["comment_id"], comment_id)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
+        )
+        self.assertEqual(data["results"][0]["count"], 0)
+
+        # 친구2 --> 답글 알림 취소
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[1],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "CommentTag")
+        self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
+        self.assertEqual(data["results"][0]["parent_comment"], None)
+
+        # 친구3 --> 답글 알림 생성
+        response = self.client.get(
+            "/api/v1/newsfeed/notices/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=self.friends_token[2],
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["results"][0]["content"], "CommentTag")
+        self.assertEqual(data["results"][0]["post"]["id"], self.test_post.id)
+        self.assertEqual(data["results"][0]["parent_comment"]["comment_id"], comment_id)
+        self.assertEqual(
+            data["results"][0]["sender_preview"]["user"]["id"], self.test_user.id
+        )
+        self.assertEqual(data["results"][0]["count"], 0)
 
 
 class NewsFeedTestCase(TestCase):
@@ -1072,6 +1811,7 @@ class NewsFeedTestCase(TestCase):
         PostFactory.create(
             author=cls.test_stranger, content="모르는 사람의 테스트 게시물입니다.", likes=30
         )
+        cls.content_type = "multipart/form-data; boundary=BoUnDaRyStRiNg"
 
     def test_post_list(self):
 
@@ -1177,7 +1917,8 @@ class NewsFeedTestCase(TestCase):
 
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1210,7 +1951,8 @@ class NewsFeedTestCase(TestCase):
         }
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1220,7 +1962,8 @@ class NewsFeedTestCase(TestCase):
         }
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1231,7 +1974,8 @@ class NewsFeedTestCase(TestCase):
         }
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1239,8 +1983,8 @@ class NewsFeedTestCase(TestCase):
         data = {}
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
-            content_type="application/json",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -1254,7 +1998,8 @@ class NewsFeedTestCase(TestCase):
         }
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1304,7 +2049,8 @@ class NewsFeedTestCase(TestCase):
 
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1561,6 +2307,7 @@ class ShareTestCase(TestCase):
         cls.user_token = "JWT " + jwt_token_of(cls.test_user)
         cls.friend_token = "JWT " + jwt_token_of(cls.test_friend)
         cls.stranger_token = "JWT " + jwt_token_of(cls.test_stranger)
+        cls.content_type = "multipart/form-data; boundary=BoUnDaRyStRiNg"
 
     def test_post_share(self):
 
@@ -1573,7 +2320,8 @@ class ShareTestCase(TestCase):
 
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1586,7 +2334,8 @@ class ShareTestCase(TestCase):
 
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1710,7 +2459,8 @@ class ShareTestCase(TestCase):
 
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1719,7 +2469,8 @@ class ShareTestCase(TestCase):
 
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1782,6 +2533,7 @@ class ScopeTestCase(TestCase):
         cls.user_token = "JWT " + jwt_token_of(cls.test_user)
         cls.friend_token = "JWT " + jwt_token_of(cls.test_friend)
         cls.stranger_token = "JWT " + jwt_token_of(cls.test_stranger)
+        cls.content_type = "multipart/form-data; boundary=BoUnDaRyStRiNg"
 
     def test_scope_list(self):
 
@@ -1792,7 +2544,8 @@ class ScopeTestCase(TestCase):
 
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1852,7 +2605,8 @@ class ScopeTestCase(TestCase):
 
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1912,7 +2666,8 @@ class ScopeTestCase(TestCase):
 
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1980,7 +2735,8 @@ class ScopeTestCase(TestCase):
 
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1999,7 +2755,8 @@ class ScopeTestCase(TestCase):
 
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -2018,7 +2775,8 @@ class ScopeTestCase(TestCase):
         }
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -2031,7 +2789,8 @@ class ScopeTestCase(TestCase):
         }
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -2044,7 +2803,8 @@ class ScopeTestCase(TestCase):
         }
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -2060,7 +2820,8 @@ class ScopeTestCase(TestCase):
 
         response = self.client.post(
             "/api/v1/newsfeed/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -2155,7 +2916,8 @@ class ScopeTestCase(TestCase):
 
         response = self.client.post(
             f"/api/v1/newsfeed/{mainpost_id}/comment/",
-            data={"content": "전체공개 게시글의 댓글입니다."},
+            data=encode_multipart("BoUnDaRyStRiNg", {"content": "전체공개 게시글의 댓글입니다."}),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=self.stranger_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -2282,6 +3044,7 @@ class LikeTestCase(TestCase):
         for user in cls.users:
             cls.test_friend.friends.add(user)
         cls.test_friend.save()
+        cls.content_type = "multipart/form-data; boundary=BoUnDaRyStRiNg"
 
     def test_like_and_unlike(self):  # 좋아요하고 해제하기
         user = self.test_user
@@ -2449,6 +3212,7 @@ class CommentTestCase(TestCase):
         CommentFactory.create_batch(
             5, author=cls.test_friend, post=cls.my_post, depth=2, parent=cls.depth_one
         )
+        cls.content_type = "multipart/form-data; boundary=BoUnDaRyStRiNg"
 
     def test_comment_list(self):
 
@@ -2505,7 +3269,8 @@ class CommentTestCase(TestCase):
 
         response = self.client.post(
             f"/api/v1/newsfeed/{self.friend_post.id}/comment/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -2525,7 +3290,8 @@ class CommentTestCase(TestCase):
 
         response = self.client.post(
             f"/api/v1/newsfeed/{self.friend_post.id}/comment/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=user_token,
         )
 
@@ -2540,8 +3306,8 @@ class CommentTestCase(TestCase):
         data = {}
         response = self.client.post(
             f"/api/v1/newsfeed/{self.my_post.id}/comment/",
-            data=data,
-            content_type="application/json",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -2554,8 +3320,8 @@ class CommentTestCase(TestCase):
         }
         response = self.client.post(
             f"/api/v1/newsfeed/{self.my_post.id}/comment/",
-            data=data,
-            content_type="application/json",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -2566,7 +3332,7 @@ class CommentTestCase(TestCase):
         }
         response = self.client.post(
             f"/api/v1/newsfeed/{self.stranger_post.id}/comment/",
-            data=data,
+            data=encode_multipart("BoUnDaRyStRiNg", data),
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
@@ -2576,8 +3342,8 @@ class CommentTestCase(TestCase):
         data = {"content": content, "parent": self.depth_two.id}
         response = self.client.post(
             f"/api/v1/newsfeed/{self.my_post.id}/comment/",
-            data=data,
-            content_type="application/json",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -2630,8 +3396,8 @@ class CommentTestCase(TestCase):
 
         response = self.client.put(
             f"/api/v1/newsfeed/{self.my_post.id}/{self.depth_zero.id}/",
-            data=data,
-            content_type="application/json",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=friend_token,
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
