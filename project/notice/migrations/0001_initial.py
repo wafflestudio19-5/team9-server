@@ -11,30 +11,77 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('newsfeed', '0032_auto_20220120_2355'),
+        ("newsfeed", "0032_auto_20220120_2355"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Notice',
+            name="Notice",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('content', models.CharField(blank=True, max_length=30)),
-                ('created', models.DateTimeField(auto_now=True)),
-                ('is_checked', models.BooleanField(default=False)),
-                ('url', models.CharField(max_length=1000)),
-                ('parent_comment', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='notices', to='newsfeed.comment')),
-                ('post', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='notices', to='newsfeed.post')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='notices', to=settings.AUTH_USER_MODEL)),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                ("content", models.CharField(blank=True, max_length=30)),
+                ("created", models.DateTimeField(auto_now=True)),
+                ("is_checked", models.BooleanField(default=False)),
+                ("url", models.CharField(max_length=1000)),
+                (
+                    "parent_comment",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="notices",
+                        to="newsfeed.comment",
+                    ),
+                ),
+                (
+                    "post",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="notices",
+                        to="newsfeed.post",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="notices",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='NoticeSender',
+            name="NoticeSender",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('count', models.PositiveIntegerField(default=0)),
-                ('notice', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='senders', to='notice.notice')),
-                ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='noticesenders', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("count", models.PositiveIntegerField(default=0)),
+                (
+                    "notice",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="senders",
+                        to="notice.notice",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="noticesenders",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
     ]
