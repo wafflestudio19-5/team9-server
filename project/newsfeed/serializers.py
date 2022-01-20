@@ -113,17 +113,17 @@ class PostSerializer(serializers.ModelSerializer):
         shared_post = post.shared_post
 
         if not post.shared_post:
-            return "AccessDenied"
+            return None
 
         user = self.context["request"].user
         if user == shared_post.author:
             pass
         elif user in shared_post.author.friends.all():
             if shared_post.scope == 1:
-                return "AccessDenied"
+                return None
         else:
             if shared_post.scope != 3:
-                return "AccessDenied"
+                return None
 
         return PostSerializer(shared_post, context=self.context).data
 
@@ -280,6 +280,7 @@ class CommentCreateSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     is_liked = serializers.SerializerMethodField()
     author = serializers.SerializerMethodField()
+    tagged_users = serializers.SerializerMethodField()
 
     class Meta:
 
@@ -296,6 +297,7 @@ class CommentSerializer(serializers.ModelSerializer):
             "created",
             "likes",
             "is_liked",
+            "tagged_users",
         )
 
     def get_is_liked(self, comment):
@@ -310,6 +312,9 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def get_author(self, comment):
         return UserSerializer(comment.author).data
+
+    def get_tagged_users(self, post):
+        return TagUserSerializer(post.tagged_users, many=True).data
 
 
 class CommentListSerializer(serializers.ModelSerializer):
