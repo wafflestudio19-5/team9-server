@@ -150,7 +150,10 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
-    parser_classes = (MultiPartParser, FormParser,)
+    parser_classes = (
+        MultiPartParser,
+        FormParser,
+    )
 
     @swagger_auto_schema(
         operation_description="Post 조회하기", responses={200: PostSerializer()}
@@ -548,7 +551,7 @@ class CommentUpdateDeleteView(GenericAPIView):
     @swagger_auto_schema(
         operation_description="comment 수정하기",
         responses={200: CommentSerializer()},
-        request_body=CommentUpdateSwaggerSerializer()
+        request_body=CommentUpdateSwaggerSerializer(),
     )
     def put(self, request, post_id=None, comment_id=None):
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
