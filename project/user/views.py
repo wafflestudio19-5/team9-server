@@ -40,6 +40,8 @@ from user.serializers import (
     FriendRequestCreateSerializer,
     FriendRequestAcceptDeleteSerializer,
     UserMutualFriendsSerializer,
+)
+from user.swagger import (
     UserPutSwaggerSerializer,
     UserLoginSwaggerSerializer,
     UserProfileImageSwaggerSerializer,
