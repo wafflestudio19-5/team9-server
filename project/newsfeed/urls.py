@@ -6,7 +6,6 @@ from .views import (
     CommentListView,
     CommentLikeView,
     CommentUpdateDeleteView,
-    TestView,
 )
 from notice.views import NoticeOnOffView
 
@@ -18,5 +17,4 @@ urlpatterns = [
     path("newsfeed/<int:post_id>/<int:comment_id>/", CommentUpdateDeleteView.as_view()),
     path("newsfeed/<int:post_id>/like/", PostLikeView.as_view()),
     path("newsfeed/<int:post_id>/<int:comment_id>/like/", CommentLikeView.as_view()),
-    path("test/", TestView.as_view()),
 ]

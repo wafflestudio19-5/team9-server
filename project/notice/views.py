@@ -58,9 +58,8 @@ def NoticeCreate(**context):
         notice_sender = notice.senders.filter(user=sender)
         if notice_sender.exists():
             notice_sender = notice_sender[0]
-            count = notice_sender.count + 1
-            notice_sender.delete()
-            NoticeSender.objects.create(notice=notice, user=sender, count=count)
+            notice_sender.count += 1
+            notice_sender.save()
         else:
             NoticeSender.objects.create(notice=notice, user=sender, count=1)
 

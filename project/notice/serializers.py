@@ -44,6 +44,7 @@ class NoticelistSerializer(serializers.ModelSerializer):
     posted_at = serializers.SerializerMethodField()
     post = serializers.SerializerMethodField()
     parent_comment = serializers.SerializerMethodField()
+    comment_preview = serializers.SerializerMethodField()
     senders = serializers.SerializerMethodField()
     count = serializers.SerializerMethodField()
     sender_preview = serializers.SerializerMethodField()
@@ -53,15 +54,16 @@ class NoticelistSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "user",
+            "content",
+            "sender_preview",
+            "senders",
+            "count",
             "post",
             "parent_comment",
-            "sender_preview",
-            "content",
+            "comment_preview",
             "posted_at",
             "is_checked",
             "url",
-            "senders",
-            "count",
         )
 
     def get_posted_at(self, notice):
@@ -71,18 +73,39 @@ class NoticelistSerializer(serializers.ModelSerializer):
         return posted_at
 
     def get_post(self, notice):
-        return PostSerializer(notice.post, context=self.context).data
+        if notice.post:
+            return PostSerializer(notice.post, context=self.context).data
+        return None
 
     def get_sender_preview(self, notice):
 
         if notice.content == "PostComment":
-            return NoticeCommentSerializer(
-                notice.post.comments.exclude(author=notice.user).last()
+            return UserSerializer(
+                notice.post.comments.exclude(author=notice.user).last().author
             ).data
         elif notice.content == "CommentComment":
-            return NoticeCommentSerializer(
-                notice.parent_comment.children.exclude(author=notice.user).last()
+            return UserSerializer(
+                notice.parent_comment.children.exclude(author=notice.user).last().author
             ).data
+
+        elif notice.content == "CommentTag":
+            if notice.parent_comment:
+                return UserSerializer(
+                    notice.parent_comment.children.filter(
+                        tagged_users__in=[notice.user]
+                    )
+                    .exclude(author=notice.user)
+                    .last()
+                    .author
+                ).data
+            else:
+                return UserSerializer(
+                    notice.post.comments.filter(tagged_users__in=[notice.user])
+                    .exclude(author=notice.user)
+                    .last()
+                    .author
+                ).data
+
         else:
             return NoticeSenderSerializer(notice.senders.last()).data
 
@@ -93,6 +116,7 @@ class NoticelistSerializer(serializers.ModelSerializer):
             recent_user = (
                 notice.parent_comment.children.exclude(author=notice.user).last().author
             )
+
         else:
             recent_user = notice.senders.last().user
 
@@ -105,34 +129,43 @@ class NoticelistSerializer(serializers.ModelSerializer):
             return NoticeCommentSerializer(notice.parent_comment).data
         return None
 
+    def get_comment_preview(self, notice):
+        if notice.content == "PostComment":
+            recent_comment = notice.post.comments.exclude(author=notice.user).last()
+        elif notice.content == "CommentComment":
+            recent_comment = notice.parent_comment.children.exclude(
+                author=notice.user
+            ).last()
+
+        else:
+            return None
+
+        return NoticeCommentSerializer(recent_comment).data
+
     def get_count(self, notice):
         return notice.senders.count() - 1
 
 
 class NoticeSenderSerializer(serializers.ModelSerializer):
 
-    user = serializers.SerializerMethodField()
+    id = serializers.IntegerField(source="user.id")
+    email = serializers.EmailField(source="user.email")
+    username = serializers.CharField(source="user.username")
+    profile_image = serializers.FileField(source="user.profile_image")
+    is_valid = serializers.BooleanField(source="user.is_valid")
 
     class Meta:
         model = NoticeSender
-        fields = ("user",)
-
-    def get_user(self, notice):
-        return UserSerializer(notice.user).data
+        fields = ("id", "email", "username", "profile_image", "is_valid")
 
 
 class NoticeCommentSerializer(serializers.ModelSerializer):
 
-    user = serializers.SerializerMethodField()
-    comment_id = serializers.IntegerField(source="id")
     is_file = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
-        fields = ("user", "comment_id", "content", "is_file")
-
-    def get_user(self, comment):
-        return UserSerializer(comment.author).data
+        fields = ("id", "content", "is_file")
 
     def get_is_file(self, comment):
         if comment.file:
