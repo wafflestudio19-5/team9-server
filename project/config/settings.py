@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     "drf_yasg",
     "user.apps.UserConfig",
     "newsfeed.apps.NewsfeedConfig",
-    "notice.apps.NoticeConfig",
     "storages",
 ]
 
