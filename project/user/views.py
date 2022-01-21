@@ -164,6 +164,11 @@ class UserFriendRequestListView(ListAPIView):
         self.queryset = request.user.received_friend_request.all()
         return super().list(request)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["request"] = self.request
+        return context
+
 
 class UserFriendRequestView(APIView):
     queryset = User.objects.all()
@@ -178,7 +183,9 @@ class UserFriendRequestView(APIView):
         receiver = get_object_or_404(self.queryset, pk=pk)
 
         data = {"sender": sender.id, "receiver": receiver.id}
-        serializer = FriendRequestCreateSerializer(data=data)
+        serializer = FriendRequestCreateSerializer(
+            data=data, context={"request": self.request}
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         NoticeCreate(
@@ -445,7 +452,7 @@ class UserNewsfeedView(ListAPIView):
 
 
 class UserFriendListView(ListAPIView):
-    serializer_class = UserSerializer
+    serializer_class = UserMutualFriendsSerializer
     queryset = User.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
     pagination_class = FriendPagination
@@ -458,6 +465,11 @@ class UserFriendListView(ListAPIView):
         user = get_object_or_404(User, pk=user_id)
         self.queryset = user.friends.all()
         return super().list(request)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["request"] = self.request
+        return context
 
 
 class UserProfileView(RetrieveUpdateAPIView):
