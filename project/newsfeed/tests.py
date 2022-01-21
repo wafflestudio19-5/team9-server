@@ -1710,10 +1710,13 @@ class CommentTestCase(TestCase):
         self.assertEqual(response.data["content"], "edited")
 
         # content가 비어있는 경우
+
+        empty_data = {"content": ""}
+
         response = self.client.put(
             f"/api/v1/newsfeed/{self.my_post.id}/{self.depth_zero.id}/",
-            data={"content": ""},
-            content_type="application/json",
+            data=encode_multipart("BoUnDaRyStRiNg", empty_data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION=friend_token,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -1721,8 +1724,8 @@ class CommentTestCase(TestCase):
         # 자신의 댓글이 아닌 경우
         response = self.client.put(
             f"/api/v1/newsfeed/{self.my_post.id}/{self.depth_zero.id}/",
-            data=data,
-            content_type="application/json",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
             HTTP_AUTHORIZATION="JWT " + jwt_token_of(self.test_user),
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
