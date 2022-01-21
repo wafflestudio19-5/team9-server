@@ -331,9 +331,11 @@ class FriendRequestCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("자신에게 친구 요청을 보낼 수 없습니다.")
         return data
 
-    @swagger_serializer_method(serializer_or_field=UserSerializer)
+    @swagger_serializer_method(serializer_or_field=UserMutualFriendsSerializer)
     def get_sender_profile(self, friend_request):
-        return UserSerializer(friend_request.sender).data
+        return UserMutualFriendsSerializer(
+            friend_request.sender, context=self.context
+        ).data
 
 
 # 친구 요청 수락 및 삭제

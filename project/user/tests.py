@@ -544,6 +544,7 @@ class UserFriendTestCase(TestCase):
         # 테스트 프렌트의 친구는 유저뿐
         self.assertEqual(len(data["results"]), 1)
         self.assertEqual(data["results"][0]["username"], self.test_user.username)
+        self.assertEqual(data["results"][0]["mutual_friends"], None)
 
         response = self.client.get(
             f"/api/v1/user/{self.test_user.id}/friend/",
@@ -554,6 +555,7 @@ class UserFriendTestCase(TestCase):
         data = response.json()
         # 페이지네이션 돼서 20개
         self.assertEqual(len(data["results"]), 20)
+        self.assertEqual(data["results"][0]["mutual_friends"]["count"], 0)
 
         response = self.client.get(
             f"/api/v1/user/{self.test_user.id}/friend/?limit=9",
@@ -1150,6 +1152,9 @@ class FriendTestCase(TestCase):
         self.assertEqual(len(data["results"]), 20)
         self.assertIn(
             data["results"][0]["sender"], [sender.id for sender in self.senders]
+        )
+        self.assertEqual(
+            data["results"][0]["sender_profile"]["mutual_friends"]["count"], 0
         )
 
         next_page = data["next"]
