@@ -17,7 +17,12 @@ from .serializers import (
     CommentCreateSerializer,
     CommentSerializer,
     CommentLikeSerializer,
-    CommentPostSwaggerSerializer,
+)
+from .swagger import (
+    CommentCreateSwaggerSerializer,
+    CommentUpdateSwaggerSerializer,
+    PostCreateSwaggerSerializer,
+    PostUpdateSwaggerSerializer,
 )
 from .models import Post, Comment
 from user.models import User
@@ -33,6 +38,7 @@ class PostListView(ListCreateAPIView):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
+    parser_classes = (MultiPartParser,)
 
     @swagger_auto_schema(
         operation_description="로그인된 유저의 friend들의 post들을 최신순으로 가져오기(현재는 모든 유저 가져오도록 설정되어 있음)",
@@ -52,19 +58,7 @@ class PostListView(ListCreateAPIView):
 
     @swagger_auto_schema(
         operation_description="Post 작성하기",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                "content": openapi.Schema(
-                    type=openapi.TYPE_STRING, description="Post Content"
-                ),
-                "scope": openapi.Schema(
-                    type=openapi.TYPE_NUMBER,
-                    description="공개범위 설정: 1(자기 자신), 2(친구), 3(전체 공개)",
-                    default=3,
-                ),
-            },
-        ),
+        request_body=PostCreateSwaggerSerializer(),
         responses={201: PostSerializer()},
     )
     @transaction.atomic
@@ -156,7 +150,7 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
-    parser_classes = (MultiPartParser, FormParser, JSONParser)
+    parser_classes = (MultiPartParser, FormParser,)
 
     @swagger_auto_schema(
         operation_description="Post 조회하기", responses={200: PostSerializer()}
@@ -187,35 +181,7 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
 
     @swagger_auto_schema(
         operation_description="게시글 수정하기",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                "content": openapi.Schema(
-                    type=openapi.TYPE_STRING,
-                    description="main post의 content",
-                ),
-                "subposts": openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    description="subpost들의 content의 array",
-                    items=openapi.TYPE_STRING,
-                ),
-                "subposts_id": openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    description="기존 subpost들의 id의 array",
-                    items=openapi.TYPE_NUMBER,
-                ),
-                "removed_subposts_id": openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    description="삭제될 subpost들의 id의 array",
-                    items=openapi.TYPE_NUMBER,
-                ),
-                "scope": openapi.Schema(
-                    type=openapi.TYPE_NUMBER,
-                    description="공개범위 설정: 1(자기 자신), 2(친구), 3(전체 공개)",
-                    default=3,
-                ),
-            },
-        ),
+        request_body=PostUpdateSwaggerSerializer(),
         responses={200: PostSerializer()},
     )
     def put(self, request, pk=None):
@@ -504,7 +470,7 @@ class CommentListView(ListCreateAPIView):
                 required=False,
             ),
         ],
-        request_body=CommentPostSwaggerSerializer(),
+        request_body=CommentCreateSwaggerSerializer(),
     )
     @transaction.atomic
     def post(self, request, post_id=None):
@@ -576,18 +542,12 @@ class CommentListView(ListCreateAPIView):
 class CommentUpdateDeleteView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
     queryset = Comment.objects.all()
+    parser_classes = (parsers.MultiPartParser,)
 
     @swagger_auto_schema(
         operation_description="comment 수정하기",
         responses={200: CommentSerializer()},
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            properties={
-                "content": openapi.Schema(
-                    type=openapi.TYPE_STRING, description="Comment Content"
-                ),
-            },
-        ),
+        request_body=CommentUpdateSwaggerSerializer()
     )
     def put(self, request, post_id=None, comment_id=None):
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
