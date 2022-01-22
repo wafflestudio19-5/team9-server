@@ -995,8 +995,8 @@ class ScopeTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
 
-        self.assertNotEqual(data["results"][0]["content"], "나만 보기 게시글입니다.")
-        self.assertNotEqual(data["results"][0]["scope"], 1)
+        self.assertEqual(data["results"][0]["content"], "나만 보기 게시글입니다.")
+        self.assertEqual(data["results"][0]["scope"], 1)
 
         response = self.client.get(
             f"/api/v1/user/{self.test_user.id}/newsfeed/",

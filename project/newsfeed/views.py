@@ -49,9 +49,8 @@ class PostListView(ListCreateAPIView):
         user = request.user
 
         self.queryset = Post.objects.filter(
-            (Q(author__in=user.friends.all()) | Q(author=user)),
+            (Q(author__in=user.friends.all(), scope__gt=1) | Q(author=user)),
             mainpost=None,
-            scope__gt=1,
         )
 
         return super().list(request)
