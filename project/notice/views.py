@@ -5,7 +5,7 @@ from newsfeed.serializers import PostSerializer
 from rest_framework.response import Response
 from rest_framework.generics import GenericAPIView, ListAPIView
 from django.shortcuts import get_object_or_404
-from drf_yasg.utils import swagger_auto_schema
+from drf_yasg.utils import swagger_auto_schema, no_body
 from rest_framework import status, permissions
 from newsfeed.models import Post
 from datetime import datetime
@@ -177,6 +177,11 @@ class NoticeListView(ListAPIView):
         self.queryset = request.user.notices.all()
         return super().list(request)
 
+    @swagger_auto_schema(
+        operation_description="테스트용: 유저의 모든 알림의 is_checked를 False로 전환",
+        request_body=no_body,
+        responses={200: NoticelistSerializer(many=True)},
+    )
     def put(self, request):
         notices = request.user.notices.all()
         for notice in notices:
