@@ -31,13 +31,14 @@ from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema, no_body
 from rest_framework.parsers import DataAndFiles, MultiPartParser, FormParser, JSONParser
 from notice.views import NoticeCancel, NoticeCreate
+from config.permissions import IsValidAccount
 
 
 class PostListView(ListCreateAPIView):
 
     serializer_class = PostSerializer
     queryset = Post.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
     parser_classes = (MultiPartParser,)
 
     @swagger_auto_schema(
@@ -148,7 +149,7 @@ class PostListView(ListCreateAPIView):
 class PostUpdateView(RetrieveUpdateDestroyAPIView):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
     parser_classes = (
         MultiPartParser,
         FormParser,
@@ -380,7 +381,7 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
 class PostLikeView(GenericAPIView):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
 
     @swagger_auto_schema(
         operation_description="게시물 좋아요하기",
@@ -437,7 +438,7 @@ class PostLikeView(GenericAPIView):
 class CommentListView(ListCreateAPIView):
     serializer_class = CommentListSerializer
     queryset = Post.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
     parser_classes = (parsers.MultiPartParser, parsers.FileUploadParser)
 
     # ListModelMixin의 list() 메소드 오버라이딩
@@ -543,7 +544,7 @@ class CommentListView(ListCreateAPIView):
 
 class CommentUpdateDeleteView(GenericAPIView):
     serializer_class = CommentSerializer
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
     queryset = Comment.objects.all()
     parser_classes = (parsers.MultiPartParser,)
 
@@ -670,7 +671,7 @@ class CommentUpdateDeleteView(GenericAPIView):
 class CommentLikeView(GenericAPIView):
     serializer_class = CommentSerializer
     queryset = Comment.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
 
     @swagger_auto_schema(
         operation_description="comment 좋아요하기",

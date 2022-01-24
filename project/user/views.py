@@ -49,6 +49,7 @@ from user.swagger import (
 from newsfeed.models import Post
 from drf_yasg.utils import swagger_auto_schema
 from .utils import account_activation_token, message
+from config.permissions import IsValidAccount
 import uuid
 
 from newsfeed.views import NoticeCreate, NoticeCancel
@@ -121,7 +122,7 @@ class UserLoginView(APIView):
 
 
 class UserLogoutView(APIView):
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
 
     def get(self, request):
         request.user.jwt_secret = uuid.uuid4()
@@ -131,7 +132,7 @@ class UserLogoutView(APIView):
 
 
 class UserDeleteView(APIView):
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
 
     @swagger_auto_schema(operation_description="계정 삭제하기")
     @transaction.atomic
@@ -154,7 +155,7 @@ class UserDeleteView(APIView):
 class UserFriendRequestListView(ListAPIView):
     serializer_class = FriendRequestCreateSerializer
     queryset = FriendRequest.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
 
     @swagger_auto_schema(
         operation_description="친구 요청 목록 불러오기",
@@ -172,7 +173,7 @@ class UserFriendRequestListView(ListAPIView):
 
 class UserFriendRequestView(APIView):
     queryset = User.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
 
     @swagger_auto_schema(
         operation_description="해당 유저에게 친구 요청 보내기",
@@ -243,7 +244,7 @@ class UserFriendRequestView(APIView):
 
 class UserFriendDeleteView(APIView):
     serializer_class = UserSerializer
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
 
     @swagger_auto_schema(
         operation_description="친구 삭제하기",
@@ -270,7 +271,7 @@ class UserFriendDeleteView(APIView):
 
 class UserSearchListView(ListAPIView):
     serializer_class = UserMutualFriendsSerializer
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
     pagination_class = UserPagination
 
     @swagger_auto_schema(
@@ -347,7 +348,7 @@ class KakaoLoginView(APIView):
 
 
 class KakaoConnectView(APIView):
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
 
     @swagger_auto_schema(
         operation_description="카카오 계정 연결하기",
@@ -430,7 +431,7 @@ class KakaoConnectView(APIView):
 class UserNewsfeedView(ListAPIView):
     serializer_class = PostSerializer
     queryset = Post.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
 
     @swagger_auto_schema(
         operation_description="선택된 유저가 작성한 게시글을 가져오기",
@@ -454,7 +455,7 @@ class UserNewsfeedView(ListAPIView):
 class UserFriendListView(ListAPIView):
     serializer_class = UserMutualFriendsSerializer
     queryset = User.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
     pagination_class = FriendPagination
 
     @swagger_auto_schema(
@@ -475,7 +476,7 @@ class UserFriendListView(ListAPIView):
 class UserProfileView(RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
     queryset = User.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
     parser_classes = (parsers.MultiPartParser, parsers.FileUploadParser)
 
     @swagger_auto_schema(
@@ -531,7 +532,7 @@ class UserProfileView(RetrieveUpdateAPIView):
 class UserProfileImageView(APIView):
     serializer_class = UserProfileSerializer
     queryset = User.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
 
     @swagger_auto_schema(
         operation_description="True값으로 주어진 프로필/배경 사진 삭제하기",
@@ -557,7 +558,7 @@ class UserProfileImageView(APIView):
 class CompanyCreateView(CreateAPIView):
     serializer_class = CompanySerializer
     queryset = Company.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
 
     @swagger_auto_schema(
         operation_description="회사 정보 생성하기",
@@ -577,7 +578,7 @@ class CompanyCreateView(CreateAPIView):
 class CompanyView(RetrieveUpdateDestroyAPIView):
     serializer_class = CompanySerializer
     queryset = Company.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
 
     @swagger_auto_schema(
         operation_description="회사 정보 가져오기",
@@ -618,7 +619,7 @@ class CompanyView(RetrieveUpdateDestroyAPIView):
 class UniversityCreateView(CreateAPIView):
     serializer_class = UniversitySerializer
     queryset = University.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
 
     @swagger_auto_schema(
         operation_description="대학 정보 수정하기",
@@ -638,7 +639,7 @@ class UniversityCreateView(CreateAPIView):
 class UniversityView(RetrieveUpdateDestroyAPIView):
     serializer_class = UniversitySerializer
     queryset = University.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
 
     @swagger_auto_schema(
         operation_description="대학 정보 가져오기",
