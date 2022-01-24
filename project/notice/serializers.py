@@ -63,6 +63,7 @@ class NoticelistSerializer(serializers.ModelSerializer):
             "comment_preview",
             "posted_at",
             "is_checked",
+            "is_accepted",
             "url",
         )
 
