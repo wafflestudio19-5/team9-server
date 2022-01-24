@@ -63,6 +63,7 @@ class NoticelistSerializer(serializers.ModelSerializer):
             "comment_preview",
             "posted_at",
             "is_checked",
+            "is_accepted",
             "url",
         )
 
@@ -91,16 +92,14 @@ class NoticelistSerializer(serializers.ModelSerializer):
         elif notice.content == "CommentTag":
             if notice.parent_comment:
                 return UserSerializer(
-                    notice.parent_comment.children.filter(
-                        tagged_users__in=[notice.user]
-                    )
+                    notice.parent_comment.children.filter(tagged_users=notice.user)
                     .exclude(author=notice.user)
                     .last()
                     .author
                 ).data
             else:
                 return UserSerializer(
-                    notice.post.comments.filter(tagged_users__in=[notice.user])
+                    notice.post.comments.filter(tagged_users=notice.user)
                     .exclude(author=notice.user)
                     .last()
                     .author

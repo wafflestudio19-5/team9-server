@@ -783,6 +783,7 @@ class ShareTestCase(TestCase):
         data = response.json()
         self.assertEqual(sharing_post_id, data["shared_post"]["id"])
         self.assertEqual("첫번째 포스트입니다.", data["shared_post"]["content"])
+        self.assertIn("testimage2.jpg", data["shared_post"]["file"])
 
         # 게시물 공유 시, 공유된 게시물의 공유된 횟수 증가
         response = self.client.get(

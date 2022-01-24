@@ -34,7 +34,7 @@ def NoticeCreate(**context):
             )
             if notice.exists():
                 notice = notice[0]
-                notice.content = "isFriend"
+                notice.is_accepted = True
                 notice.is_checked = True
                 notice.save()
 
@@ -104,7 +104,8 @@ def NoticeCancel(**context):
         if notice.exists():
             notice = notice[0]
             notice.delete()
-        return True
+            return True
+        return False
 
     else:
         if parent_comment:

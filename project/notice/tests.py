@@ -602,7 +602,7 @@ class NoticeTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        self.assertEqual(data["results"][0]["content"], "isFriend")
+        self.assertEqual(data["results"][0]["is_accepted"], True)
         self.assertEqual(data["results"][0]["is_checked"], True)
         self.assertEqual(data["results"][0]["sender_preview"]["id"], stranger.id)
         self.assertEqual(len(data["results"][0]["senders"]), 0)
@@ -637,6 +637,7 @@ class NoticeTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["results"][0]["content"], "FriendRequest")
+        self.assertEqual(data["results"][0]["is_accepted"], False)
         self.assertEqual(data["results"][0]["sender_preview"]["id"], stranger2.id)
         self.assertEqual(len(data["results"][0]["senders"]), 0)
 
