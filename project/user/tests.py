@@ -398,6 +398,18 @@ class LogoutTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertNotEqual(user_token, "JWT " + jwt_token_of(self.user))
 
+    def test_logout_invalid_user(self):
+        self.user.is_valid = False
+        self.user.save()
+        user_token = "JWT " + jwt_token_of(self.user)
+        response = self.client.get(
+            "/api/v1/account/logout/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(user_token, "JWT " + jwt_token_of(self.user))
+
 
 class AccountDeletTestCase(TestCase):
     @classmethod
