@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status, permissions
 from newsfeed.models import Post
+from datetime import datetime
 
 
 def NoticeCreate(**context):
@@ -55,6 +56,8 @@ def NoticeCreate(**context):
 
     if notice:
         notice = notice[0]
+        notice.created = datetime.now()
+        notice.save()
         notice_sender = notice.senders.filter(user=sender)
         if notice_sender.exists():
             notice_sender = notice_sender[0]
