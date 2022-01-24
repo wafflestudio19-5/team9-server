@@ -14,7 +14,7 @@ class Notice(models.Model):
         Comment, on_delete=CASCADE, null=True, related_name="notices"
     )
     content = models.CharField(max_length=30, blank=True)
-    created = models.DateTimeField(auto_now=True)
+    created = models.DateTimeField(auto_now_add=True)
     is_checked = models.BooleanField(default=False)
     is_accepted = models.BooleanField(default=False)
     url = models.CharField(max_length=1000)
