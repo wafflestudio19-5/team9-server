@@ -177,6 +177,14 @@ class NoticeListView(ListAPIView):
         self.queryset = request.user.notices.all()
         return super().list(request)
 
+    def put(self, request):
+        notices = request.user.notices.all()
+        for notice in notices:
+            notice.is_checked = False
+            notice.save()
+        self.queryset = request.user.notices.all()
+        return super().list(request)
+
 
 class NoticeOnOffView(GenericAPIView):
     serializer_class = PostSerializer
