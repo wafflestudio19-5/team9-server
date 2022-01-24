@@ -13,8 +13,8 @@ class PostSerializer(serializers.ModelSerializer):
 
     subposts = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField()
-    author = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
+    author = serializers.SerializerMethodField()
     shared_post = serializers.SerializerMethodField()
     shared_counts = serializers.SerializerMethodField()
     posted_at = serializers.SerializerMethodField()
@@ -89,6 +89,9 @@ class PostSerializer(serializers.ModelSerializer):
 
         return SubPostSerializer(post.subposts, many=True, context=self.context).data
 
+    def get_author(self, post):
+        return UserSerializer(post.author).data
+
     def get_is_liked(self, post):
         request = self.context.get("request")
         if not request:
@@ -98,9 +101,6 @@ class PostSerializer(serializers.ModelSerializer):
             return True
 
         return False
-
-    def get_author(self, post):
-        return UserSerializer(post.author).data
 
     def get_comments(self, post):
         return post.comments.count()
@@ -112,7 +112,7 @@ class PostSerializer(serializers.ModelSerializer):
 
         shared_post = post.shared_post
 
-        if not post.shared_post:
+        if not shared_post:
             return None
 
         user = self.context["request"].user
@@ -125,7 +125,7 @@ class PostSerializer(serializers.ModelSerializer):
             if shared_post.scope != 3:
                 return None
 
-        return PostSerializer(shared_post, context=self.context).data
+        return SharedPostSerializer(shared_post, context=self.context).data
 
     def get_shared_counts(self, post):
         return post.sharing_posts.count()
@@ -195,6 +195,79 @@ class SubPostSerializer(serializers.ModelSerializer):
 
     def get_tagged_users(self, post):
         return TagUserSerializer(post.tagged_users, many=True).data
+
+
+class SharedPostSerializer(serializers.ModelSerializer):
+    subposts = serializers.SerializerMethodField()
+    author = serializers.SerializerMethodField()
+    shared_counts = serializers.SerializerMethodField()
+    posted_at = serializers.SerializerMethodField()
+    tagged_users = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
+    comments = serializers.SerializerMethodField()
+    is_noticed = serializers.SerializerMethodField()
+
+    class Meta:
+
+        model = Post
+
+        fields = (
+            "id",
+            "author",
+            "content",
+            "file",
+            "posted_at",
+            "mainpost",
+            "subposts",
+            "comments",
+            "likes",
+            "is_liked",
+            "scope",
+            "shared_counts",
+            "tagged_users",
+            "is_noticed",
+        )
+
+    def get_posted_at(self, post):
+        return format_time(post.created)
+
+    def get_subposts(self, post):
+
+        if not post.mainpost:
+            return SharedPostSerializer(
+                post.subposts, many=True, context=self.context
+            ).data
+        else:
+            return None
+
+    def get_author(self, post):
+        return UserSerializer(post.author).data
+
+    def get_tagged_users(self, post):
+        return TagUserSerializer(post.tagged_users, many=True).data
+
+    def get_shared_counts(self, post):
+        return post.sharing_posts.count()
+
+    def get_is_liked(self, post):
+        request = self.context.get("request")
+        if not request:
+            return None
+
+        if post.likeusers.filter(pk=request.user.id).exists():
+            return True
+
+        return False
+
+    def get_comments(self, post):
+        return post.comments.count()
+
+    def get_is_noticed(self, post):
+        user = self.context["request"].user
+        if post.notice_off_users.filter(id=user.id).exists():
+            return False
+        else:
+            return True
 
 
 class PostLikeSerializer(serializers.ModelSerializer):
