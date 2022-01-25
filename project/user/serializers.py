@@ -109,6 +109,10 @@ class UserSerializer(serializers.ModelSerializer):
 class UserMutualFriendsSerializer(serializers.ModelSerializer):
     is_friend = serializers.SerializerMethodField()
     mutual_friends = serializers.SerializerMethodField()
+    friend_info = serializers.SerializerMethodField(
+        read_only=True,
+        help_text="오류 상황시 None, 본인이면 self, 친구이면 friend, 로그인된 유저가 요청을 보냈으면 sent, 로그인된 유저가 요청을 받았으면 received, 아무것도 아니면 nothing",
+    )
 
     class Meta:
         model = User
@@ -119,6 +123,7 @@ class UserMutualFriendsSerializer(serializers.ModelSerializer):
             "profile_image",
             "is_friend",
             "mutual_friends",
+            "friend_info",
         )
         extra_kwargs = {"password": {"write_only": True}}
 
@@ -139,6 +144,25 @@ class UserMutualFriendsSerializer(serializers.ModelSerializer):
         if user == request_user:
             return None
         return user.friends.filter(pk=request_user.id).exists()
+
+    def get_friend_info(self, user):
+        request = self.context.get("request")
+        if not request:
+            return None
+        current_user = request.user
+        if user.id == current_user.id:
+            return "self"
+        if user.friends.all().filter(id=current_user.id).exists():
+            return "friend"
+        if current_user.sent_friend_request.filter(receiver=user).exists():
+            return "sent"
+        if user.sent_friend_request.filter(receiver=current_user).exists():
+            return "received"
+        return "nothing"
+
+
+class FriendRequestCreateSerializer(serializers.ModelSerializer):
+    sender_profile = serializers.SerializerMethodField()
 
 
 class CompanySerializer(serializers.ModelSerializer):

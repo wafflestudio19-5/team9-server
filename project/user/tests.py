@@ -568,6 +568,7 @@ class UserFriendTestCase(TestCase):
         # 페이지네이션 돼서 20개
         self.assertEqual(len(data["results"]), 20)
         self.assertEqual(data["results"][0]["mutual_friends"]["count"], 0)
+        self.assertEqual(data["results"][0]["friend_info"], "friend")
 
         response = self.client.get(
             f"/api/v1/user/{self.test_user.id}/friend/?limit=9",
