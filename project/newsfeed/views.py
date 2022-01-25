@@ -724,15 +724,3 @@ class CommentLikeView(GenericAPIView):
         return Response(CommentLikeSerializer(comment).data, status=status.HTTP_200_OK)
 
 
-class TestView(GenericAPIView):
-    def post(self, request):
-
-        subposts = request.data.getlist("subposts")
-
-        for subpost in subposts:
-
-            subpost = literal_eval(subpost)
-            print(subpost["content"])
-            print(subpost["tagged_users"])
-
-        return Response(status=status.HTTP_200_OK)
