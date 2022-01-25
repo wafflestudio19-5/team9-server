@@ -74,7 +74,7 @@ class PostSerializer(serializers.ModelSerializer):
         scope = data["scope"]
 
         if not isFile:
-            if not content:
+            if not content or len(content) == 0:
                 raise serializers.ValidationError("내용을 입력해주세요.")
 
         if scope > 3 or scope < 1:

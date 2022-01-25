@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from django.db.models import Q
 from django.db import transaction
 from rest_framework.views import APIView
+from ast import literal_eval
 
 from .serializers import (
     PostSerializer,
@@ -97,45 +98,39 @@ class PostListView(ListCreateAPIView):
                 )
 
         if files:
-            contents = request.data.getlist("subposts", [])
-            subposts_tagged_users = request.data.getlist("subposts_tagged_users", [])
+            subposts = request.data.getlist("subposts", [])
+
+            if len(files) != len(subposts):
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST,
+                    data="files와 subposts의 개수를 맞춰주세요.",
+                )
 
             for i in range(len(files)):
-
-                if len(contents) > i:
-                    serializer = PostSerializer(
-                        data={
-                            "content": contents[i],
-                            "mainpost": mainpost.id,
-                            "scope": scope,
-                        },
-                        context=context,
-                    )
-                else:
-                    serializer = PostSerializer(
-                        data={"mainpost": mainpost.id, "scope": scope},
-                        context=context,
-                    )
+                subpost = subposts[i]
+                subpost = literal_eval(subpost)
+                content = subpost.get("content", "")
+                tagged_users = subpost.get("tagged_users", [])
+                serializer = PostSerializer(
+                    data={
+                        "content": content,
+                        "mainpost": mainpost.id,
+                        "scope": scope,
+                    },
+                    context=context,
+                )
                 serializer.is_valid(raise_exception=True)
                 subpost = serializer.save()
                 subpost.file.save(files[i].name, files[i], save=True)
 
-                if len(subposts_tagged_users) > i:
-                    subpost_tagged_users = list(
-                        subposts_tagged_users[i][1:-1].split(",")
-                    )
-
-                else:
-                    subpost_tagged_users = []
-
-                for subpost_tagged_user in subpost_tagged_users:
-                    subpost_tagged_user = int(subpost_tagged_user)
-                    subpost.tagged_users.add(subpost_tagged_user)
+                for tagged_user in tagged_users:
+                    tagged_user = User.objects.get(id=tagged_user)
+                    subpost.tagged_users.add(tagged_user)
                     subpost.save()
-                    if user.id != subpost_tagged_user:
+                    if user != tagged_user:
                         NoticeCreate(
                             sender=user,
-                            receiver=User.objects.get(id=subpost_tagged_user),
+                            receiver=tagged_user,
                             content="PostTag",
                             post=subpost,
                         )
@@ -187,6 +182,7 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
         request_body=PostUpdateSwaggerSerializer(),
         responses={200: PostSerializer()},
     )
+    @transaction.atomic
     def put(self, request, pk=None):
 
         post = get_object_or_404(Post, pk=pk)
@@ -202,19 +198,13 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
                 status=status.HTTP_403_FORBIDDEN, data="다른 유저의 게시글을 수정할 수 없습니다."
             )
 
-        files = request.FILES.getlist("file")
-        contents = request.data.getlist("subposts", [])
-        subposts = request.data.getlist("subposts_id")
-        cnt = post.subposts.count()
+        content = request.data.get("content")
+        files = request.FILES.getlist("file", [])
+        subposts = request.data.getlist("subposts")
         scope = request.data.get("scope")
-        removed = request.data.getlist("removed_subposts_id")
+        removed_subposts = request.data.getlist("removed_subposts")
         tagged_users = request.data.getlist("tagged_users")
-
-        if cnt != len(set(subposts)):
-            return Response(
-                status=status.HTTP_400_BAD_REQUEST,
-                data="subposts_id에 기존 subpost들의 id를 넣어주세요.",
-            )
+        new_subposts = request.data.getlist("new_subposts", [])
 
         if scope:
 
@@ -224,86 +214,104 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
                 )
 
             scope = int(scope)
+            post.scope = scope
+
+        if len(files) != len(new_subposts):
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data="new_subposts와 files의 개수를 맞춰주세요.",
+            )
 
         # mainpost 수정
-        content = request.data.get("content")
-        if (set(subposts) == set(removed)) and not files:
+        if not post.subposts.exclude(id__in=removed_subposts).exists():
 
             if not content:
                 return Response(status=status.HTTP_400_BAD_REQUEST, data="내용을 입력해주세요.")
 
-        post.content = request.data.get("content")
+        post.content = content
 
-        if scope:
-            post.scope = scope
-
-        for before_tagged_user in post.tagged_users.all():
-            NoticeCancel(
-                sender=user,
-                receiver=before_tagged_user,
-                content="PostTag",
-                post=post,
-            )
-        post.tagged_users.clear()
-        for tagged_user in tagged_users:
-            tagged_user = int(tagged_user)
-            post.tagged_users.add(tagged_user)
-            if user.id != tagged_user:
-                NoticeCreate(
+        canceled_users = post.tagged_users.exclude(id__in=tagged_users)
+        for canceled_user in canceled_users:
+            post.tagged_users.remove(canceled_user)
+            if user != canceled_user:
+                NoticeCancel(
                     sender=user,
-                    receiver=User.objects.get(id=tagged_user),
+                    receiver=canceled_user,
                     content="PostTag",
                     post=post,
                 )
+
+        for tagged_user in tagged_users:
+
+            if not post.tagged_users.filter(id=tagged_user).exists():
+                tagged_user = get_object_or_404(User, id=tagged_user)
+                post.tagged_users.add(tagged_user)
+                if user != tagged_user:
+                    NoticeCreate(
+                        sender=user,
+                        receiver=tagged_user,
+                        content="PostTag",
+                        post=post,
+                    )
         post.save()
 
-        # 기존의 subposts content 수정 및 subpost 삭제
-        subposts_tagged_users = request.data.getlist("subposts_tagged_users")
-        for i in range(len(subposts)):
-            subpost = get_object_or_404(post.subposts, id=subposts[i])
+        # subposts 삭제
+        if removed_subposts:
+            subposts = post.subposts.filter(id__in=removed_subposts)
+            subposts.delete()
 
-            if str(subpost.id) in removed:
-                subpost.delete()
-            else:
-                subpost.content = contents[i]
+        # 기존의 subposts content 수정
+        if subposts:
+            for subpost in subposts:
+                subpost = literal_eval(subpost)
+                subpost_content = subpost.get("content", "")
+                subpost_id = subpost["id"]
+                subpost_tagged_users = subpost.get("tagged_users", [])
+
+                subpost = get_object_or_404(post.subposts, id=subpost_id)
+                subpost.content = subpost_content
                 if scope:
                     subpost.scope = scope
 
-                if len(subposts_tagged_users) > i:
-                    subpost_tagged_users = list(
-                        subposts_tagged_users[i][1:-1].split(",")
-                    )
-                else:
-                    subpost_tagged_users = []
-
-                for before_tagged_user in subpost.tagged_users.all():
-                    NoticeCancel(
-                        sender=user,
-                        receiver=before_tagged_user,
-                        content="PostTag",
-                        post=subpost,
-                    )
-                subpost.tagged_users.clear()
-
-                for subpost_tagged_user in subpost_tagged_users:
-                    subpost_tagged_user = int(subpost_tagged_user)
-                    subpost.tagged_users.add(subpost_tagged_user)
-                    if user.id != subpost_tagged_user:
-                        NoticeCreate(
+                canceled_users = subpost.tagged_users.exclude(
+                    id__in=subpost_tagged_users
+                )
+                for canceled_user in canceled_users:
+                    subpost.tagged_users.remove(canceled_user)
+                    if user != canceled_user:
+                        NoticeCancel(
                             sender=user,
-                            receiver=User.objects.get(id=subpost_tagged_user),
+                            receiver=canceled_user,
                             content="PostTag",
                             post=subpost,
                         )
+
+                for subpost_tagged_user in subpost_tagged_users:
+
+                    if not subpost.tagged_users.filter(id=subpost_tagged_user).exists():
+                        subpost_tagged_user = get_object_or_404(
+                            User, id=subpost_tagged_user
+                        )
+                        subpost.tagged_users.add(subpost_tagged_user)
+                        if user != subpost_tagged_user:
+                            NoticeCreate(
+                                sender=user,
+                                receiver=subpost_tagged_user,
+                                content="PostTag",
+                                post=subpost,
+                            )
+
                 subpost.save()
 
         # 파일 추가하는 경우 subpost 추가
         if files:
+
             for i in range(len(files)):
-                idx = i + len(subposts)
+                new_subpost = new_subposts[i]
+                new_subpost = literal_eval(new_subpost)
                 serializer = PostSerializer(
                     data={
-                        "content": contents[idx],
+                        "content": new_subpost.get("content", ""),
                         "mainpost": post.id,
                         "scope": post.scope,
                     },
@@ -313,26 +321,19 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
                 subpost = serializer.save()
                 subpost.file.save(files[i].name, files[i], save=True)
 
-                if len(subposts_tagged_users) > idx:
-                    subpost_tagged_users = list(
-                        subposts_tagged_users[idx][1:-1].split(",")
-                    )
-
-                else:
-                    subpost_tagged_users = []
+                subpost_tagged_users = new_subpost.get("tagged_users", [])
 
                 for subpost_tagged_user in subpost_tagged_users:
-                    subpost_tagged_user = int(subpost_tagged_user)
+                    subpost_tagged_user = User.objects.get(id=subpost_tagged_user)
                     subpost.tagged_users.add(subpost_tagged_user)
                     subpost.save()
-                    if user.id != subpost_tagged_user:
+                    if user != subpost_tagged_user:
                         NoticeCreate(
                             sender=user,
-                            receiver=User.objects.get(id=subpost_tagged_user),
+                            receiver=subpost_tagged_user,
                             content="PostTag",
                             post=subpost,
                         )
-
         return Response(
             self.get_serializer(post).data,
             status=status.HTTP_200_OK,
@@ -721,3 +722,17 @@ class CommentLikeView(GenericAPIView):
     def get(self, request, post_id=None, comment_id=None):
         comment = get_object_or_404(self.queryset, pk=comment_id, post=post_id)
         return Response(CommentLikeSerializer(comment).data, status=status.HTTP_200_OK)
+
+
+class TestView(GenericAPIView):
+    def post(self, request):
+
+        subposts = request.data.getlist("subposts")
+
+        for subpost in subposts:
+
+            subpost = literal_eval(subpost)
+            print(subpost["content"])
+            print(subpost["tagged_users"])
+
+        return Response(status=status.HTTP_200_OK)

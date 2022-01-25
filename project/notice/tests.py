@@ -964,7 +964,7 @@ class NoticeTestCase(TestCase):
         # subpost 단위로 알림 꺼보기
         data = {
             "content": "메인 포스트입니다.",
-            "subposts": ["첫번째 포스트입니다."],
+            "subposts": [{"content": "첫번째 포스트입니다."}],
             "file": [test_image],
         }
 
@@ -1117,14 +1117,13 @@ class NoticeTestCase(TestCase):
         data = {
             "content": "",
             "subposts": [
-                f"@{friend_1.username}, @{friend_2.username}",
-                f"@{friend_3.username}",
+                {
+                    "content": f"@{friend_1.username}, @{friend_2.username}",
+                    "tagged_users": [friend_1.id, friend_2.id],
+                },
+                {"content": f"@{friend_3.username}", "tagged_users": [friend_3.id]},
             ],
             "file": [test_image, test_image],
-            "subposts_tagged_users": [
-                [friend_1.id, friend_2.id],
-                [friend_3.id],
-            ],
         }
 
         response = self.client.post(
@@ -1438,10 +1437,14 @@ class NoticeTestCase(TestCase):
 
         data = {
             "content": f"@{friend_1.username}",
-            "subposts": [f"@{friend_2.username}, @{friend_3.username}"],
+            "subposts": [
+                {
+                    "content": f"@{friend_2.username}, @{friend_3.username}",
+                    "tagged_users": [friend_2.id, friend_3.id],
+                }
+            ],
             "file": [test_image],
             "tagged_users": [friend_1.id],
-            "subposts_tagged_users": [[friend_2.id, friend_3.id]],
         }
 
         response = self.client.post(
@@ -1485,13 +1488,17 @@ class NoticeTestCase(TestCase):
         data = {
             "content": f"@{friend_4.username}, @{self.test_user.username}",
             "subposts": [
-                f"@{friend_1.username}, @{friend_3.username}",
-                f"@{friend_2.username}",
+                {
+                    "id": subpost_id,
+                    "contetnt": f"@{friend_1.username}, @{friend_3.username}",
+                    "tagged_users": [friend_1.id, friend_3.id],
+                }
+            ],
+            "new_subposts": [
+                {"content": f"@{friend_2.username}", "tagged_users": [friend_2.id]}
             ],
             "file": [test_image],
-            "subposts_id": [subpost_id],
             "tagged_users": [friend_4.id, self.test_user.id],
-            "subposts_tagged_users": [[friend_1.id, friend_3.id], [friend_2.id]],
         }
         response = self.client.put(
             f"/api/v1/newsfeed/{mainpost_id}/",
