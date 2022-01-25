@@ -217,7 +217,7 @@ class NewsFeedTestCase(TestCase):
         )
         data = {
             "content": content,
-            "subposts": ["첫번째 사진입니다."],
+            "subposts": [{"content": "첫번째 사진입니다."}],
             "file": test_image,
         }
 
@@ -252,7 +252,7 @@ class NewsFeedTestCase(TestCase):
 
         # File이 없는데 Content 내용이 없을 경우 오류, File이 하나라도 있으면 content 없어도 댐
         data = {
-            "subposts": ["첫번째 사진입니다."],
+            "subposts": [{"content": "첫번째 사진입니다."}],
             "file": test_image,
         }
         response = self.client.post(
@@ -263,9 +263,7 @@ class NewsFeedTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        data = {
-            "file": test_image,
-        }
+        data = {"content": "", "file": test_image, "subposts": [{"content": ""}]}
         response = self.client.post(
             "/api/v1/newsfeed/",
             data=encode_multipart("BoUnDaRyStRiNg", data),
@@ -274,19 +272,7 @@ class NewsFeedTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        data = {
-            "content": "FOR TEST !!",
-            "file": test_image,
-        }
-        response = self.client.post(
-            "/api/v1/newsfeed/",
-            data=encode_multipart("BoUnDaRyStRiNg", data),
-            content_type=self.content_type,
-            HTTP_AUTHORIZATION=user_token,
-        )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-        data = {}
+        data = {"content": ""}
         response = self.client.post(
             "/api/v1/newsfeed/",
             data=encode_multipart("BoUnDaRyStRiNg", data),
@@ -349,7 +335,11 @@ class NewsFeedTestCase(TestCase):
         )
         data = {
             "content": "메인 포스트입니다.",
-            "subposts": ["첫번째 포스트입니다.", "두번째 포스트입니다.", "세번째 포스트입니다."],
+            "subposts": [
+                {"content": "첫번째 포스트입니다."},
+                {"content": "두번째 포스트입니다."},
+                {"content": "세번째 포스트입니다."},
+            ],
             "file": [test_image, test_image, test_image],
         }
 
@@ -369,8 +359,11 @@ class NewsFeedTestCase(TestCase):
         # 내용 수정
         data = {
             "content": "메인 포스트입니다. (수정됨)",
-            "subposts": ["첫번째 포스트입니다. (수정됨)", "두번째 포스트입니다. (수정됨)", "세번째 포스트입니다. (수정됨)"],
-            "subposts_id": [subpost_1, subpost_2, subpost_3],
+            "subposts": [
+                {"id": subpost_1, "content": "첫번째 포스트입니다. (수정됨)"},
+                {"id": subpost_2, "content": "두번째 포스트입니다. (수정됨)"},
+                {"id": subpost_3, "content": "세번째 포스트입니다. (수정됨)"},
+            ],
         }
 
         content = encode_multipart("BoUnDaRyStRiNg", data)
@@ -396,9 +389,7 @@ class NewsFeedTestCase(TestCase):
         # 파일 삭제
         data = {
             "content": "메인 포스트입니다. (수정됨)",
-            "subposts": ["첫번째 포스트입니다. (수정됨)", "두번째 포스트입니다. (수정됨)", "세번째 포스트입니다. (수정됨)"],
-            "subposts_id": [subpost_1, subpost_2, subpost_3],
-            "removed_subposts_id": subpost_1,
+            "removed_subposts": subpost_1,
         }
         content = encode_multipart("BoUnDaRyStRiNg", data)
 
@@ -421,9 +412,8 @@ class NewsFeedTestCase(TestCase):
         # 파일 추가
         data = {
             "content": "메인 포스트입니다. (수정됨)",
-            "subposts": ["두번째 포스트입니다. (수정됨)", "세번째 포스트입니다. (수정됨)", "네번째 포스트입니다."],
             "file": [test_image],
-            "subposts_id": [subpost_2, subpost_3],
+            "new_subposts": [{"content": "네번째 포스트입니다."}],
         }
         content = encode_multipart("BoUnDaRyStRiNg", data)
 
@@ -447,22 +437,18 @@ class NewsFeedTestCase(TestCase):
 
         # 파일 삭제와 추가 동시에 (2장 제거, 3장 추가)
         data = {
-            "content": "메인 포스트입니다. (수정됨)",
-            "subposts": [
-                "두번째 포스트입니다. (수정됨)",
-                "세번째 포스트입니다. (수정됨)",
-                "네번째 포스트입니다.",
-                "다섯번째 포스트입니다.",
-                "여섯번째 포스트입니다.",
-                "일곱번째 포스트입니다.",
-            ],
+            "content": "메인 포스트입니다. (수정됨ㅋㅋ)",
             "file": [
                 test_image,
                 test_image,
                 test_image,
             ],
-            "subposts_id": [subpost_2, subpost_3, subpost_4],
-            "removed_subposts_id": [subpost_2, subpost_3],
+            "new_subposts": [
+                {"content": "다섯번째 포스트입니다."},
+                {"content": "여섯번째 포스트입니다."},
+                {"content": "일곱번째 포스트입니다."},
+            ],
+            "removed_subposts": [subpost_2, subpost_3],
         }
         content = encode_multipart("BoUnDaRyStRiNg", data)
         response = self.client.put(
@@ -474,7 +460,7 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["id"], mainpost_id)
-        self.assertEqual(data["content"], "메인 포스트입니다. (수정됨)")
+        self.assertEqual(data["content"], "메인 포스트입니다. (수정됨ㅋㅋ)")
         self.assertEqual(len(data["subposts"]), 4)
         self.assertEqual(data["subposts"][0]["content"], "네번째 포스트입니다.")
         self.assertEqual(data["subposts"][0]["id"], subpost_4)
@@ -488,8 +474,11 @@ class NewsFeedTestCase(TestCase):
         # mainpost 단위에 한해서만 수정 가능
         data = {
             "content": "메인 포스트아니면 수정 불가합니다.",
-            "subposts": ["네번째 포스트입니다.", "다섯번째 포스트입니다.", "여섯번째 포스트입니다."],
-            "subposts_id": [subpost_4, subpost_5, subpost_6],
+            "subposts": [
+                {"id": subpost_4, "content": "네번째 포스트입니다. (수정됨)"},
+                {"id": subpost_5, "content": "다섯번째 포스트입니다. (수정됨)"},
+                {"id": subpost_6, "content": "여섯번째 포스트입니다. (수정됨)"},
+            ],
         }
         content = encode_multipart("BoUnDaRyStRiNg", data)
         response = self.client.put(
@@ -503,8 +492,12 @@ class NewsFeedTestCase(TestCase):
         # 파일 있으면 content 비워져 있어도 200
         data = {
             "content": "",
-            "subposts": ["", "", "", ""],
-            "subposts_id": [subpost_4, subpost_5, subpost_6, subpost_7],
+            "subposts": [
+                {"id": subpost_4, "content": ""},
+                {"id": subpost_5, "content": ""},
+                {"id": subpost_6, "content": ""},
+                {"id": subpost_7, "content": ""},
+            ],
         }
         content = encode_multipart("BoUnDaRyStRiNg", data)
         response = self.client.put(
@@ -522,26 +515,15 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(data["subposts"][2]["content"], "")
         self.assertEqual(data["subposts"][3]["content"], "")
 
-        # subposts_id 개수가 subposts들과 다르면 400
+        # subposts_id가 없는 subpost면 404
         data = {
-            "content": "메인 포스트입니다. (수정됨)",
-            "subposts": ["네번째 포스트입니다.", "다섯번째 포스트입니다.", "여섯번째 포스트입니다.", "일곱번째 포스트입니다."],
-            "subposts_id": [subpost_4, subpost_5, subpost_6],
-        }
-        content = encode_multipart("BoUnDaRyStRiNg", data)
-        response = self.client.put(
-            f"/api/v1/newsfeed/{mainpost_id}/",
-            data=content,
-            content_type=content_type,
-            HTTP_AUTHORIZATION=user_token,
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-        # subposts_id 중 기존 subposts가 아닌 것이 있으면 404
-        data = {
-            "content": "메인 포스트입니다. (수정됨)",
-            "subposts": ["네번째 포스트입니다.", "다섯번째 포스트입니다.", "여섯번째 포스트입니다.", "일곱번째 포스트입니다."],
-            "subposts_id": [subpost_4, subpost_5, subpost_6, 9999],
+            "content": "",
+            "subposts": [
+                {"id": subpost_1, "content": ""},
+                {"id": subpost_5, "content": ""},
+                {"id": subpost_6, "content": ""},
+                {"id": subpost_7, "content": ""},
+            ],
         }
         content = encode_multipart("BoUnDaRyStRiNg", data)
         response = self.client.put(
@@ -566,6 +548,45 @@ class NewsFeedTestCase(TestCase):
             HTTP_AUTHORIZATION=user_token,
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        # subposts들을 모두 remove한 후 빈 content
+        data = {
+            "content": "메인 포스트 입니다.",
+            "subposts": [{"content": "첫번째 사진입니다."}, {"content": "첫번째 사진입니다."}],
+            "file": [test_image, test_image],
+        }
+
+        response = self.client.post(
+            "/api/v1/newsfeed/",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        data = response.json()
+
+        post_id = data["id"]
+        subpost_1 = data["subposts"][0]["id"]
+        subpost_2 = data["subposts"][1]["id"]
+
+        data = {"content": "", "removed_subposts": [subpost_1, subpost_2]}
+        response = self.client.put(
+            f"/api/v1/newsfeed/{post_id}/",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 이 경우 삭제된 거 취소 되는지?
+        data = {"content": "테스트", "removed_subposts": [subpost_1, subpost_2]}
+        response = self.client.put(
+            f"/api/v1/newsfeed/{post_id}/",
+            data=encode_multipart("BoUnDaRyStRiNg", data),
+            content_type=self.content_type,
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
 class ShareTestCase(TestCase):
@@ -620,7 +641,7 @@ class ShareTestCase(TestCase):
         # 게시물 공유하기
         data = {
             "content": "공유할 게시글입니다.",
-            "subposts": [""],
+            "subposts": [{"content": ""}],
             "file": self.test_image,
         }
 
@@ -680,8 +701,7 @@ class ShareTestCase(TestCase):
         # 내 공유를 본 사람이 공유된 게시글의 보기 권한이 없는 경우
         data = {
             "content": "",
-            "subposts": [""],
-            "subposts_id": [subpost_id],
+            "subposts": [{"id": subpost_id, "content": ""}],
             "scope": 2,
         }
 
@@ -707,8 +727,7 @@ class ShareTestCase(TestCase):
 
         data = {
             "content": "",
-            "subposts": [""],
-            "subposts_id": [subpost_id],
+            "subposts": [{"id": subpost_id, "content": ""}],
             "scope": 1,
         }
 
@@ -759,7 +778,7 @@ class ShareTestCase(TestCase):
         )
         data = {
             "content": "메인 포스트입니다.",
-            "subposts": ["첫번째 포스트입니다."],
+            "subposts": [{"content": "첫번째 포스트입니다."}],
             "file": [test_image],
         }
 
@@ -1035,7 +1054,7 @@ class ScopeTestCase(TestCase):
 
         data = {
             "content": "친구 공개 게시글 입니다",
-            "subposts": ["첫번째 사진입니다.", "두번째 사진입니다."],
+            "subposts": [{"content": "첫번째 사진입니다."}, {"content": "두번째 사진입니다."}],
             "file": [self.test_image, self.test_image],
             "scope": 2,
         }
@@ -1056,7 +1075,7 @@ class ScopeTestCase(TestCase):
         # 디폴트 값은 3 (전체공개)
         data = {
             "content": "친구 공개 게시글 입니다",
-            "subposts": ["첫번째 사진입니다.", "두번째 사진입니다."],
+            "subposts": [{"content": "첫번째 사진입니다."}, {"content": "두번째 사진입니다."}],
             "file": [self.test_image, self.test_image],
         }
 
@@ -1076,7 +1095,7 @@ class ScopeTestCase(TestCase):
         # scope를 1, 2, 3이 아닌 다른 것을 했을 때 오류
         data = {
             "content": "친구 공개 게시글 입니다",
-            "subposts": ["첫번째 사진입니다.", "두번째 사진입니다."],
+            "subposts": [{"content": "첫번째 사진입니다."}, {"content": "두번째 사진입니다."}],
             "file": [self.test_image, self.test_image],
             "scope": 4,
         }
@@ -1090,7 +1109,7 @@ class ScopeTestCase(TestCase):
 
         data = {
             "content": "친구 공개 게시글 입니다",
-            "subposts": ["첫번째 사진입니다.", "두번째 사진입니다."],
+            "subposts": [{"content": "첫번째 사진입니다."}, {"content": "두번째 사진입니다."}],
             "file": [self.test_image, self.test_image],
             "scope": 0,
         }
@@ -1104,7 +1123,7 @@ class ScopeTestCase(TestCase):
 
         data = {
             "content": "친구 공개 게시글 입니다",
-            "subposts": ["첫번째 사진입니다.", "두번째 사진입니다."],
+            "subposts": [{"content": "첫번째 사진입니다."}, {"content": "두번째 사진입니다."}],
             "file": [self.test_image, self.test_image],
             "scope": "친구공개",
         }
@@ -1120,7 +1139,7 @@ class ScopeTestCase(TestCase):
 
         data = {
             "content": "친구 공개 게시글 입니다",
-            "subposts": ["첫번째 사진입니다.", "두번째 사진입니다."],
+            "subposts": [{"content": "첫번째 사진입니다."}, {"content": "두번째 사진입니다."}],
             "file": [self.test_image, self.test_image],
             "scope": 2,
         }
@@ -1139,8 +1158,10 @@ class ScopeTestCase(TestCase):
 
         data = {
             "content": "전체 공개 게시글입니다.",
-            "subposts": ["첫번째 사진입니다. (수정됨)", "두번째 사진입니다. (수정됨)"],
-            "subposts_id": [subpost_1, subpost_2],
+            "subposts": [
+                {"id": subpost_1, "content": "첫번째 사진입니다. (수정됨)"},
+                {"id": subpost_2, "content": "두번째 사진입니다. (수정됨)"},
+            ],
             "scope": 3,
         }
 
@@ -1164,8 +1185,6 @@ class ScopeTestCase(TestCase):
         # scope를 1, 2, 3이 아닌 다른 것을 했을 때 오류
         data = {
             "content": "전체 공개 게시글입니다.",
-            "subposts": ["첫번째 사진입니다. (수정됨)", "두번째 사진입니다. (수정됨)"],
-            "subposts_id": [subpost_1, subpost_2],
             "scope": "나만 보기",
         }
 
@@ -1181,8 +1200,6 @@ class ScopeTestCase(TestCase):
 
         data = {
             "content": "전체 공개 게시글입니다.",
-            "subposts": ["첫번째 사진입니다. (수정됨)", "두번째 사진입니다. (수정됨)"],
-            "subposts_id": [subpost_1, subpost_2],
             "scope": 4,
         }
 
@@ -1198,8 +1215,6 @@ class ScopeTestCase(TestCase):
 
         data = {
             "content": "전체 공개 게시글입니다.",
-            "subposts": ["첫번째 사진입니다. (수정됨)", "두번째 사진입니다. (수정됨)"],
-            "subposts_id": [subpost_1, subpost_2],
             "scope": 0,
         }
 
@@ -1233,8 +1248,6 @@ class ScopeTestCase(TestCase):
 
         data = {
             "content": "친구 공개 게시글입니다.",
-            "subposts": ["첫번째 사진입니다. (수정됨)", "두번째 사진입니다. (수정됨)"],
-            "subposts_id": [subpost_1, subpost_2],
             "scope": 2,
         }
 
@@ -1274,8 +1287,6 @@ class ScopeTestCase(TestCase):
 
         data = {
             "content": "나만 보기 게시글입니다.",
-            "subposts": ["첫번째 사진입니다. (수정됨)", "두번째 사진입니다. (수정됨)"],
-            "subposts_id": [subpost_1, subpost_2],
             "scope": 1,
         }
 
