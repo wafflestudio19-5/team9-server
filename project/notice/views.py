@@ -159,8 +159,8 @@ class NoticeView(GenericAPIView):
     def delete(self, request, notice_id=None):
 
         notice = get_object_or_404(request.user.notices, id=notice_id)
-
-        return Response(notice.delete(), status=status.HTTP_204_NO_CONTENT)
+        notice.delete()
+        return Response(data="알림이 삭제되었습니다.", status=status.HTTP_204_NO_CONTENT)
 
 
 class NoticeListView(ListAPIView):
