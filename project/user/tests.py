@@ -376,6 +376,56 @@ class LoginTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
+class UserStatusTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(
+            email="waffle@test.com",
+            first_name="민준",
+            last_name="이",
+            birth="2002-05-14",
+            gender="Male",
+            password="password",
+        )
+
+    def test_status(self):
+        user_token = "JWT " + jwt_token_of(self.user)
+        response = self.client.get(
+            "/api/v1/account/status/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["id"], self.user.id)
+        self.assertEqual(data["email"], self.user.email)
+        self.assertEqual(data["username"], self.user.username)
+        self.assertEqual(data["is_valid"], self.user.is_valid)
+
+    def test_status_invalid_user(self):
+        self.user.is_valid = False
+        self.user.save()
+        user_token = "JWT " + jwt_token_of(self.user)
+        response = self.client.get(
+            "/api/v1/account/status/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["id"], self.user.id)
+        self.assertEqual(data["email"], self.user.email)
+        self.assertEqual(data["username"], self.user.username)
+        self.assertEqual(data["is_valid"], self.user.is_valid)
+
+    def test_status_unauthorized(self):
+        response = self.client.get(
+            "/api/v1/account/status/",
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
 class LogoutTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -407,8 +457,8 @@ class LogoutTestCase(TestCase):
             content_type="application/json",
             HTTP_AUTHORIZATION=user_token,
         )
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(user_token, "JWT " + jwt_token_of(self.user))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotEqual(user_token, "JWT " + jwt_token_of(self.user))
 
 
 class AccountDeletTestCase(TestCase):
@@ -429,6 +479,20 @@ class AccountDeletTestCase(TestCase):
         }
 
     def test_accont_delete(self):
+        user_token = "JWT " + jwt_token_of(self.user)
+        user_id = self.user.id
+        response = self.client.delete(
+            "/api/v1/account/delete/",
+            data=self.post_data,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(User.objects.filter(pk=user_id))
+
+    def test_account_delete_invalid_user(self):
+        self.user.is_valid = False
+        self.user.save()
         user_token = "JWT " + jwt_token_of(self.user)
         user_id = self.user.id
         response = self.client.delete(
@@ -511,6 +575,17 @@ class UserNewsFeedTestCase(TestCase):
             content_type="application/json",
         )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_user_post_invalid_user(self):
+        self.test_user.is_valid = False
+        self.test_user.save()
+        user_token = "JWT " + jwt_token_of(self.test_user)
+        response = self.client.get(
+            f"/api/v1/user/{self.test_user.id}/newsfeed/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
 class UserFriendTestCase(TestCase):

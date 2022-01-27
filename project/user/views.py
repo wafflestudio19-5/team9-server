@@ -121,8 +121,17 @@ class UserLoginView(APIView):
         )
 
 
+class UserStatusView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        return Response(
+            data=UserSerializer(request.user).data, status=status.HTTP_200_OK
+        )
+
+
 class UserLogoutView(APIView):
-    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
+    permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request):
         request.user.jwt_secret = uuid.uuid4()
@@ -132,7 +141,7 @@ class UserLogoutView(APIView):
 
 
 class UserDeleteView(APIView):
-    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
+    permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(operation_description="계정 삭제하기")
     @transaction.atomic

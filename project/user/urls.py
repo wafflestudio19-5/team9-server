@@ -5,6 +5,7 @@ from rest_framework_jwt.views import refresh_jwt_token
 from .views import (
     UserLoginView,
     UserSignUpView,
+    UserStatusView,
     UserLogoutView,
     KakaoLoginView,
     KakaoConnectView,
@@ -38,6 +39,9 @@ urlpatterns = [
     path(
         "account/login/", UserLoginView.as_view(), name="account_login"
     ),  # /api/v1/account/login/
+    path(
+        "account/status/", UserStatusView.as_view(), name="account_status"
+    ),  # /api/v1/account/status/
     path(
         "account/logout/", UserLogoutView.as_view(), name="account_logout"
     ),  # /api/v1/account/logout/
