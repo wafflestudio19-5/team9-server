@@ -388,7 +388,8 @@ class NewsFeedTestCase(TestCase):
 
         # 파일 삭제
         data = {
-            "content": "메인 포스트입니다. (수정됨)",
+            "content": "메인 포스트입니다. (수정됨..2)",
+            "subposts": [{"id": subpost_2, "content": "두번째 포스트입니다. (수정됨..2)"}],
             "removed_subposts": subpost_1,
         }
         content = encode_multipart("BoUnDaRyStRiNg", data)
@@ -402,9 +403,9 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["id"], mainpost_id)
-        self.assertEqual(data["content"], "메인 포스트입니다. (수정됨)")
+        self.assertEqual(data["content"], "메인 포스트입니다. (수정됨..2)")
         self.assertEqual(len(data["subposts"]), 2)
-        self.assertEqual(data["subposts"][0]["content"], "두번째 포스트입니다. (수정됨)")
+        self.assertEqual(data["subposts"][0]["content"], "두번째 포스트입니다. (수정됨..2)")
         self.assertEqual(data["subposts"][0]["id"], subpost_2)
         self.assertEqual(data["subposts"][1]["content"], "세번째 포스트입니다. (수정됨)")
         self.assertEqual(data["subposts"][1]["id"], subpost_3)
@@ -428,7 +429,7 @@ class NewsFeedTestCase(TestCase):
         self.assertEqual(data["id"], mainpost_id)
         self.assertEqual(data["content"], "메인 포스트입니다. (수정됨)")
         self.assertEqual(len(data["subposts"]), 3)
-        self.assertEqual(data["subposts"][0]["content"], "두번째 포스트입니다. (수정됨)")
+        self.assertEqual(data["subposts"][0]["content"], "두번째 포스트입니다. (수정됨..2)")
         self.assertEqual(data["subposts"][0]["id"], subpost_2)
         self.assertEqual(data["subposts"][1]["content"], "세번째 포스트입니다. (수정됨)")
         self.assertEqual(data["subposts"][1]["id"], subpost_3)

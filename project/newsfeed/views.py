@@ -257,8 +257,8 @@ class PostUpdateView(RetrieveUpdateDestroyAPIView):
 
         # subposts 삭제
         if removed_subposts:
-            subposts = post.subposts.filter(id__in=removed_subposts)
-            subposts.delete()
+            removed_subposts = post.subposts.filter(id__in=removed_subposts)
+            removed_subposts.delete()
 
         # 기존의 subposts content 수정
         if subposts:
