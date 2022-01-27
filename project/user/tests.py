@@ -376,6 +376,56 @@ class LoginTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
+class UserStatusTestCase(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(
+            email="waffle@test.com",
+            first_name="민준",
+            last_name="이",
+            birth="2002-05-14",
+            gender="Male",
+            password="password",
+        )
+
+    def test_status(self):
+        user_token = "JWT " + jwt_token_of(self.user)
+        response = self.client.get(
+            "/api/v1/account/status/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["id"], self.user.id)
+        self.assertEqual(data["email"], self.user.email)
+        self.assertEqual(data["username"], self.user.username)
+        self.assertEqual(data["is_valid"], self.user.is_valid)
+
+    def test_status_invalid_user(self):
+        self.user.is_valid = False
+        self.user.save()
+        user_token = "JWT " + jwt_token_of(self.user)
+        response = self.client.get(
+            "/api/v1/account/status/",
+            content_type="application/json",
+            HTTP_AUTHORIZATION=user_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["id"], self.user.id)
+        self.assertEqual(data["email"], self.user.email)
+        self.assertEqual(data["username"], self.user.username)
+        self.assertEqual(data["is_valid"], self.user.is_valid)
+
+    def test_status_unauthorized(self):
+        response = self.client.get(
+            "/api/v1/account/status/",
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
 class LogoutTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
