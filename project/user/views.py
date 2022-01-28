@@ -357,7 +357,7 @@ class KakaoLoginView(APIView):
 
 
 class KakaoConnectView(APIView):
-    permission_classes = (permissions.IsAuthenticated & IsValidAccount,)
+    permission_classes = (permissions.IsAuthenticated,)
 
     @swagger_auto_schema(
         operation_description="카카오 계정 연결하기",
