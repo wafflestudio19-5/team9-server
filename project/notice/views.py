@@ -103,7 +103,9 @@ def NoticeCancel(**context):
             return False
 
     if content == "FriendRequest":
-        notice = receiver.notices.filter(senders__user=sender, content=content)
+        notice = receiver.notices.filter(
+            senders__user=sender, content=content, is_accepted=False
+        )
         if notice.exists():
             notice = notice[0]
             notice.delete()
